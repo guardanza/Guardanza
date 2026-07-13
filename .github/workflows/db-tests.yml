@@ -1,0 +1,33 @@
+name: Database tests
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+
+jobs:
+  pgtap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # supabase start runs the full local stack in Docker (already present
+      # on ubuntu-latest runners), applies every migration in
+      # supabase/migrations/, then `test db` runs pgTAP against it.
+      - name: Start local Supabase stack
+        run: supabase start
+
+      - name: Run pgTAP test suite
+        run: supabase test db
+
+      - name: Stop stack
+        if: always()
+        run: supabase stop

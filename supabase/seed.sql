@@ -1,0 +1,4 @@
+-- Local dev seed data. Intentionally empty for Fase A — the demo flow
+-- (org -> property -> contract -> sign -> pay -> dispute) is meant to be
+-- walked through manually via the app to exercise the whole thing end to
+-- end, not pre-seeded.
