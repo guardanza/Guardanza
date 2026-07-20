@@ -16,7 +16,7 @@ export default async function NewContractPage({
   const { property_id, error } = await searchParams;
 
   return (
-    <div className="mx-auto max-w-md space-y-4 px-6 py-10">
+    <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

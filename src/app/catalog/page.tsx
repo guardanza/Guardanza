@@ -15,10 +15,10 @@ export default async function CatalogPage() {
     .order("code");
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-6 py-10">
+    <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Catálogo de reparaciones</h1>
-        <p className="text-sm text-muted-foreground">Solo administradores de organización pueden editarlo.</p>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Catálogo de reparaciones</h1>
+        <p className="text-sm text-muted-foreground">Solo administradores de participante pueden editarlo.</p>
       </div>
 
       <div className="space-y-3">

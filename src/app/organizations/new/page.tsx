@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 
 export default function NewOrganizationPage() {
   return (
-    <div className="mx-auto max-w-md px-6 py-10">
+    <div className="mx-auto max-w-md px-4 py-6 md:px-6 md:py-10">
       <Card>
         <CardHeader>
-          <CardTitle>Nueva organización</CardTitle>
+          <CardTitle>Nuevo participante</CardTitle>
           <CardDescription>
             Cualquier persona o empresa que administra propiedades — incluso si eres tú solo.
           </CardDescription>
