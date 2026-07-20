@@ -1,21 +1,40 @@
 name: Database tests
 
+# No `paths:` filter here on purpose: this job's name ("pgtap") is a
+# required status check on main, and a required check that never gets
+# triggered leaves the PR permanently BLOCKED instead of passing. The job
+# always runs and always reports a result; it only skips the actual
+# Supabase/pgTAP work when the diff doesn't touch supabase/**.
 on:
   pull_request:
-    paths:
-      - "supabase/**"
   push:
     branches: [main]
-    paths:
-      - "supabase/**"
 
 jobs:
   pgtap:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for supabase/** changes
+        id: changes
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -n "$BASE_SHA" ] && git cat-file -e "$BASE_SHA" 2>/dev/null; then
+            if git diff --quiet "$BASE_SHA" HEAD -- supabase/; then
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            # No usable base to diff against — run the suite to be safe.
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: supabase/setup-cli@v1
+        if: steps.changes.outputs.changed == 'true'
         with:
           version: latest
 
@@ -23,11 +42,13 @@ jobs:
       # on ubuntu-latest runners), applies every migration in
       # supabase/migrations/, then `test db` runs pgTAP against it.
       - name: Start local Supabase stack
+        if: steps.changes.outputs.changed == 'true'
         run: supabase start
 
       - name: Run pgTAP test suite
+        if: steps.changes.outputs.changed == 'true'
         run: supabase test db
 
       - name: Stop stack
-        if: always()
+        if: steps.changes.outputs.changed == 'true' && always()
         run: supabase stop
