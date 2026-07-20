@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default async function AuditLogPage({
   searchParams,
@@ -41,17 +44,40 @@ export default async function AuditLogPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-8">
-      <h1 className="text-xl font-semibold">Audit log{contract_id ? ` — contrato ${contract_id}` : ""}</h1>
-      <ul className="divide-y border text-sm">
-        {entries?.map((e) => (
-          <li key={e.id} className="p-2">
-            <span className="text-gray-500">{e.created_at}</span> — <strong>{e.action}</strong> ({e.entity_type}:
-            {e.entity_id})
-          </li>
-        ))}
-        {(!entries || entries.length === 0) && <li className="p-2 text-gray-500">Sin eventos.</li>}
-      </ul>
+    <div className="mx-auto max-w-3xl space-y-6 px-6 py-10">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
+        {contract_id && <p className="text-sm text-muted-foreground">Filtrado por contrato {contract_id}</p>}
+      </div>
+
+      <Card className="p-0">
+        {entries && entries.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Acción</TableHead>
+                <TableHead>Entidad</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {entries.map((e) => (
+                <TableRow key={e.id}>
+                  <TableCell className="text-muted-foreground">{new Date(e.created_at).toLocaleString()}</TableCell>
+                  <TableCell className="font-medium">{e.action}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono">
+                      {e.entity_type}:{String(e.entity_id).slice(0, 8)}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">Sin eventos.</CardContent>
+        )}
+      </Card>
     </div>
   );
 }

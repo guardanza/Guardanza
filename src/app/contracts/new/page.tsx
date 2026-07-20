@@ -1,47 +1,77 @@
 import { createContract } from "@/lib/actions/contracts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const selectClass =
+  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 export default async function NewContractPage({
   searchParams,
 }: {
-  searchParams: Promise<{ property_id?: string }>;
+  searchParams: Promise<{ property_id?: string; error?: string }>;
 }) {
-  const { property_id } = await searchParams;
+  const { property_id, error } = await searchParams;
 
   return (
-    <form action={createContract} className="mx-auto max-w-md space-y-2 p-8">
-      <h1 className="text-xl font-semibold">Nuevo contrato</h1>
-      <input type="hidden" name="property_id" defaultValue={property_id} />
+    <div className="mx-auto max-w-md space-y-4 px-6 py-10">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Nuevo contrato</CardTitle>
+          <CardDescription>El contrato empieza en estado borrador — se firma después.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={createContract} className="space-y-4">
+            <input type="hidden" name="property_id" defaultValue={property_id} />
 
-      <label className="block text-sm">Arrendatario (email, debe tener cuenta ya creada)</label>
-      <input name="tenant_email" type="email" required className="w-full border p-2" />
+            <div className="space-y-1.5">
+              <Label htmlFor="tenant_email">Arrendatario (email, debe tener cuenta ya creada)</Label>
+              <Input id="tenant_email" name="tenant_email" type="email" required />
+            </div>
 
-      <label className="block text-sm">Vigencia</label>
-      <div className="flex gap-2">
-        <input name="start_date" type="date" required className="w-full border p-2" />
-        <input name="end_date" type="date" required className="w-full border p-2" />
-      </div>
+            <div className="space-y-1.5">
+              <Label>Vigencia</Label>
+              <div className="flex gap-2">
+                <Input name="start_date" type="date" required />
+                <Input name="end_date" type="date" required />
+              </div>
+            </div>
 
-      <label className="block text-sm">Renta</label>
-      <div className="flex gap-2">
-        <input name="rent_amount" type="number" step="0.01" required className="w-full border p-2" />
-        <select name="rent_currency" required className="w-full border p-2">
-          <option value="CLP">CLP</option>
-          <option value="UF">UF</option>
-        </select>
-      </div>
+            <div className="space-y-1.5">
+              <Label>Renta</Label>
+              <div className="flex gap-2">
+                <Input name="rent_amount" type="number" step="0.01" required />
+                <select name="rent_currency" required className={selectClass} defaultValue="CLP">
+                  <option value="CLP">CLP</option>
+                  <option value="UF">UF</option>
+                </select>
+              </div>
+            </div>
 
-      <label className="block text-sm">Garantía</label>
-      <div className="flex gap-2">
-        <input name="guarantee_amount" type="number" step="0.01" required className="w-full border p-2" />
-        <select name="guarantee_currency" required className="w-full border p-2">
-          <option value="CLP">CLP</option>
-          <option value="UF">UF</option>
-        </select>
-      </div>
+            <div className="space-y-1.5">
+              <Label>Garantía</Label>
+              <div className="flex gap-2">
+                <Input name="guarantee_amount" type="number" step="0.01" required />
+                <select name="guarantee_currency" required className={selectClass} defaultValue="CLP">
+                  <option value="CLP">CLP</option>
+                  <option value="UF">UF</option>
+                </select>
+              </div>
+            </div>
 
-      <button type="submit" className="bg-black p-2 text-white">
-        Crear contrato (borrador)
-      </button>
-    </form>
+            <Button type="submit" className="w-full">
+              Crear contrato (borrador)
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { signContract, payGuarantee } from "@/lib/actions/contracts";
 import { openDispute } from "@/lib/actions/disputes";
 import { one } from "@/lib/supabase/one";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/status-badge";
+import { Separator } from "@/components/ui/separator";
 
 export default async function ContractDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,45 +37,51 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   const payAction = guarantee ? payGuarantee.bind(null, guarantee.id, id) : undefined;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-8">
-      <h1 className="text-xl font-semibold">{one(contract.properties)?.address}</h1>
-      <p>
-        Estado: <strong>{contract.status}</strong>
-      </p>
+    <div className="mx-auto max-w-2xl space-y-6 px-6 py-10">
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">{one(contract.properties)?.address}</h1>
+        <StatusBadge status={contract.status} />
+      </div>
 
-      <section className="space-y-1 border p-4">
-        <h2 className="font-medium">Garantía</h2>
-        {amounts ? (
-          <>
-            <p>
-              {amounts.currency_chosen} {amounts.amount_chosen} (moneda elegida)
-            </p>
-            <p className="text-sm text-gray-600">
-              {amounts.is_frozen
-                ? `Equivalente: ${amounts.currency_other} ${amounts.amount_other} — convertido a la UF del día de firma (${amounts.uf_rate_at_signing})`
-                : "Equivalente en la otra moneda se calculará al firmar el contrato."}
-            </p>
-          </>
-        ) : (
-          <p>—</p>
-        )}
-        {guarantee && <p>Estado de la garantía: {guarantee.status}</p>}
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Garantía</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {amounts ? (
+            <>
+              <p className="text-lg font-medium">
+                {amounts.amount_chosen} {amounts.currency_chosen}
+                <span className="ml-1.5 text-sm font-normal text-muted-foreground">moneda elegida</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {amounts.is_frozen
+                  ? `Equivalente: ${amounts.amount_other} ${amounts.currency_other} — convertido a la UF del día de firma (${amounts.uf_rate_at_signing})`
+                  : "Equivalente en la otra moneda se calculará al firmar el contrato."}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">—</p>
+          )}
+          {guarantee && (
+            <div className="flex items-center gap-2 pt-1 text-sm">
+              <span className="text-muted-foreground">Estado de la garantía:</span>
+              <StatusBadge status={guarantee.status} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="flex gap-2">
         {contract.status === "borrador" || contract.status === "pendiente_firma" ? (
           <form action={signAction}>
-            <button type="submit" className="bg-black p-2 text-white">
-              Firmar (mock)
-            </button>
+            <Button type="submit">Firmar (mock)</Button>
           </form>
         ) : null}
 
         {guarantee?.status === "pendiente" && payAction && (
           <form action={payAction}>
-            <button type="submit" className="bg-black p-2 text-white">
-              Pagar garantía (simulado)
-            </button>
+            <Button type="submit">Pagar garantía (simulado)</Button>
           </form>
         )}
 
@@ -79,29 +89,36 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           <form action={openDispute}>
             <input type="hidden" name="guarantee_id" value={guarantee.id} />
             <input type="hidden" name="contract_id" value={id} />
-            <button type="submit" className="border border-black p-2">
+            <Button type="submit" variant="outline">
               Abrir disputa
-            </button>
+            </Button>
           </form>
         )}
       </div>
 
-      <section className="space-y-1">
-        <h2 className="font-medium">Disputas</h2>
-        <ul className="divide-y border">
-          {disputes?.map((d) => (
-            <li key={d.id} className="p-2">
-              <Link href={`/disputes/${d.id}`} className="underline">
-                {d.id}
-              </Link>{" "}
-              — {d.status}
-            </li>
-          ))}
-          {(!disputes || disputes.length === 0) && <li className="p-2 text-sm text-gray-500">Sin disputas.</li>}
-        </ul>
-      </section>
+      <Separator />
 
-      <Link href={`/audit?contract_id=${id}`} className="text-sm underline">
+      <div className="space-y-3">
+        <h2 className="font-medium">Disputas</h2>
+        <Card className="p-0">
+          {disputes && disputes.length > 0 ? (
+            <ul className="divide-y">
+              {disputes.map((d) => (
+                <li key={d.id} className="flex items-center justify-between p-3">
+                  <Link href={`/disputes/${d.id}`} className="text-sm underline-offset-4 hover:underline">
+                    {d.id}
+                  </Link>
+                  <StatusBadge status={d.status} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <CardContent className="py-6 text-center text-sm text-muted-foreground">Sin disputas.</CardContent>
+          )}
+        </Card>
+      </div>
+
+      <Link href={`/audit?contract_id=${id}`} className="text-sm text-muted-foreground underline-offset-4 hover:underline">
         Ver audit log de este contrato
       </Link>
     </div>
