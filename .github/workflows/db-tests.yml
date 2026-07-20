@@ -52,3 +52,27 @@ jobs:
       - name: Stop stack
         if: steps.changes.outputs.changed == 'true' && always()
         run: supabase stop
+
+    outputs:
+      changed: ${{ steps.changes.outputs.changed }}
+
+  # Pushes new migrations to the real production Supabase project. Only
+  # runs after pgtap has passed on main, and only when supabase/ actually
+  # changed — otherwise every push to main would attempt a (no-op) push.
+  # SUPABASE_DB_URL is the pooler connection string (Settings > Connect >
+  # Session pooler) stored as a repo secret; never logged or echoed here.
+  deploy-migrations:
+    needs: pgtap
+    if: github.ref == 'refs/heads/main' && needs.pgtap.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Push migrations to production
+        run: supabase db push --db-url "$SUPABASE_DB_URL" --yes
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
