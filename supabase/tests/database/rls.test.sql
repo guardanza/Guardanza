@@ -7,7 +7,7 @@
 -- Supabase does with a real JWT.
 
 begin;
-select plan(9);
+select plan(13);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -153,6 +153,45 @@ select is(
   'superada',
   'the superseded proposal was automatically marked as superada'
 );
+
+-- ---------------------------------------------------------------------
+-- org_code + lookup_organization_by_code(): a landlord referencing a
+-- broker they're not a member of needs a way to find it — org_code is a
+-- shareable invite-style code, and the lookup function deliberately
+-- bypasses the "must be a member to see this org" RLS rule for it.
+-- ---------------------------------------------------------------------
+select ok(
+  (select org_code from public.organizations where id = '00000000-0000-0000-0000-0000000000a2') ~ '^[0-9]{6}$',
+  'organizations get an auto-generated 6-digit org_code'
+);
+
+-- Capture the codes as superuser (bypasses RLS) BEFORE impersonating the
+-- outsider below — in the real app the code always arrives as plain text
+-- typed into a form, never re-queried from organizations by the caller, so
+-- fetching it here under the outsider's own restricted role would test a
+-- path the app never takes (and would fail RLS for an unrelated reason).
+select org_code as broker_code from public.organizations where id = '00000000-0000-0000-0000-0000000000a2' \gset
+select org_code as individual_code from public.organizations where id = '00000000-0000-0000-0000-0000000000a1' \gset
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000005'); -- outsider — not a member of Broker Org at all
+select is(
+  (select count(*)::int from public.lookup_organization_by_code(:'broker_code')),
+  1,
+  'lookup_organization_by_code finds a broker org by its code, even for a non-member (invite-link trust model)'
+);
+
+select is(
+  (select count(*)::int from public.lookup_organization_by_code(:'individual_code')),
+  0,
+  'lookup_organization_by_code refuses a code belonging to a non-broker (individual) organization'
+);
+
+select is(
+  (select count(*)::int from public.lookup_organization_by_code('000000')),
+  0,
+  'lookup_organization_by_code returns nothing for an unknown code'
+);
+reset role;
 
 select * from finish();
 rollback;

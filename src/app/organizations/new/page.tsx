@@ -1,17 +1,43 @@
 import { createOrganization } from "@/lib/actions/organizations";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 export default function NewOrganizationPage() {
   return (
-    <form action={createOrganization} className="mx-auto max-w-md space-y-2 p-8">
-      <h1 className="text-xl font-semibold">Nueva organización</h1>
-      <select name="type" required className="w-full border p-2">
-        <option value="individual">Arrendador individual</option>
-        <option value="broker">Corredora</option>
-      </select>
-      <input name="name" placeholder="Nombre" required className="w-full border p-2" />
-      <button type="submit" className="bg-black p-2 text-white">
-        Crear
-      </button>
-    </form>
+    <div className="mx-auto max-w-md px-6 py-10">
+      <Card>
+        <CardHeader>
+          <CardTitle>Nueva organización</CardTitle>
+          <CardDescription>
+            Cualquier persona o empresa que administra propiedades — incluso si eres tú solo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={createOrganization} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="type">Tipo</Label>
+              <select
+                id="type"
+                name="type"
+                required
+                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <option value="individual">Arrendador individual</option>
+                <option value="broker">Corredora</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Nombre</Label>
+              <Input id="name" name="name" required />
+            </div>
+            <Button type="submit" className="w-full">
+              Crear
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

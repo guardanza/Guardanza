@@ -21,6 +21,13 @@ export const metadata: Metadata = {
   description: "Custodia neutral de garantías de arriendo — Fase A (demo simulado)",
 };
 
+const navLinks = [
+  { href: "/", label: "Contratos" },
+  { href: "/organizations", label: "Organizaciones" },
+  { href: "/catalog", label: "Catálogo" },
+  { href: "/audit", label: "Audit log" },
+];
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -29,50 +36,49 @@ export default async function RootLayout({
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
 
-  let roleSummary = "";
+  let roles: { name: string; role: string }[] = [];
   if (userRes.user) {
-    const { data: memberships } = await supabase
-      .from("memberships")
-      .select("role, organizations(name)")
-      .limit(3);
-    roleSummary = (memberships ?? [])
+    const { data: memberships } = await supabase.from("memberships").select("role, organizations(name)");
+    roles = (memberships ?? [])
       .map((m) => {
         const org = Array.isArray(m.organizations) ? m.organizations[0] : m.organizations;
-        return org ? `${org.name} (${orgRoleLabel(m.role)})` : null;
+        return org ? { name: org.name, role: orgRoleLabel(m.role) } : null;
       })
-      .filter(Boolean)
-      .join(", ");
+      .filter((x): x is { name: string; role: string } => x !== null);
   }
 
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col bg-muted/40">
         {userRes.user && (
-          <nav className="flex items-center gap-4 border-b p-4 text-sm">
-            <Link href="/">Contratos</Link>
-            <Link href="/organizations">Organizaciones</Link>
-            <Link href="/catalog">Catálogo de reparaciones</Link>
-            <Link href="/audit">Audit log</Link>
-            <span className="ml-auto text-right text-gray-500">
-              {userRes.user.email}
-              {roleSummary && (
-                <>
-                  <br />
-                  <Link href="/organizations" className="text-xs underline">
-                    {roleSummary}
+          <header className="sticky top-0 z-10 border-b bg-background">
+            <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-6">
+              <Link href="/" className="font-semibold tracking-tight">
+                Guardanza
+              </Link>
+              <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+                {navLinks.map((l) => (
+                  <Link key={l.href} href={l.href} className="transition-colors hover:text-foreground">
+                    {l.label}
                   </Link>
-                </>
-              )}
-            </span>
-            <form action={signOut}>
-              <button type="submit" className="underline">
-                Salir
-              </button>
-            </form>
-          </nav>
+                ))}
+              </nav>
+              <div className="ml-auto flex items-center gap-3">
+                <div
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground"
+                  title={roles.length > 0 ? roles.map((r) => `${r.name} (${r.role})`).join(", ") : "Sin organizaciones todavía"}
+                >
+                  {userRes.user.email?.[0]?.toUpperCase()}
+                </div>
+                <span className="hidden text-sm text-muted-foreground sm:inline">{userRes.user.email}</span>
+                <form action={signOut}>
+                  <button type="submit" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                    Salir
+                  </button>
+                </form>
+              </div>
+            </div>
+          </header>
         )}
         <main className="flex-1">{children}</main>
       </body>

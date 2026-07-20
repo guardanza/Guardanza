@@ -1,4 +1,9 @@
 import { signIn, signUp } from "@/lib/actions/auth";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default async function LoginPage({
   searchParams,
@@ -8,28 +13,65 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="mx-auto max-w-sm space-y-8 p-8">
-      <h1 className="text-xl font-semibold">Guardanza — Fase A (demo simulado)</h1>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6 py-12">
+      <div className="text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">Guardanza</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Fase A — demo simulado</p>
+      </div>
 
-      <form action={signIn} className="space-y-2 border p-4">
-        <h2 className="font-medium">Iniciar sesión</h2>
-        <input name="email" type="email" placeholder="Email" required className="w-full border p-2" />
-        <input name="password" type="password" placeholder="Contraseña" required className="w-full border p-2" />
-        <button type="submit" className="w-full bg-black p-2 text-white">
-          Entrar
-        </button>
-      </form>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-      <form action={signUp} className="space-y-2 border p-4">
-        <h2 className="font-medium">Crear cuenta</h2>
-        <input name="full_name" placeholder="Nombre completo" required className="w-full border p-2" />
-        <input name="email" type="email" placeholder="Email" required className="w-full border p-2" />
-        <input name="password" type="password" placeholder="Contraseña" required minLength={6} className="w-full border p-2" />
-        <button type="submit" className="w-full border border-black p-2">
-          Registrarme
-        </button>
-      </form>
+      <Card>
+        <CardHeader>
+          <CardTitle>Iniciar sesión</CardTitle>
+          <CardDescription>Entra con tu cuenta existente.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={signIn} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="signin-email">Email</Label>
+              <Input id="signin-email" name="email" type="email" required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="signin-password">Contraseña</Label>
+              <Input id="signin-password" name="password" type="password" required />
+            </div>
+            <Button type="submit" className="w-full">
+              Entrar
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Crear cuenta</CardTitle>
+          <CardDescription>Regístrate por primera vez.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={signUp} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="signup-name">Nombre completo</Label>
+              <Input id="signup-name" name="full_name" required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="signup-email">Email</Label>
+              <Input id="signup-email" name="email" type="email" required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="signup-password">Contraseña</Label>
+              <Input id="signup-password" name="password" type="password" required minLength={6} />
+            </div>
+            <Button type="submit" variant="outline" className="w-full">
+              Registrarme
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -19,6 +19,21 @@ export async function createContract(formData: FormData) {
   const guarantee_amount = Number(formData.get("guarantee_amount"));
   const tenant_email = String(formData.get("tenant_email"));
 
+  const fail = (message: string): never =>
+    redirect(`/contracts/new?property_id=${property_id}&error=${encodeURIComponent(message)}`);
+
+  // Resolve the tenant BEFORE creating the contract — otherwise a bad email
+  // leaves an orphaned draft contract with no tenant attached and no way
+  // back to it from this form. Needs service_role: profiles RLS can't
+  // expose a brand-new counterparty with no shared contract yet.
+  const admin = createServiceRoleClient();
+  const { data: usersPage, error: lookupError } = await admin.auth.admin.listUsers();
+  if (lookupError) return fail(lookupError.message);
+  const tenant = usersPage.users.find((u) => u.email === tenant_email);
+  if (!tenant) {
+    return fail(`No existe una cuenta con el email ${tenant_email}. El arrendatario debe registrarse primero.`);
+  }
+
   const { data: contract, error } = await supabase
     .rpc("create_contract", {
       p_property_id: property_id,
@@ -31,23 +46,12 @@ export async function createContract(formData: FormData) {
       p_actor_user_id: userRes.user!.id,
     })
     .single<{ id: string }>();
-  if (error) throw new Error(error.message);
-
-  // Resolving an invited tenant's email to a user id needs service_role:
-  // profiles RLS can't expose a brand-new counterparty with no shared
-  // contract yet. This is the only privileged step in the flow.
-  const admin = createServiceRoleClient();
-  const { data: usersPage, error: lookupError } = await admin.auth.admin.listUsers();
-  if (lookupError) throw new Error(lookupError.message);
-  const tenant = usersPage.users.find((u) => u.email === tenant_email);
-  if (!tenant) {
-    throw new Error(`No existe una cuenta con el email ${tenant_email}. El arrendatario debe registrarse primero.`);
-  }
+  if (error) return fail(error.message);
 
   const { error: tenantPartyError } = await supabase
     .from("contract_parties")
     .insert({ contract_id: contract.id, user_id: tenant.id, role: "arrendatario" });
-  if (tenantPartyError) throw new Error(tenantPartyError.message);
+  if (tenantPartyError) return fail(tenantPartyError.message);
 
   redirect(`/contracts/${contract.id}`);
 }
