@@ -51,9 +51,9 @@ export default async function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-muted/40">
         {userRes.user && (
-          <header className="sticky top-0 z-10 border-b bg-background">
+          <header className="sticky top-0 z-10 border-b bg-card">
             <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-6">
-              <Link href="/" className="font-semibold tracking-tight">
+              <Link href="/" className="text-xs font-semibold tracking-widest text-primary uppercase">
                 Guardanza
               </Link>
               <nav className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -65,7 +65,7 @@ export default async function RootLayout({
               </nav>
               <div className="ml-auto flex items-center gap-3">
                 <div
-                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-terracotta text-xs font-medium text-brand-terracotta-foreground"
                   title={roles.length > 0 ? roles.map((r) => `${r.name} (${r.role})`).join(", ") : "Sin organizaciones todavía"}
                 >
                   {userRes.user.email?.[0]?.toUpperCase()}
