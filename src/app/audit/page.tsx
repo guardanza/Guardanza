@@ -44,13 +44,13 @@ export default async function AuditLogPage({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-6 py-10">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Audit log</h1>
         {contract_id && <p className="text-sm text-muted-foreground">Filtrado por contrato {contract_id}</p>}
       </div>
 
-      <Card className="p-0">
+      <Card className="overflow-x-auto p-0">
         {entries && entries.length > 0 ? (
           <Table>
             <TableHeader>

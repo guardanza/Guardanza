@@ -1,7 +1,26 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+
+async function uploadPhotoIfPresent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData
+): Promise<string | null> {
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) return null;
+
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from("property-photos").upload(path, file, {
+    contentType: file.type || "image/jpeg",
+  });
+  if (error) throw new Error(`No se pudo subir la foto: ${error.message}`);
+
+  const { data } = supabase.storage.from("property-photos").getPublicUrl(path);
+  return data.publicUrl;
+}
 
 export async function createProperty(formData: FormData) {
   const supabase = await createClient();
@@ -9,6 +28,7 @@ export async function createProperty(formData: FormData) {
   const organization_id = String(formData.get("organization_id"));
   const address = String(formData.get("address"));
   const comuna = String(formData.get("comuna") || "") || null;
+  const city = String(formData.get("city") || "") || null;
   const broker_org_code = String(formData.get("broker_org_code") || "").trim() || null;
 
   const fail = (message: string): never =>
@@ -24,13 +44,82 @@ export async function createProperty(formData: FormData) {
     broker_organization_id = broker.id;
   }
 
+  let photo_url: string | null = null;
+  try {
+    photo_url = await uploadPhotoIfPresent(supabase, formData);
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : "No se pudo subir la foto.");
+  }
+
   const { data: property, error } = await supabase
     .from("properties")
-    .insert({ organization_id, address, comuna, broker_organization_id })
+    .insert({ organization_id, address, comuna, city, broker_organization_id, photo_url })
     .select("id")
     .single();
 
   if (error) return fail(error.message);
 
-  redirect(`/contracts/new?property_id=${property.id}`);
+  redirect(`/properties/${property.id}`);
+}
+
+export async function updateProperty(formData: FormData) {
+  const supabase = await createClient();
+
+  const id = String(formData.get("id"));
+  const address = String(formData.get("address"));
+  const comuna = String(formData.get("comuna") || "") || null;
+  const city = String(formData.get("city") || "") || null;
+  const broker_org_code = String(formData.get("broker_org_code") || "").trim() || null;
+
+  const fail = (message: string): never =>
+    redirect(`/properties/${id}/edit?error=${encodeURIComponent(message)}`);
+
+  // Only touch broker_organization_id when a code was actually submitted —
+  // the edit form leaves this field blank when there's nothing to change,
+  // and blank must mean "leave as-is", not "unlink the broker".
+  let broker_organization_id: string | undefined;
+  if (broker_org_code) {
+    const { data: broker, error: lookupError } = await supabase
+      .rpc("lookup_organization_by_code", { p_code: broker_org_code })
+      .maybeSingle<{ id: string; name: string; type: string }>();
+    if (lookupError) return fail(lookupError.message);
+    if (!broker) return fail(`No existe ninguna corredora con el código ${broker_org_code}.`);
+    broker_organization_id = broker.id;
+  }
+
+  let photo_url: string | undefined;
+  try {
+    const uploaded = await uploadPhotoIfPresent(supabase, formData);
+    if (uploaded) photo_url = uploaded;
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : "No se pudo subir la foto.");
+  }
+
+  const { error } = await supabase
+    .from("properties")
+    .update({
+      address,
+      comuna,
+      city,
+      ...(broker_organization_id ? { broker_organization_id } : {}),
+      ...(photo_url ? { photo_url } : {}),
+    })
+    .eq("id", id);
+  if (error) return fail(error.message);
+
+  revalidatePath(`/properties/${id}`);
+  redirect(`/properties/${id}`);
+}
+
+export async function deleteProperty(formData: FormData) {
+  const supabase = await createClient();
+  const id = String(formData.get("id"));
+
+  const { error } = await supabase.from("properties").delete().eq("id", id);
+  if (error) {
+    redirect(`/properties/${id}?error=${encodeURIComponent("No se puede eliminar: tiene contratos asociados.")}`);
+  }
+
+  revalidatePath("/properties");
+  redirect("/properties");
 }

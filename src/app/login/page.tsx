@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Logo, LogoMark } from "@/components/logo";
 
 const timeline = [
   { label: "Contrato firmado", detail: "Ambas partes de acuerdo", done: true },
@@ -20,10 +21,10 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="mx-auto grid min-h-screen max-w-5xl grid-cols-1 items-center gap-12 px-6 py-16 lg:grid-cols-[1.05fr_1fr]">
+    <div className="mx-auto grid min-h-screen max-w-5xl grid-cols-1 items-center gap-10 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
       <div className="hidden lg:block">
-        <p className="text-xs font-semibold tracking-widest text-primary uppercase">Guardanza</p>
-        <h1 className="mt-2 max-w-md text-4xl font-bold tracking-tight text-balance">
+        <Logo className="mb-6" />
+        <h1 className="max-w-md text-4xl font-bold tracking-tight text-balance">
           Arrienda con confianza.
         </h1>
         <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
@@ -59,9 +60,10 @@ export default async function LoginPage({
       </div>
 
       <div className="flex flex-col gap-6">
-        <div className="text-center lg:hidden">
-          <h1 className="text-2xl font-semibold tracking-tight">Guardanza</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Arrienda con confianza.</p>
+        <div className="flex flex-col items-center gap-2 text-center lg:hidden">
+          <LogoMark size={40} />
+          <h1 className="text-xl font-semibold tracking-tight">Guardanza</h1>
+          <p className="text-sm text-muted-foreground">Arrienda con confianza.</p>
         </div>
 
         {error && (
