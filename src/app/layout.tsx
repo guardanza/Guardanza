@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/auth";
+import { orgRoleLabel } from "@/lib/labels";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,6 +29,21 @@ export default async function RootLayout({
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
 
+  let roleSummary = "";
+  if (userRes.user) {
+    const { data: memberships } = await supabase
+      .from("memberships")
+      .select("role, organizations(name)")
+      .limit(3);
+    roleSummary = (memberships ?? [])
+      .map((m) => {
+        const org = Array.isArray(m.organizations) ? m.organizations[0] : m.organizations;
+        return org ? `${org.name} (${orgRoleLabel(m.role)})` : null;
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+
   return (
     <html
       lang="en"
@@ -40,7 +56,17 @@ export default async function RootLayout({
             <Link href="/organizations">Organizaciones</Link>
             <Link href="/catalog">Catálogo de reparaciones</Link>
             <Link href="/audit">Audit log</Link>
-            <span className="ml-auto text-gray-500">{userRes.user.email}</span>
+            <span className="ml-auto text-right text-gray-500">
+              {userRes.user.email}
+              {roleSummary && (
+                <>
+                  <br />
+                  <Link href="/organizations" className="text-xs underline">
+                    {roleSummary}
+                  </Link>
+                </>
+              )}
+            </span>
             <form action={signOut}>
               <button type="submit" className="underline">
                 Salir

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { orgRoleLabel } from "@/lib/labels";
 
 export default async function OrganizationsPage() {
   const supabase = await createClient();
@@ -9,7 +10,7 @@ export default async function OrganizationsPage() {
 
   const { data: memberships, error } = await supabase
     .from("memberships")
-    .select("role, organizations(id, name, type)")
+    .select("role, organizations(id, name, type, org_code)")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
 
@@ -32,7 +33,8 @@ export default async function OrganizationsPage() {
                   {org.name}
                 </Link>{" "}
                 <span className="text-sm text-gray-500">
-                  ({org.type === "broker" ? "corredora" : "arrendador individual"} — tu rol: {m.role})
+                  ({org.type === "broker" ? "corredora" : "arrendador individual"} — tu rol:{" "}
+                  {orgRoleLabel(m.role)} — código: {org.org_code})
                 </span>
               </div>
               <Link href={`/properties/new?organization_id=${org.id}`} className="text-sm underline">
