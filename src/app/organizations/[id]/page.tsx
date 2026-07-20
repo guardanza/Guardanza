@@ -19,6 +19,9 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
     <div className="mx-auto max-w-2xl space-y-6 p-8">
       <h1 className="text-xl font-semibold">{org.name}</h1>
       <p className="text-sm text-gray-500">{org.type === "broker" ? "Corredora" : "Arrendador individual"}</p>
+      <p className="text-sm text-gray-500">
+        Código para compartir (para que te deleguen propiedades como corredora): <strong>{org.org_code}</strong>
+      </p>
 
       <section className="space-y-2">
         <div className="flex items-center justify-between">
