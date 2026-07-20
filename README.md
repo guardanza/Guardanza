@@ -1,4 +1,4 @@
-# Seguranza — Fase A
+# Guardanza — Fase A
 
 Plataforma de custodia neutral de garantías de arriendo (Chile). Fase A: demo
 funcional en modo simulado — sin plata real, sin custodio real, sin firma
@@ -13,7 +13,7 @@ seguridad están construidos igual de en serio que si fueran producción.
 
 ## Principio rector
 
-Seguranza es un libro mayor, no un banco. La plata nunca vive en esta
+Guardanza es un libro mayor, no un banco. La plata nunca vive en esta
 infraestructura; la base de datos guarda el **registro** de lo que el
 custodio (por ahora simulado) tiene. Ver `ledger_entries` — asientos de
 doble entrada, insert-only, inmutables.
@@ -41,10 +41,10 @@ npx supabase test db
 ```
 
 Corre automáticamente en CI (`.github/workflows/db-tests.yml`) contra
-cualquier PR que toque `supabase/**`. **Pendiente**: configurar esta
-verificación como *required check* en la protección de la rama `main` en
-GitHub (Settings → Branches) — no se puede hacer desde este repo, requiere
-acceso de administrador en `segur01/Seguranza01`.
+cualquier PR que toque `supabase/**`. Ya está configurado como *required
+check* en la protección de la rama `main` en GitHub (Settings → Branches →
+ruleset `main-protection`) — ningún PR que toque `supabase/**` se puede
+mezclar si este check falla.
 
 ## Adaptadores externos (aislados, reemplazables)
 

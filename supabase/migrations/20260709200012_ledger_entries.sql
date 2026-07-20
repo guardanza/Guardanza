@@ -1,5 +1,5 @@
 -- ledger_entries: double-entry, append-only accounting of what the (mock,
--- for now) custodian holds. Seguranza is a ledger, not a bank — this table
+-- for now) custodian holds. Guardanza is a ledger, not a bank — this table
 -- is the book of record, never the money itself. A mistake is corrected
 -- with a counter-entry, never edited or deleted.
 

@@ -9,7 +9,7 @@ export default async function LoginPage({
 
   return (
     <div className="mx-auto max-w-sm space-y-8 p-8">
-      <h1 className="text-xl font-semibold">Seguranza — Fase A (demo simulado)</h1>
+      <h1 className="text-xl font-semibold">Guardanza — Fase A (demo simulado)</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <form action={signIn} className="space-y-2 border p-4">
