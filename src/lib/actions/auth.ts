@@ -1,9 +1,20 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { validateRut, formatRut } from "@/lib/rut";
+
+// Works out this deployment's own origin from the incoming request instead
+// of a hardcoded env var, so the same code redirects correctly whether it's
+// running on localhost, a Vercel preview, or production.
+async function siteOrigin() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const protocol = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  return `${protocol}://${host}`;
+}
 
 export async function signIn(formData: FormData) {
   const email = String(formData.get("email"));
@@ -92,6 +103,24 @@ export async function signUpWithRole(formData: FormData) {
   }
 
   redirect("/");
+}
+
+// Redirect-based: Supabase returns a Google consent-screen URL, we send
+// the browser there, Google redirects back to /auth/callback with a code
+// that route exchanges for a session. Does nothing useful until the
+// Google provider is configured in Supabase (Authentication > Providers)
+// with a real Client ID/Secret from Google Cloud Console — that part is
+// the one piece left for the user to set up themselves.
+export async function signInWithGoogle() {
+  const supabase = await createClient();
+  const origin = await siteOrigin();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${origin}/auth/callback` },
+  });
+  if (error || !data.url) redirect(`/login?error=${encodeURIComponent(error?.message ?? "No se pudo iniciar sesión con Google.")}`);
+  redirect(data.url);
 }
 
 export async function signOut() {
