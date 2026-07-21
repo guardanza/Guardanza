@@ -8,6 +8,11 @@ import { Badge } from "@/components/ui/badge";
 
 export default async function CatalogPage() {
   const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  const { data: profile } = userRes.user
+    ? await supabase.from("profiles").select("is_platform_admin").eq("id", userRes.user.id).single()
+    : { data: null };
+  const isPlatformAdmin = profile?.is_platform_admin ?? false;
 
   const { data: references } = await supabase
     .from("repair_reference")
@@ -18,7 +23,9 @@ export default async function CatalogPage() {
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div>
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Catálogo de reparaciones</h1>
-        <p className="text-sm text-muted-foreground">Solo administradores de participante pueden editarlo.</p>
+        <p className="text-sm text-muted-foreground">
+          Referencia de precios para las propuestas de arreglo. Solo el administrador de la plataforma puede editarlo.
+        </p>
       </div>
 
       <div className="space-y-3">
@@ -56,13 +63,15 @@ export default async function CatalogPage() {
                   </ul>
                 </details>
 
-                <form action={updateRepairPrice} className="flex gap-2">
-                  <input type="hidden" name="repair_reference_id" value={r.id} />
-                  <Input name="unit_price" type="number" step="0.01" placeholder="Nuevo precio" required className="max-w-40" />
-                  <Button type="submit" variant="outline" size="sm">
-                    Actualizar precio
-                  </Button>
-                </form>
+                {isPlatformAdmin && (
+                  <form action={updateRepairPrice} className="flex gap-2">
+                    <input type="hidden" name="repair_reference_id" value={r.id} />
+                    <Input name="unit_price" type="number" step="0.01" placeholder="Nuevo precio" required className="max-w-40" />
+                    <Button type="submit" variant="outline" size="sm">
+                      Actualizar precio
+                    </Button>
+                  </form>
+                )}
               </CardContent>
             </Card>
           );
@@ -76,35 +85,37 @@ export default async function CatalogPage() {
         )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Nuevo tipo de reparación</CardTitle>
-          <CardDescription>Crea la primera versión de precio junto con el tipo.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={createRepairReference} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="code">Código</Label>
-              <Input id="code" name="code" required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="description">Descripción</Label>
-              <Input id="description" name="description" required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="unit">Unidad (m2, unidad, hora)</Label>
-              <Input id="unit" name="unit" required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="unit_price">Precio</Label>
-              <Input id="unit_price" name="unit_price" type="number" step="0.01" required />
-            </div>
-            <Button type="submit" className="w-full">
-              Crear
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {isPlatformAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Nuevo tipo de reparación</CardTitle>
+            <CardDescription>Crea la primera versión de precio junto con el tipo.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={createRepairReference} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="code">Código</Label>
+                <Input id="code" name="code" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="description">Descripción</Label>
+                <Input id="description" name="description" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="unit">Unidad (m2, unidad, hora)</Label>
+                <Input id="unit" name="unit" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="unit_price">Precio</Label>
+                <Input id="unit_price" name="unit_price" type="number" step="0.01" required />
+              </div>
+              <Button type="submit" className="w-full">
+                Crear
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

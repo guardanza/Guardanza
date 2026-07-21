@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-export default async function AuditLogPage({
+export default async function HistoryPage({
   searchParams,
 }: {
   searchParams: Promise<{ contract_id?: string }>;
@@ -46,7 +46,7 @@ export default async function AuditLogPage({
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Audit log</h1>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Historial de acciones</h1>
         {contract_id && <p className="text-sm text-muted-foreground">Filtrado por contrato {contract_id}</p>}
       </div>
 
