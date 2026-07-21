@@ -25,7 +25,7 @@ export default async function NewContractPage({
       <Card>
         <CardHeader>
           <CardTitle>Nuevo contrato</CardTitle>
-          <CardDescription>El contrato empieza en estado borrador — se firma después.</CardDescription>
+          <CardDescription>Queda pendiente de firma del arrendador — se envía a firmar después de crearlo.</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={createContract} className="space-y-4">
@@ -67,7 +67,7 @@ export default async function NewContractPage({
             </div>
 
             <Button type="submit" className="w-full">
-              Crear contrato (borrador)
+              Crear contrato
             </Button>
           </form>
         </CardContent>

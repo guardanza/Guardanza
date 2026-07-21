@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { signContract, payGuarantee } from "@/lib/actions/contracts";
+import { signContractLandlord, signContractTenant, cancelContract, payGuarantee } from "@/lib/actions/contracts";
 import { openDispute } from "@/lib/actions/disputes";
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,13 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { Separator } from "@/components/ui/separator";
 
+const CANCELLABLE_STATUSES = ["pendiente_firma_arrendador", "pendiente_firma_arrendatario", "pendiente_deposito"];
+
 export default async function ContractDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  if (!userRes.user) redirect("/login");
 
   const { data: contract, error } = await supabase.from("contracts").select("*, properties(address)").eq("id", id).single();
   if (error || !contract) notFound();
@@ -33,7 +37,17 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
     ? await supabase.from("disputes").select("id, status, created_at").eq("guarantee_id", guarantee.id)
     : { data: [] };
 
-  const signAction = signContract.bind(null, id);
+  const { data: myParty } = await supabase
+    .from("contract_parties")
+    .select("role")
+    .eq("contract_id", id)
+    .eq("user_id", userRes.user.id)
+    .maybeSingle();
+  const myRole = myParty?.role;
+
+  const signLandlordAction = signContractLandlord.bind(null, id);
+  const signTenantAction = signContractTenant.bind(null, id);
+  const cancelAction = cancelContract.bind(null, id);
   const payAction = guarantee ? payGuarantee.bind(null, guarantee.id, id) : undefined;
 
   return (
@@ -73,15 +87,29 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
       </Card>
 
       <div className="flex flex-wrap gap-2">
-        {contract.status === "borrador" || contract.status === "pendiente_firma" ? (
-          <form action={signAction}>
-            <Button type="submit">Firmar (mock)</Button>
+        {contract.status === "pendiente_firma_arrendador" && myRole === "arrendador" && (
+          <form action={signLandlordAction}>
+            <Button type="submit">Firmar como arrendador (mock)</Button>
           </form>
-        ) : null}
+        )}
 
-        {guarantee?.status === "pendiente" && payAction && (
+        {contract.status === "pendiente_firma_arrendatario" && myRole === "arrendatario" && (
+          <form action={signTenantAction}>
+            <Button type="submit">Firmar como arrendatario (mock)</Button>
+          </form>
+        )}
+
+        {contract.status === "pendiente_deposito" && myRole === "arrendatario" && payAction && (
           <form action={payAction}>
             <Button type="submit">Pagar garantía (simulado)</Button>
+          </form>
+        )}
+
+        {CANCELLABLE_STATUSES.includes(contract.status) && (myRole === "arrendador" || myRole === "arrendatario") && (
+          <form action={cancelAction}>
+            <Button type="submit" variant="outline">
+              Cancelar contrato
+            </Button>
           </form>
         )}
 

@@ -14,9 +14,19 @@ export default async function SignaturesPage() {
 
   const { data: contracts, error } = await supabase
     .from("contracts")
-    .select("id, status, signed_at, properties(address)")
+    .select("id, status, signed_at_landlord, signed_at_tenant, properties(address)")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
+
+  const SIGN_STATUS_LABEL: Record<string, string> = {
+    pendiente_firma_arrendador: "Pendiente de firma del arrendador",
+    pendiente_firma_arrendatario: "Pendiente de firma del arrendatario",
+    pendiente_deposito: "Firmado, pendiente de depósito",
+    activo: "Firmado y activo",
+    en_disputa: "Firmado, en disputa",
+    finalizado: "Firmado, finalizado",
+    cancelado: "Cancelado",
+  };
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
@@ -29,7 +39,7 @@ export default async function SignaturesPage() {
         <div className="space-y-3">
           {contracts.map((c) => {
             const property = one(c.properties);
-            const signed = c.status !== "borrador" && c.status !== "pendiente_firma";
+            const pendingSignature = c.status === "pendiente_firma_arrendador" || c.status === "pendiente_firma_arrendatario";
             return (
               <Card key={c.id}>
                 <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -38,11 +48,11 @@ export default async function SignaturesPage() {
                       {property?.address ?? c.id}
                     </Link>
                     <div className="mt-1 flex items-center gap-2">
-                      <StatusBadge status={signed ? "activo" : "pendiente_firma"} />
-                      <span className="text-xs text-muted-foreground">{signed ? "Firmado" : "Pendiente de firma"}</span>
+                      <StatusBadge status={c.status} />
+                      <span className="text-xs text-muted-foreground">{SIGN_STATUS_LABEL[c.status] ?? c.status}</span>
                     </div>
                   </div>
-                  {!signed && <CopyLinkButton path={`/contracts/${c.id}`} />}
+                  {pendingSignature && <CopyLinkButton path={`/contracts/${c.id}`} />}
                 </CardContent>
               </Card>
             );
