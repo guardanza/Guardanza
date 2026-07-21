@@ -22,10 +22,11 @@ export default async function DashboardPage() {
     supabase.from("disputes").select("id, status"),
   ]);
 
-  const custodyByCurrency = new Map<string, number>();
+  const custodyByCurrency = new Map<string, { count: number; amount: number }>();
   for (const g of guarantees ?? []) {
     if (g.status === "en_custodia" || g.status === "pagada" || g.status === "en_liquidacion") {
-      custodyByCurrency.set(g.currency, (custodyByCurrency.get(g.currency) ?? 0) + Number(g.amount));
+      const prev = custodyByCurrency.get(g.currency) ?? { count: 0, amount: 0 };
+      custodyByCurrency.set(g.currency, { count: prev.count + 1, amount: prev.amount + Number(g.amount) });
     }
   }
 
@@ -66,9 +67,12 @@ export default async function DashboardPage() {
             </div>
             {custodyByCurrency.size > 0 ? (
               <div className="space-y-0.5">
-                {[...custodyByCurrency.entries()].map(([currency, amount]) => (
+                {[...custodyByCurrency.entries()].map(([currency, { count, amount }]) => (
                   <p key={currency} className="text-xl font-semibold tabular-nums">
                     {formatAmount(amount, currency)}
+                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                      ({count} {count === 1 ? "garantía" : "garantías"})
+                    </span>
                   </p>
                 ))}
               </div>
@@ -92,7 +96,7 @@ export default async function DashboardPage() {
           <CardContent className="space-y-1">
             <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <AlertTriangle className="size-3.5" strokeWidth={2} />
-              Disputas abiertas
+              Acuerdos pendientes
             </div>
             <p className="text-xl font-semibold tabular-nums">{openDisputes.length}</p>
           </CardContent>
@@ -147,7 +151,7 @@ export default async function DashboardPage() {
       {openDisputes.length > 0 && (
         <Card className="p-0">
           <div className="border-b px-4 py-3">
-            <h2 className="text-sm font-medium">Disputas que requieren atención</h2>
+            <h2 className="text-sm font-medium">Acuerdos pendientes</h2>
           </div>
           <div className="divide-y">
             {openDisputes.map((d) => (
