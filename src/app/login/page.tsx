@@ -60,7 +60,7 @@ export default async function LoginPage({
           ))}
         </Card>
 
-        <Badge variant="outline" className="mt-6 border-brand-terracotta/30 bg-brand-terracotta/10 text-brand-terracotta">
+        <Badge variant="outline" className="mt-6 border-brand-gold/30 bg-brand-gold/10 text-accent-foreground">
           🔒 Fondos neutrales, sin sesgo
         </Badge>
       </div>

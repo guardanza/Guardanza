@@ -2,39 +2,46 @@ import { cn } from "@/lib/utils";
 
 // Small, deliberately generic status → color mapping shared by contracts,
 // guarantees and disputes — they don't share an enum, but the color
-// language (neutral draft, blue in-progress, green settled, red disputed)
-// should read the same everywhere in the app.
+// language should read the same everywhere: gray/neutral while waiting,
+// gold while pending an action, blue for a proposal on the table, green
+// once settled, red once it's a real dispute. Matches the Seguranza design
+// system's per-status badge table.
 const STATUS_STYLES: Record<string, string> = {
-  pendiente: "bg-muted text-muted-foreground",
-  pendiente_firma_arrendador: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  pendiente_firma_arrendatario: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  pendiente_deposito: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  activo: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  propuesta_termino: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  pagada: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  en_custodia: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  abierta: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  negociando: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  en_disputa: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  en_liquidacion: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  acordada: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-  liquidada: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-  finalizado: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-  aceptada: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-  escalada: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  rechazada: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  cancelado: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  pendiente: "bg-muted text-primary",
+  pendiente_firma_arrendador: "bg-accent text-accent-foreground",
+  pendiente_firma_arrendatario: "bg-accent text-accent-foreground",
+  pendiente_deposito: "bg-accent text-accent-foreground",
+  pagada: "bg-accent text-accent-foreground",
+  activo: "bg-success/15 text-success",
+  en_custodia: "bg-success/15 text-success",
+  propuesta_termino: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  abierta: "bg-destructive/10 text-destructive",
+  negociando: "bg-destructive/10 text-destructive",
+  en_disputa: "bg-destructive/10 text-destructive",
+  en_liquidacion: "bg-destructive/10 text-destructive",
+  escalada: "bg-destructive/10 text-destructive",
+  rechazada: "bg-destructive/10 text-destructive",
+  acordada: "bg-success/15 text-success",
+  liquidada: "bg-success/15 text-success",
+  finalizado: "bg-success/15 text-success",
+  aceptada: "bg-success/15 text-success",
+  cancelado: "bg-muted text-muted-foreground",
 };
+
+// Only genuinely urgent states pulse — an infinite animation is reserved
+// for "this needs attention now", not decoration.
+const PULSING_STATUSES = new Set(["en_disputa", "escalada"]);
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+        "inline-flex h-5 w-fit shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
         STATUS_STYLES[status] ?? "bg-secondary text-secondary-foreground",
         className
       )}
     >
+      {PULSING_STATUSES.has(status) && <span className="size-1.5 shrink-0 animate-pulse-urgent rounded-full bg-current" />}
       {status.replace(/_/g, " ")}
     </span>
   );

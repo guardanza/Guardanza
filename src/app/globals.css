@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-inter);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -27,6 +27,8 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -39,8 +41,10 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --color-brand-terracotta: var(--brand-terracotta);
-  --color-brand-terracotta-foreground: var(--brand-terracotta-foreground);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-gold-foreground: var(--brand-gold-foreground);
+  --color-brand-sand: var(--brand-sand);
+  --color-brand-sand-foreground: var(--brand-sand-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -51,77 +55,86 @@
 }
 
 :root {
-  /* "En Confianza" — warm neutral ground, terracota for identity/highlights, ink-green for actions/trust */
-  --background: #fbf9f6;
-  --foreground: #232120;
+  /* Seguranza design system — "Neutralidad Visible": ForestGuard (protección),
+     SandTrust (calidez), AccrualGold (valor en movimiento). */
+  --background: #fafbfc;
+  --foreground: #2c3e50;
   --card: #ffffff;
-  --card-foreground: #232120;
+  --card-foreground: #2c3e50;
   --popover: #ffffff;
-  --popover-foreground: #232120;
-  --primary: #3c6e5e;
-  --primary-foreground: #fbf9f6;
-  --secondary: #f3ede2;
-  --secondary-foreground: #232120;
-  --muted: #f3efe7;
-  --muted-foreground: #7a7469;
-  --accent: #f6ece4;
-  --accent-foreground: #7a3018;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: #e7e1d6;
-  --input: #e7e1d6;
-  --ring: #3c6e5e;
-  --brand-terracotta: #b3542f;
-  --brand-terracotta-foreground: #fef8f4;
-  --chart-1: #b3542f;
-  --chart-2: #3c6e5e;
-  --chart-3: #c9a25a;
-  --chart-4: #7a7469;
-  --chart-5: #232120;
-  --radius: 0.75rem;
-  --sidebar: #f6f2ea;
-  --sidebar-foreground: #232120;
-  --sidebar-primary: #3c6e5e;
-  --sidebar-primary-foreground: #fbf9f6;
-  --sidebar-accent: #f3ede2;
-  --sidebar-accent-foreground: #232120;
-  --sidebar-border: #e7e1d6;
-  --sidebar-ring: #3c6e5e;
+  --popover-foreground: #2c3e50;
+  --primary: #0f3d2e;
+  --primary-foreground: #fafbfc;
+  --secondary: #f5ead9;
+  --secondary-foreground: #0f3d2e;
+  --muted: #e8ebf0;
+  --muted-foreground: #7a8fa0;
+  --accent: #f7ecd6;
+  --accent-foreground: #8a6820;
+  --destructive: #d84c4c;
+  --success: #4cad6c;
+  --success-foreground: #0b3d1c;
+  --border: #e8ebf0;
+  --input: #e8ebf0;
+  --ring: #0f3d2e;
+  --brand-gold: #c8963e;
+  --brand-gold-foreground: #fffaf0;
+  --brand-sand: #d4a574;
+  --brand-sand-foreground: #3a2a17;
+  --chart-1: #c8963e;
+  --chart-2: #0f3d2e;
+  --chart-3: #d4a574;
+  --chart-4: #7a8fa0;
+  --chart-5: #2c3e50;
+  --radius: 0.625rem;
+  --sidebar: #f7f4ee;
+  --sidebar-foreground: #2c3e50;
+  --sidebar-primary: #0f3d2e;
+  --sidebar-primary-foreground: #fafbfc;
+  --sidebar-accent: #f5ead9;
+  --sidebar-accent-foreground: #0f3d2e;
+  --sidebar-border: #e8ebf0;
+  --sidebar-ring: #0f3d2e;
 }
 
 .dark {
-  --background: #17140f;
-  --foreground: #f3efe7;
-  --card: #201c16;
-  --card-foreground: #f3efe7;
-  --popover: #201c16;
-  --popover-foreground: #f3efe7;
-  --primary: #5b9481;
-  --primary-foreground: #10231b;
-  --secondary: #2c2822;
-  --secondary-foreground: #f3efe7;
-  --muted: #29251f;
-  --muted-foreground: #a89f8f;
-  --accent: #2e241c;
-  --accent-foreground: #e0a480;
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: #362f26;
-  --input: #362f26;
-  --ring: #5b9481;
-  --brand-terracotta: #d97a52;
-  --brand-terracotta-foreground: #1c1109;
-  --chart-1: #d97a52;
-  --chart-2: #5b9481;
-  --chart-3: #c9a25a;
-  --chart-4: #a89f8f;
-  --chart-5: #f3efe7;
-  --sidebar: #1c1812;
-  --sidebar-foreground: #f3efe7;
-  --sidebar-primary: #5b9481;
-  --sidebar-primary-foreground: #10231b;
-  --sidebar-accent: #2c2822;
-  --sidebar-accent-foreground: #f3efe7;
-  --sidebar-border: #362f26;
-  --sidebar-ring: #5b9481;
+  --background: #0d1117;
+  --foreground: #e6e7eb;
+  --card: #161b22;
+  --card-foreground: #e6e7eb;
+  --popover: #161b22;
+  --popover-foreground: #e6e7eb;
+  --primary: #4a9c7f;
+  --primary-foreground: #0a1f17;
+  --secondary: #2a2116;
+  --secondary-foreground: #e6c896;
+  --muted: #1c2128;
+  --muted-foreground: #8b96a3;
+  --accent: #2a2416;
+  --accent-foreground: #e0b060;
+  --destructive: #e57070;
+  --success: #6cc98c;
+  --success-foreground: #0b2b16;
+  --border: #30363d;
+  --input: #30363d;
+  --ring: #4a9c7f;
+  --brand-gold: #d4a84e;
+  --brand-gold-foreground: #241a06;
+  --brand-sand: #d4a574;
+  --brand-sand-foreground: #241a06;
+  --chart-1: #d4a84e;
+  --chart-2: #4a9c7f;
+  --chart-3: #d4a574;
+  --chart-4: #8b96a3;
+  --chart-5: #e6e7eb;
+  --sidebar: #12161c;
+  --sidebar-foreground: #e6e7eb;
+  --sidebar-primary: #4a9c7f;
+  --sidebar-primary-foreground: #0a1f17;
+  --sidebar-accent: #2a2116;
+  --sidebar-accent-foreground: #e6c896;
+  --sidebar-border: #30363d;
+  --sidebar-ring: #4a9c7f;
 }
 
 @layer base {
@@ -133,5 +146,59 @@
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading font-bold text-primary;
+  }
+}
+
+@layer utilities {
+  /* AccrualGold pulse — used sparingly, only for states that genuinely need
+     attention (en_disputa/escalada), per the design system's rule that
+     infinite loops are reserved for urgency. */
+  @keyframes pulse-urgent {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+  .animate-pulse-urgent {
+    animation: pulse-urgent 1.5s ease-in-out infinite;
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.4s ease-out both;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  .animate-shimmer {
+    background-image: linear-gradient(90deg, var(--muted) 25%, var(--border) 50%, var(--muted) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
   }
 }
