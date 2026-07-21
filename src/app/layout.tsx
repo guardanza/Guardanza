@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/auth";
-import { orgRoleLabel } from "@/lib/labels";
+import { getProfileTypeLabel } from "@/lib/profile-label";
 import { Logo, LogoMark } from "@/components/logo";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { MobileTabBar } from "@/components/mobile-tabbar";
@@ -32,16 +32,7 @@ export default async function RootLayout({
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
 
-  let roles: { name: string; role: string }[] = [];
-  if (userRes.user) {
-    const { data: memberships } = await supabase.from("memberships").select("role, organizations(name)");
-    roles = (memberships ?? [])
-      .map((m) => {
-        const org = Array.isArray(m.organizations) ? m.organizations[0] : m.organizations;
-        return org ? { name: org.name, role: orgRoleLabel(m.role) } : null;
-      })
-      .filter((x): x is { name: string; role: string } => x !== null);
-  }
+  const profileType = userRes.user ? await getProfileTypeLabel(supabase, userRes.user.id) : null;
 
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
@@ -55,14 +46,17 @@ export default async function RootLayout({
               <SidebarNav />
               <div className="mt-auto border-t p-4">
                 <div className="flex items-center gap-2.5">
-                  <div
+                  <Link
+                    href="/profile"
                     className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-terracotta text-xs font-medium text-brand-terracotta-foreground"
-                    title={roles.length > 0 ? roles.map((r) => `${r.name} (${r.role})`).join(", ") : "Sin participantes todavía"}
                   >
                     {userRes.user.email?.[0]?.toUpperCase()}
-                  </div>
+                  </Link>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium">{userRes.user.email}</p>
+                    <Link href="/profile" className="block truncate text-xs font-medium hover:underline">
+                      {userRes.user.email}
+                    </Link>
+                    <p className="truncate text-[11px] text-muted-foreground">{profileType}</p>
                     <form action={signOut}>
                       <button type="submit" className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                         Salir

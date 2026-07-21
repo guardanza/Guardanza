@@ -23,7 +23,7 @@ export async function createRepairReference(formData: FormData) {
     .insert({ repair_reference_id: reference.id, unit_price });
   if (versionError) throw new Error(versionError.message);
 
-  revalidatePath("/catalog");
+  revalidatePath("/proposals/catalog");
 }
 
 // Never edits a price in place: update_repair_price() atomically closes the
@@ -41,5 +41,5 @@ export async function updateRepairPrice(formData: FormData) {
   });
   if (error) throw new Error(error.message);
 
-  revalidatePath("/catalog");
+  revalidatePath("/proposals/catalog");
 }

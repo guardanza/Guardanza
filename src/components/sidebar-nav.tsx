@@ -2,26 +2,40 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FileText, Building2, Users, ClipboardList, History } from "lucide-react";
+import {
+  LayoutDashboard,
+  FileText,
+  Building2,
+  Users,
+  Handshake,
+  PenLine,
+  FolderOpen,
+  Bell,
+  Settings,
+} from "lucide-react";
 
 // Defined here (not passed as props from the server layout) because Lucide
 // icon components aren't plain serializable objects — passing them across
 // the server/client boundary as props throws "Only plain objects can be
 // passed to Client Components".
-const links = [
+const primaryLinks = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/contracts", label: "Contratos", icon: FileText },
   { href: "/properties", label: "Propiedades", icon: Building2 },
   { href: "/organizations", label: "Participantes", icon: Users },
-  { href: "/catalog", label: "Catálogo", icon: ClipboardList },
-  { href: "/audit", label: "Audit log", icon: History },
+  { href: "/proposals", label: "Propuestas de arreglo", icon: Handshake },
 ];
 
-export function SidebarNav() {
-  const pathname = usePathname();
+const secondaryLinks = [
+  { href: "/signatures", label: "Firmas", icon: PenLine },
+  { href: "/documents", label: "Análisis de documentos", icon: FolderOpen },
+  { href: "/notifications", label: "Notificaciones", icon: Bell },
+  { href: "/settings", label: "Configuración", icon: Settings },
+];
 
+function NavLinks({ links, pathname }: { links: typeof primaryLinks; pathname: string }) {
   return (
-    <nav className="flex flex-col gap-0.5 px-3">
+    <>
       {links.map((l) => {
         const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
         const Icon = l.icon;
@@ -41,6 +55,18 @@ export function SidebarNav() {
           </Link>
         );
       })}
+    </>
+  );
+}
+
+export function SidebarNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="flex flex-col gap-0.5 px-3">
+      <NavLinks links={primaryLinks} pathname={pathname} />
+      <div className="my-2 border-t" />
+      <NavLinks links={secondaryLinks} pathname={pathname} />
     </nav>
   );
 }

@@ -90,7 +90,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
             <input type="hidden" name="guarantee_id" value={guarantee.id} />
             <input type="hidden" name="contract_id" value={id} />
             <Button type="submit" variant="outline">
-              Abrir disputa
+              Abrir propuesta de arreglo
             </Button>
           </form>
         )}
@@ -99,7 +99,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
       <Separator />
 
       <div className="space-y-3">
-        <h2 className="font-medium">Disputas</h2>
+        <h2 className="font-medium">Propuestas de arreglo</h2>
         <Card className="p-0">
           {disputes && disputes.length > 0 ? (
             <ul className="divide-y">
@@ -113,13 +113,13 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
               ))}
             </ul>
           ) : (
-            <CardContent className="py-6 text-center text-sm text-muted-foreground">Sin disputas.</CardContent>
+            <CardContent className="py-6 text-center text-sm text-muted-foreground">Sin propuestas de arreglo.</CardContent>
           )}
         </Card>
       </div>
 
-      <Link href={`/audit?contract_id=${id}`} className="text-sm text-muted-foreground underline-offset-4 hover:underline">
-        Ver audit log de este contrato
+      <Link href={`/history?contract_id=${id}`} className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+        Ver historial de acciones de este contrato
       </Link>
     </div>
   );
