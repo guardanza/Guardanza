@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 async function uploadPhotoIfPresent(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -27,8 +28,7 @@ export async function createProperty(formData: FormData) {
 
   const organization_id = String(formData.get("organization_id"));
   const address = String(formData.get("address"));
-  const comuna = String(formData.get("comuna") || "") || null;
-  const city = String(formData.get("city") || "") || null;
+  const commune_id = String(formData.get("commune_id") || "") || null;
   const broker_org_code = String(formData.get("broker_org_code") || "").trim() || null;
 
   const fail = (message: string): never =>
@@ -53,7 +53,7 @@ export async function createProperty(formData: FormData) {
 
   const { data: property, error } = await supabase
     .from("properties")
-    .insert({ organization_id, address, comuna, city, broker_organization_id, photo_url })
+    .insert({ organization_id, address, commune_id, broker_organization_id, photo_url })
     .select("id")
     .single();
 
@@ -67,8 +67,8 @@ export async function updateProperty(formData: FormData) {
 
   const id = String(formData.get("id"));
   const address = String(formData.get("address"));
-  const comuna = String(formData.get("comuna") || "") || null;
-  const city = String(formData.get("city") || "") || null;
+  const commune_id = String(formData.get("commune_id") || "") || null;
+  const organization_id = String(formData.get("organization_id") || "") || null;
   const broker_org_code = String(formData.get("broker_org_code") || "").trim() || null;
 
   const fail = (message: string): never =>
@@ -99,8 +99,8 @@ export async function updateProperty(formData: FormData) {
     .from("properties")
     .update({
       address,
-      comuna,
-      city,
+      commune_id,
+      ...(organization_id ? { organization_id } : {}),
       ...(broker_organization_id ? { broker_organization_id } : {}),
       ...(photo_url ? { photo_url } : {}),
     })
@@ -109,6 +109,40 @@ export async function updateProperty(formData: FormData) {
 
   revalidatePath(`/properties/${id}`);
   redirect(`/properties/${id}`);
+}
+
+export async function addPropertyTenant(formData: FormData) {
+  const supabase = await createClient();
+  const property_id = String(formData.get("property_id"));
+  const email = String(formData.get("tenant_email") || "").trim();
+
+  const fail = (message: string): never =>
+    redirect(`/properties/${property_id}/edit?error=${encodeURIComponent(message)}`);
+  if (!email) return fail("Ingresa un email.");
+
+  const admin = createServiceRoleClient();
+  const { data: usersPage, error: lookupError } = await admin.auth.admin.listUsers();
+  if (lookupError) return fail(lookupError.message);
+  const tenant = usersPage.users.find((u) => u.email === email);
+  if (!tenant) return fail(`No existe una cuenta con el email ${email}. Debe registrarse primero.`);
+
+  const { error } = await supabase.from("property_tenants").insert({ property_id, user_id: tenant.id });
+  if (error) return fail(error.message);
+
+  revalidatePath(`/properties/${property_id}/edit`);
+  redirect(`/properties/${property_id}/edit`);
+}
+
+export async function removePropertyTenant(formData: FormData) {
+  const supabase = await createClient();
+  const id = String(formData.get("id"));
+  const property_id = String(formData.get("property_id"));
+
+  const { error } = await supabase.from("property_tenants").delete().eq("id", id);
+  if (error) redirect(`/properties/${property_id}/edit?error=${encodeURIComponent(error.message)}`);
+
+  revalidatePath(`/properties/${property_id}/edit`);
+  redirect(`/properties/${property_id}/edit`);
 }
 
 export async function deleteProperty(formData: FormData) {

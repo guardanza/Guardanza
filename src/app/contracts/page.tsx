@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default async function ContractsPage() {
@@ -24,6 +25,33 @@ export default async function ContractsPage() {
     .select("contract_id, role")
     .eq("user_id", userRes.user.id);
   const roleByContract = new Map((parties ?? []).map((p) => [p.contract_id, p.role]));
+
+  // A contract needs an existing participante AND an existing propiedad —
+  // the empty state should say exactly what's missing instead of always
+  // pointing at "crea un participante" even when one already exists.
+  let emptyStateHint: { message: string; cta: { href: string; label: string } } | null = null;
+  if (!contracts || contracts.length === 0) {
+    const [{ count: orgCount }, { count: propertyCount }] = await Promise.all([
+      supabase.from("memberships").select("*", { count: "exact", head: true }).eq("role", "admin"),
+      supabase.from("properties").select("*", { count: "exact", head: true }),
+    ]);
+    if (!orgCount) {
+      emptyStateHint = {
+        message: "Primero necesitas un participante (arrendador o corredora) para crear un contrato.",
+        cta: { href: "/organizations/new", label: "Crear participante" },
+      };
+    } else if (!propertyCount) {
+      emptyStateHint = {
+        message: "Ya tienes un participante — ahora agrégale una propiedad para poder crear un contrato.",
+        cta: { href: "/properties/new", label: "Agregar propiedad" },
+      };
+    } else {
+      emptyStateHint = {
+        message: "Tienes participantes y propiedades listas. Crea tu primer contrato desde una propiedad.",
+        cta: { href: "/properties", label: "Ver propiedades" },
+      };
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 md:px-6 md:py-10">
@@ -88,9 +116,14 @@ export default async function ContractsPage() {
         </>
       ) : (
         <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <FileText className="size-8 text-muted-foreground" strokeWidth={1.5} />
-            <p className="text-sm text-muted-foreground">Sin contratos todavía. Crea un participante para empezar.</p>
+            <p className="max-w-xs text-sm text-muted-foreground">{emptyStateHint?.message}</p>
+            {emptyStateHint && (
+              <Link href={emptyStateHint.cta.href} className={buttonVariants({ size: "sm" })}>
+                {emptyStateHint.cta.label}
+              </Link>
+            )}
           </CardContent>
         </Card>
       )}

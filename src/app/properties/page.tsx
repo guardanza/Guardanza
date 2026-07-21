@@ -15,7 +15,9 @@ export default async function PropertiesPage() {
 
   const { data: properties, error } = await supabase
     .from("properties")
-    .select("id, address, comuna, city, photo_url, organizations!properties_organization_id_fkey(name), broker:organizations!properties_broker_organization_id_fkey(name)")
+    .select(
+      "id, address, photo_url, organizations!properties_organization_id_fkey(name), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
+    )
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
 
@@ -36,6 +38,8 @@ export default async function PropertiesPage() {
           {properties.map((p) => {
             const owner = one(p.organizations);
             const broker = one(p.broker);
+            const commune = one(p.communes);
+            const region = commune ? one(commune.regions) : null;
             return (
               <Link key={p.id} href={`/properties/${p.id}`}>
                 <Card className="gap-0 overflow-hidden p-0 transition-shadow hover:shadow-md">
@@ -43,7 +47,7 @@ export default async function PropertiesPage() {
                   <CardContent className="space-y-1.5 py-3">
                     <p className="truncate text-sm font-medium">{p.address}</p>
                     <p className="text-xs text-muted-foreground">
-                      {[p.comuna, p.city].filter(Boolean).join(", ") || "Sin ubicación"}
+                      {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
                     </p>
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {owner && <Badge variant="secondary">{owner.name}</Badge>}

@@ -25,7 +25,7 @@ export default async function PropertyDetailPage({
   const { data: property, error: fetchError } = await supabase
     .from("properties")
     .select(
-      "id, address, comuna, city, photo_url, organization_id, organizations!properties_organization_id_fkey(name), broker:organizations!properties_broker_organization_id_fkey(name)"
+      "id, address, photo_url, organization_id, organizations!properties_organization_id_fkey(name), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
     )
     .eq("id", id)
     .single();
@@ -33,6 +33,8 @@ export default async function PropertyDetailPage({
 
   const owner = one(property.organizations);
   const broker = one(property.broker);
+  const commune = one(property.communes);
+  const region = commune ? one(commune.regions) : null;
 
   const { data: contracts } = await supabase
     .from("contracts")
@@ -54,7 +56,7 @@ export default async function PropertyDetailPage({
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{property.address}</h1>
           <p className="text-sm text-muted-foreground">
-            {[property.comuna, property.city].filter(Boolean).join(", ") || "Sin ubicación"}
+            {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
           </p>
           <div className="flex flex-wrap gap-1.5 pt-1">
             {owner && <Badge variant="secondary">{owner.name}</Badge>}
