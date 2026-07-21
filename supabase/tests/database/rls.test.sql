@@ -7,7 +7,7 @@
 -- Supabase does with a real JWT.
 
 begin;
-select plan(43);
+select plan(46);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -340,6 +340,29 @@ select is(
   0.10,
   'the updated comisión Guardanza rate is persisted'
 );
+
+-- ---------------------------------------------------------------------
+-- Platform admin: "visibilidad total del sistema" — sees contracts,
+-- organizations and properties they have no membership/party tie to at
+-- all, via the has_contract_access() bypass.
+-- ---------------------------------------------------------------------
+select pg_temp.login_as('00000000-0000-0000-0000-000000000006'); -- platform admin, no ties to C1/a1/b1
+select is(
+  (select count(*)::int from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  1,
+  'platform admin can read a contract they are not a party to'
+);
+select is(
+  (select count(*)::int from public.organizations where id = '00000000-0000-0000-0000-0000000000a1'),
+  1,
+  'platform admin can read an organization they are not a member of'
+);
+select is(
+  (select count(*)::int from public.properties where id = '00000000-0000-0000-0000-0000000000b1'),
+  1,
+  'platform admin can read a property outside their own organizations'
+);
+reset role;
 
 -- ---------------------------------------------------------------------
 -- Propuestas de arreglo: a fresh proposal is lightweight (propuesta_termino),
