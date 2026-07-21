@@ -1,11 +1,13 @@
-import { signIn, signUp } from "@/lib/actions/auth";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { signIn } from "@/lib/actions/auth";
+import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Logo, LogoMark } from "@/components/logo";
 
 const timeline = [
   { label: "Contrato firmado", detail: "Ambas partes de acuerdo", done: true },
@@ -18,13 +20,17 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  if (userRes.user) redirect("/");
+
   const { error } = await searchParams;
 
   return (
-    <div className="mx-auto grid min-h-screen max-w-5xl grid-cols-1 items-center gap-10 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
+    <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
       <div className="hidden lg:block">
-        <Logo className="mb-6" />
-        <h1 className="max-w-md text-4xl font-bold tracking-tight text-balance">
+        <p className="text-xs font-semibold tracking-widest text-primary uppercase">Guardanza</p>
+        <h1 className="mt-2 max-w-md text-4xl font-bold tracking-tight text-balance">
           Arrienda con confianza.
         </h1>
         <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
@@ -59,13 +65,7 @@ export default async function LoginPage({
         </Badge>
       </div>
 
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col items-center gap-2 text-center lg:hidden">
-          <LogoMark size={40} />
-          <h1 className="text-xl font-semibold tracking-tight">Guardanza</h1>
-          <p className="text-sm text-muted-foreground">Arrienda con confianza.</p>
-        </div>
-
+      <div className="flex flex-col gap-4">
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
@@ -90,35 +90,19 @@ export default async function LoginPage({
               <Button type="submit" className="w-full">
                 Entrar
               </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Crear cuenta</CardTitle>
-            <CardDescription>Regístrate por primera vez.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form action={signUp} className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="signup-name">Nombre completo</Label>
-                <Input id="signup-name" name="full_name" required />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="signup-email">Email</Label>
-                <Input id="signup-email" name="email" type="email" required />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="signup-password">Contraseña</Label>
-                <Input id="signup-password" name="password" type="password" required minLength={6} />
-              </div>
-              <Button type="submit" variant="outline" className="w-full">
-                Registrarme
+              <Button type="button" variant="outline" className="w-full" disabled title="Próximamente">
+                Continuar con Google (próximamente)
               </Button>
             </form>
           </CardContent>
         </Card>
+
+        <p className="text-center text-sm text-muted-foreground">
+          ¿No tienes cuenta?{" "}
+          <Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
+            Regístrate
+          </Link>
+        </p>
       </div>
     </div>
   );

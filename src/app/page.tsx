@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Landmark, FileText, AlertTriangle, CalendarClock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
+import { MarketingHome } from "@/components/marketing-home";
 
 function formatAmount(amount: number, currency: string) {
   if (currency === "UF") return `UF ${amount.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -14,7 +14,7 @@ function formatAmount(amount: number, currency: string) {
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes.user) redirect("/login");
+  if (!userRes.user) return <MarketingHome />;
 
   const [{ data: contracts }, { data: guarantees }, { data: disputes }] = await Promise.all([
     supabase.from("contracts").select("id, status, end_date, properties(address)").order("end_date", { ascending: true }),
