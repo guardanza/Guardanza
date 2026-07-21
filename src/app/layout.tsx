@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/auth";
 import { getProfileTypeLabel } from "@/lib/profile-label";
@@ -10,13 +10,13 @@ import { MobileTabBar } from "@/components/mobile-tabbar";
 import { MarketingHeader } from "@/components/marketing-header";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
 });
 
@@ -36,7 +36,7 @@ export default async function RootLayout({
   const profileType = userRes.user ? await getProfileTypeLabel(supabase, userRes.user.id) : null;
 
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
       <body className="min-h-full bg-muted/40">
         {userRes.user ? (
           <div className="flex min-h-full">
@@ -49,7 +49,7 @@ export default async function RootLayout({
                 <div className="flex items-center gap-2.5">
                   <Link
                     href="/profile"
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-terracotta text-xs font-medium text-brand-terracotta-foreground"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-gold text-xs font-medium text-brand-gold-foreground"
                   >
                     {userRes.user.email?.[0]?.toUpperCase()}
                   </Link>
@@ -74,7 +74,7 @@ export default async function RootLayout({
               </Link>
               <Link
                 href="/more"
-                className="flex size-8 items-center justify-center rounded-full bg-brand-terracotta text-xs font-medium text-brand-terracotta-foreground"
+                className="flex size-8 items-center justify-center rounded-full bg-brand-gold text-xs font-medium text-brand-gold-foreground"
               >
                 {userRes.user.email?.[0]?.toUpperCase()}
               </Link>
