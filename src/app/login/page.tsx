@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { signIn } from "@/lib/actions/auth";
+import { signIn, signInWithGoogle } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -90,8 +90,10 @@ export default async function LoginPage({
               <Button type="submit" className="w-full">
                 Entrar
               </Button>
-              <Button type="button" variant="outline" className="w-full" disabled title="Próximamente">
-                Continuar con Google (próximamente)
+            </form>
+            <form action={signInWithGoogle} className="mt-3">
+              <Button type="submit" variant="outline" className="w-full">
+                Continuar con Google
               </Button>
             </form>
           </CardContent>

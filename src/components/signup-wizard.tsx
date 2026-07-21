@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Building2, User, Home, KeyRound, ArrowLeft } from "lucide-react";
-import { signUpWithRole } from "@/lib/actions/auth";
+import { signUpWithRole, signInWithGoogle } from "@/lib/actions/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,10 +109,17 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
         <Button type="submit" className="w-full">
           Crear cuenta
         </Button>
+      </form>
 
-        <Button type="button" variant="outline" className="w-full" disabled title="Próximamente">
-          Continuar con Google (próximamente)
+      <form action={signInWithGoogle} className="mt-3 space-y-2">
+        <Button type="submit" variant="outline" className="w-full">
+          Continuar con Google
         </Button>
+        {isCorredor && (
+          <p className="text-center text-xs text-muted-foreground">
+            Con Google creamos tu cuenta sin empresa/RUT — los agregas después desde Participantes.
+          </p>
+        )}
       </form>
     </div>
   );
