@@ -7,6 +7,7 @@ import { getProfileTypeLabel } from "@/lib/profile-label";
 import { Logo, LogoMark } from "@/components/logo";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { MobileTabBar } from "@/components/mobile-tabbar";
+import { MarketingHeader } from "@/components/marketing-header";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -84,7 +85,10 @@ export default async function RootLayout({
             <MobileTabBar />
           </div>
         ) : (
-          <main>{children}</main>
+          <>
+            <MarketingHeader />
+            <main>{children}</main>
+          </>
         )}
       </body>
     </html>

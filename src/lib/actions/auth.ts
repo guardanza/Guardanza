@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { validateRut, formatRut } from "@/lib/rut";
 
 export async function signIn(formData: FormData) {
   const email = String(formData.get("email"));
@@ -25,6 +27,70 @@ export async function signUp(formData: FormData) {
     options: { data: { full_name: fullName } },
   });
   if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  redirect("/");
+}
+
+// Role-first registration: identifies what the person is (arrendador,
+// corredor independiente/oficina, or arrendatario) at signup time instead
+// of leaving them to figure out "organizations" afterward. Auth user
+// creation goes through the normal anon signUp (respects whatever email
+// confirmation setting the project has); the organization + admin
+// membership are created via the service-role client right after, since
+// create_organization() requires an authenticated session that may not
+// exist yet if confirmation is pending.
+export async function signUpWithRole(formData: FormData) {
+  const role = String(formData.get("role"));
+  const legal_form = String(formData.get("legal_form") || "");
+  const full_name = String(formData.get("full_name") || "").trim();
+  const email = String(formData.get("email") || "").trim();
+  const password = String(formData.get("password") || "");
+  const company_name = String(formData.get("company_name") || "").trim();
+  const rutInput = String(formData.get("rut") || "").trim();
+
+  const fail = (message: string): never =>
+    redirect(`/signup?role=${role}&legal_form=${legal_form}&error=${encodeURIComponent(message)}`);
+
+  if (!["arrendador", "corredor", "arrendatario"].includes(role)) return fail("Selecciona un tipo de cuenta.");
+  if (!full_name) return fail("Ingresa tu nombre completo.");
+
+  let rut: string | null = null;
+  if (role === "corredor") {
+    if (!company_name) return fail("Ingresa el nombre de tu empresa o corretaje.");
+    if (!rutInput || !validateRut(rutInput)) return fail(`El RUT ${rutInput || ""} no es válido.`);
+    rut = formatRut(rutInput);
+    if (!["persona_natural", "empresa"].includes(legal_form)) return fail("Selecciona corredor independiente u oficina de corretaje.");
+  }
+
+  const supabase = await createClient();
+  const { data: signUpData, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name } },
+  });
+  if (error) return fail(error.message);
+  if (!signUpData.user) return fail("No se pudo crear la cuenta.");
+
+  if (role === "arrendador" || role === "corredor") {
+    const admin = createServiceRoleClient();
+    const { data: org, error: orgError } = await admin
+      .from("organizations")
+      .insert({
+        type: role === "corredor" ? "broker" : "individual",
+        name: role === "corredor" ? company_name : `${full_name} (particular)`,
+        rut,
+        legal_form: role === "corredor" ? legal_form : "persona_natural",
+        created_by: signUpData.user.id,
+      })
+      .select("id")
+      .single();
+    if (orgError) return fail(orgError.message);
+
+    const { error: memError } = await admin
+      .from("memberships")
+      .insert({ user_id: signUpData.user.id, organization_id: org.id, role: "admin" });
+    if (memError) return fail(memError.message);
+  }
+
   redirect("/");
 }
 
