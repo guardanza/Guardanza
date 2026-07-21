@@ -7,7 +7,7 @@
 -- Supabase does with a real JWT.
 
 begin;
-select plan(46);
+select plan(53);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -464,6 +464,93 @@ select throws_ok(
   'a user cannot reject their own pending proposal'
 );
 reset role;
+
+-- ---------------------------------------------------------------------
+-- Permissions matrix: only arrendador can propose (open a dispute);
+-- only platform admin can resolve an escalated dispute directly.
+-- ---------------------------------------------------------------------
+insert into public.contracts (
+  id, property_id, start_date, end_date, rent_amount, rent_currency, guarantee_currency, guarantee_amount
+) values (
+  '00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-0000000000b1',
+  '2026-03-01', '2027-03-01', 300000, 'CLP', 'CLP', 300000
+);
+insert into public.contract_parties (contract_id, user_id, role) values
+  ('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-000000000001', 'arrendador'),
+  ('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-000000000002', 'arrendatario');
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001');
+select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-000000000001');
+reset role;
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002');
+select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-000000000002');
+select public.pay_guarantee(
+  (select id from public.guarantees where contract_id = '00000000-0000-0000-0000-0000000000c3'),
+  '00000000-0000-0000-0000-000000000002'
+);
+
+select throws_ok(
+  $$
+    insert into public.disputes (guarantee_id, opened_by)
+    select g.id, '00000000-0000-0000-0000-000000000002'
+    from public.guarantees g where g.contract_id = '00000000-0000-0000-0000-0000000000c3'
+  $$,
+  '42501',
+  null,
+  'the tenant can no longer open a dispute — only the landlord can propose descuentos'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001');
+select lives_ok(
+  $$
+    insert into public.disputes (id, guarantee_id, opened_by)
+    select '00000000-0000-0000-0000-0000000000d3', g.id, '00000000-0000-0000-0000-000000000001'
+    from public.guarantees g where g.contract_id = '00000000-0000-0000-0000-0000000000c3'
+  $$,
+  'the landlord can still open a dispute (propose descuentos)'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord, not admin
+select throws_ok(
+  $$ select public.resolve_dispute_admin('00000000-0000-0000-0000-0000000000d2', '00000000-0000-0000-0000-000000000001', 50000, 'test') $$,
+  'P0001',
+  null,
+  'a non-platform-admin cannot resolve a dispute'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000006'); -- platform admin
+select throws_ok(
+  $$ select public.resolve_dispute_admin('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-000000000006', 10000, null) $$,
+  'P0001',
+  null,
+  'a dispute that is not escalada cannot be resolved by admin'
+);
+
+select lives_ok(
+  $$
+    select public.resolve_dispute_admin(
+      '00000000-0000-0000-0000-0000000000d2', '00000000-0000-0000-0000-000000000006', 30000,
+      'Evidencia insuficiente para justificar el monto propuesto, se retienen 30000'
+    )
+  $$,
+  'a platform admin can resolve an escalated dispute directly'
+);
+reset role;
+
+select is(
+  (select status::text from public.disputes where id = '00000000-0000-0000-0000-0000000000d2'),
+  'liquidada',
+  'admin resolution marks the escalated dispute liquidada'
+);
+
+select is(
+  (select status::text from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  'finalizado',
+  'admin resolution finalizes the contract'
+);
 
 -- ---------------------------------------------------------------------
 -- org_code + lookup_organization_by_code(): a landlord referencing a

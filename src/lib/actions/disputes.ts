@@ -124,3 +124,22 @@ export async function rejectProposal(proposalId: string, disputeId: string, form
 
   revalidatePath(`/disputes/${disputeId}`);
 }
+
+export async function resolveDisputeAdmin(disputeId: string, formData: FormData) {
+  const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  if (!userRes.user) redirect("/login");
+
+  const monto_retenido = Number(formData.get("monto_retenido") || 0);
+  const notas = String(formData.get("notas") || "") || null;
+
+  const { error } = await supabase.rpc("resolve_dispute_admin", {
+    p_dispute_id: disputeId,
+    p_actor_user_id: userRes.user!.id,
+    p_monto_retenido: monto_retenido,
+    p_notas: notas,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/disputes/${disputeId}`);
+}

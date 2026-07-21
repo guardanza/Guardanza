@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createProposal, acceptProposal, rejectProposal } from "@/lib/actions/disputes";
+import { createProposal, acceptProposal, rejectProposal, resolveDisputeAdmin } from "@/lib/actions/disputes";
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,15 @@ const selectClass =
 export default async function DisputeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  if (!userRes.user) redirect("/login");
 
-  const { data: dispute, error } = await supabase.from("disputes").select("*").eq("id", id).single();
+  const { data: profile } = await supabase.from("profiles").select("is_platform_admin").eq("id", userRes.user.id).single();
+  const isPlatformAdmin = profile?.is_platform_admin ?? false;
+
+  const { data: dispute, error } = await supabase.from("disputes").select("*, guarantees(amount, currency)").eq("id", id).single();
   if (error || !dispute) notFound();
+  const guarantee = one(dispute.guarantees);
 
   const { data: proposals } = await supabase
     .from("proposals")
@@ -45,6 +51,29 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">{dispute.motivo_rechazo}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {dispute.status === "escalada" && isPlatformAdmin && guarantee && (
+        <Card className="border-amber-200 dark:border-amber-900/50">
+          <CardHeader>
+            <CardTitle className="text-sm">Resolver como administrador</CardTitle>
+            <CardDescription>
+              Garantía en custodia: {guarantee.amount} {guarantee.currency}. Define cuánto se retiene a favor del
+              arrendador — el resto se devuelve al arrendatario.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={resolveDisputeAdmin.bind(null, id)} className="space-y-3">
+              <div className="space-y-1.5">
+                <Input name="monto_retenido" type="number" step="0.01" min={0} max={guarantee.amount} placeholder="Monto a retener (CLP)" required />
+              </div>
+              <Textarea name="notas" placeholder="Notas internas del arbitraje (opcional)" rows={3} />
+              <Button type="submit" variant="outline" className="w-full">
+                Ejecutar resolución
+              </Button>
+            </form>
           </CardContent>
         </Card>
       )}
