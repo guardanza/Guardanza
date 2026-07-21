@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createProposal, acceptProposal } from "@/lib/actions/disputes";
+import { createProposal, acceptProposal, rejectProposal } from "@/lib/actions/disputes";
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/status-badge";
 
 const selectClass =
@@ -37,6 +38,17 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
         <StatusBadge status={dispute.status} />
       </div>
 
+      {dispute.status === "escalada" && dispute.motivo_rechazo && (
+        <Card className="border-red-200 dark:border-red-900/50">
+          <CardHeader>
+            <CardTitle className="text-sm">Motivo del rechazo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{dispute.motivo_rechazo}</p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-3">
         <h2 className="font-medium">Propuestas</h2>
         {proposals?.map((p) => (
@@ -54,11 +66,31 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
                 ))}
               </ul>
               {p.status === "pendiente" && (
-                <form action={acceptProposal.bind(null, p.id, id)}>
-                  <Button type="submit" size="sm">
-                    Aceptar
-                  </Button>
-                </form>
+                <div className="flex flex-wrap items-start gap-2">
+                  <form action={acceptProposal.bind(null, p.id, id)}>
+                    <Button type="submit" size="sm">
+                      Aceptar
+                    </Button>
+                  </form>
+
+                  <details className="group">
+                    <summary className="flex h-8 cursor-pointer list-none items-center rounded-md border border-input px-3 text-sm font-medium">
+                      Rechazar
+                    </summary>
+                    <form action={rejectProposal.bind(null, p.id, id)} className="mt-2 w-64 space-y-2">
+                      <Textarea
+                        name="motivo_rechazo"
+                        placeholder="Explica por qué rechazas esta propuesta (mínimo 50 caracteres)."
+                        minLength={50}
+                        required
+                        rows={3}
+                      />
+                      <Button type="submit" size="sm" variant="destructive">
+                        Confirmar rechazo y abrir disputa
+                      </Button>
+                    </form>
+                  </details>
+                </div>
               )}
             </CardContent>
           </Card>

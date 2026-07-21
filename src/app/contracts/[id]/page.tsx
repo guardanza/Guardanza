@@ -148,7 +148,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           </form>
         )}
 
-        {guarantee?.status === "en_custodia" && (
+        {contract.status === "activo" && guarantee && (
           <form action={openDispute}>
             <input type="hidden" name="guarantee_id" value={guarantee.id} />
             <input type="hidden" name="contract_id" value={id} />
@@ -158,6 +158,12 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           </form>
         )}
       </div>
+
+      {contract.status === "propuesta_termino" && (
+        <p className="text-sm text-muted-foreground">
+          Hay una propuesta de arreglo pendiente — revísala abajo para aceptarla o rechazarla.
+        </p>
+      )}
 
       <Separator />
 

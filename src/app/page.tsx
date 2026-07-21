@@ -48,6 +48,7 @@ export default async function DashboardPage() {
     { key: "pendiente_firma_arrendatario", label: "Pendiente firma arrendatario" },
     { key: "pendiente_deposito", label: "Pendiente de depósito" },
     { key: "activo", label: "Activos" },
+    { key: "propuesta_termino", label: "Propuesta de término" },
     { key: "en_disputa", label: "En disputa" },
     { key: "finalizado", label: "Finalizados" },
     { key: "cancelado", label: "Cancelados" },

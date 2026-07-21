@@ -107,3 +107,20 @@ export async function acceptProposal(proposalId: string, disputeId: string) {
 
   revalidatePath(`/disputes/${disputeId}`);
 }
+
+export async function rejectProposal(proposalId: string, disputeId: string, formData: FormData) {
+  const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  if (!userRes.user) redirect("/login");
+
+  const motivo_rechazo = String(formData.get("motivo_rechazo") || "");
+
+  const { error } = await supabase.rpc("reject_proposal", {
+    p_proposal_id: proposalId,
+    p_actor_user_id: userRes.user!.id,
+    p_motivo_rechazo: motivo_rechazo,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/disputes/${disputeId}`);
+}
