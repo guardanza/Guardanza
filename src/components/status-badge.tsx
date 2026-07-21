@@ -10,6 +10,7 @@ const STATUS_STYLES: Record<string, string> = {
   pendiente_firma_arrendatario: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
   pendiente_deposito: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
   activo: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  propuesta_termino: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
   pagada: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
   en_custodia: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
   abierta: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",

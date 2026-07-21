@@ -7,7 +7,7 @@
 -- Supabase does with a real JWT.
 
 begin;
-select plan(34);
+select plan(43);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -51,9 +51,17 @@ insert into public.contract_parties (contract_id, user_id, role) values
   ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000002', 'arrendatario');
 
 -- guarantees row was auto-created by the contracts_create_guarantee trigger.
+-- This fixture predates C1 ever being signed/paid (that happens further
+-- down, in the contract-state-machine block), so disputes_propose_termination
+-- — which requires the contract to already be 'activo' — is disabled just
+-- for this one seed insert. The RLS assertions that use D1/E1 below only
+-- care about proposals/ledger_entries table-level access, not contract
+-- status, so this doesn't weaken anything they're actually testing.
+alter table public.disputes disable trigger disputes_propose_termination;
 insert into public.disputes (id, guarantee_id, opened_by)
   select '00000000-0000-0000-0000-0000000000d1', g.id, '00000000-0000-0000-0000-000000000002'
   from public.guarantees g where g.contract_id = '00000000-0000-0000-0000-0000000000c1';
+alter table public.disputes enable trigger disputes_propose_termination;
 
 insert into public.proposals (id, dispute_id, created_by, total_amount)
 values (
@@ -332,6 +340,107 @@ select is(
   0.10,
   'the updated comisión Guardanza rate is persisted'
 );
+
+-- ---------------------------------------------------------------------
+-- Propuestas de arreglo: a fresh proposal is lightweight (propuesta_termino),
+-- it only escalates into a formal en_disputa if explicitly rejected.
+-- C1 is 'activo' at this point (driven there by the state-machine block
+-- above), so this exercises disputes_propose_termination for real.
+-- ---------------------------------------------------------------------
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord
+select lives_ok(
+  $$
+    insert into public.disputes (id, guarantee_id, opened_by)
+    select '00000000-0000-0000-0000-0000000000d2', g.id, '00000000-0000-0000-0000-000000000001'
+    from public.guarantees g where g.contract_id = '00000000-0000-0000-0000-0000000000c1'
+  $$,
+  'a party can open a proposal against an activo contract'
+);
+reset role;
+
+select is(
+  (select status::text from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  'propuesta_termino',
+  'opening a proposal moves the contract to propuesta_termino, not straight to a formal dispute'
+);
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$
+    insert into public.disputes (guarantee_id, opened_by)
+    select g.id, '00000000-0000-0000-0000-000000000001'
+    from public.guarantees g where g.contract_id = '00000000-0000-0000-0000-0000000000c1'
+  $$,
+  'P0001',
+  null,
+  'a second proposal cannot be opened once the contract is no longer activo'
+);
+insert into public.proposals (id, dispute_id, created_by, total_amount)
+  values ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000d2', '00000000-0000-0000-0000-000000000001', 50000);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant
+select throws_ok(
+  $$ select public.reject_proposal('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-000000000002', 'too short') $$,
+  'P0001',
+  null,
+  'rejecting a proposal requires a motivo_rechazo of at least 50 characters'
+);
+
+select lives_ok(
+  $$
+    select public.reject_proposal(
+      '00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-000000000002',
+      'Los daños fotografiados ya estaban presentes antes de mi ingreso al inmueble, según consta en el informe inicial.'
+    )
+  $$,
+  'the tenant can reject a proposal with a valid reason, escalating to a formal dispute'
+);
+reset role;
+
+select is(
+  (select status::text from public.disputes where id = '00000000-0000-0000-0000-0000000000d2'),
+  'escalada',
+  'rejecting the proposal escalates the dispute to escalada'
+);
+
+select is(
+  (select status::text from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  'en_disputa',
+  'rejecting the proposal moves the contract to en_disputa'
+);
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002');
+select throws_ok(
+  $$
+    select public.reject_proposal(
+      '00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-000000000002',
+      'Intentando rechazar la misma propuesta una segunda vez, lo cual ya no debería ser posible en este estado.'
+    )
+  $$,
+  'P0001',
+  null,
+  'a proposal that is no longer pendiente cannot be rejected again'
+);
+reset role;
+
+insert into public.proposals (dispute_id, created_by, total_amount, supersedes_proposal_id)
+  values ('00000000-0000-0000-0000-0000000000d2', '00000000-0000-0000-0000-000000000002', 10000, '00000000-0000-0000-0000-0000000000f1');
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant, but this is now THEIR own pending proposal
+select throws_ok(
+  $$
+    select public.reject_proposal(
+      (select id from public.proposals where dispute_id = '00000000-0000-0000-0000-0000000000d2' and status = 'pendiente'),
+      '00000000-0000-0000-0000-000000000002',
+      'Tratando de rechazar mi propia contrapropuesta, algo que la función debería impedir explícitamente.'
+    )
+  $$,
+  'P0001',
+  null,
+  'a user cannot reject their own pending proposal'
+);
+reset role;
 
 -- ---------------------------------------------------------------------
 -- org_code + lookup_organization_by_code(): a landlord referencing a
