@@ -44,11 +44,13 @@ export default async function DashboardPage() {
     .slice(0, 5);
 
   const contractStatusOrder: { key: string; label: string }[] = [
-    { key: "borrador", label: "Borrador" },
-    { key: "pendiente_firma", label: "Pendiente de firma" },
+    { key: "pendiente_firma_arrendador", label: "Pendiente firma arrendador" },
+    { key: "pendiente_firma_arrendatario", label: "Pendiente firma arrendatario" },
+    { key: "pendiente_deposito", label: "Pendiente de depósito" },
     { key: "activo", label: "Activos" },
     { key: "en_disputa", label: "En disputa" },
     { key: "finalizado", label: "Finalizados" },
+    { key: "cancelado", label: "Cancelados" },
   ];
 
   return (

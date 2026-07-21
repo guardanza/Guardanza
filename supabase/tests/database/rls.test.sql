@@ -7,7 +7,7 @@
 -- Supabase does with a real JWT.
 
 begin;
-select plan(13);
+select plan(28);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -153,6 +153,139 @@ select is(
   'superada',
   'the superseded proposal was automatically marked as superada'
 );
+
+-- ---------------------------------------------------------------------
+-- Contract state machine: sequential signing, deposit gate, cancellation.
+-- ---------------------------------------------------------------------
+select is(
+  (select status::text from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  'pendiente_firma_arrendador',
+  'a new contract starts in pendiente_firma_arrendador'
+);
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000005'); -- outsider
+select throws_ok(
+  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000005') $$,
+  'P0001',
+  null,
+  'an outsider cannot sign a contract as arrendador'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant, wrong role
+select throws_ok(
+  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000002') $$,
+  'P0001',
+  null,
+  'the tenant cannot sign a contract as arrendador'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord
+select lives_ok(
+  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000001') $$,
+  'the landlord can sign the contract'
+);
+reset role;
+
+select is(
+  (select status::text from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  'pendiente_firma_arrendatario',
+  'signing as landlord advances the contract to pendiente_firma_arrendatario'
+);
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord again
+select throws_ok(
+  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000001') $$,
+  'P0001',
+  null,
+  'the landlord cannot sign twice'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord, wrong role for tenant sign
+select throws_ok(
+  $$ select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000001') $$,
+  'P0001',
+  null,
+  'the landlord cannot sign as arrendatario'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant
+select lives_ok(
+  $$ select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000002') $$,
+  'the tenant can sign after the landlord'
+);
+reset role;
+
+select is(
+  (select status::text from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  'pendiente_deposito',
+  'both signatures move the contract to pendiente_deposito'
+);
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord, wrong role for deposit
+select throws_ok(
+  $$
+    select public.pay_guarantee(g.id, '00000000-0000-0000-0000-000000000001')
+    from public.guarantees g where g.contract_id = '00000000-0000-0000-0000-0000000000c1'
+  $$,
+  'P0001',
+  null,
+  'only the arrendatario can pay the guarantee'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant
+select lives_ok(
+  $$
+    select public.pay_guarantee(g.id, '00000000-0000-0000-0000-000000000002')
+    from public.guarantees g where g.contract_id = '00000000-0000-0000-0000-0000000000c1'
+  $$,
+  'the tenant can pay the guarantee once both signatures are in'
+);
+reset role;
+
+select is(
+  (select status::text from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  'activo',
+  'paying the guarantee activates the contract'
+);
+
+select is(
+  (select deposit_bank_tx_id is not null from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  true,
+  'activating the contract records a simulated deposit reference'
+);
+
+-- Cancellation is only reachable pre-deposit — needs its own fresh contract
+-- since C1 is already activo above.
+insert into public.contracts (
+  id, property_id, start_date, end_date, rent_amount, rent_currency, guarantee_currency, guarantee_amount
+) values (
+  '00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-0000000000b1',
+  '2026-02-01', '2027-02-01', 400000, 'CLP', 'CLP', 400000
+);
+insert into public.contract_parties (contract_id, user_id, role) values
+  ('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000001', 'arrendador'),
+  ('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000002', 'arrendatario');
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant can cancel too, not just landlord
+select lives_ok(
+  $$ select public.cancel_contract('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000002') $$,
+  'a party can cancel a contract before the deposit is confirmed'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$ select public.cancel_contract('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000001') $$,
+  'P0001',
+  null,
+  'a cancelled contract cannot be cancelled again'
+);
+reset role;
 
 -- ---------------------------------------------------------------------
 -- org_code + lookup_organization_by_code(): a landlord referencing a

@@ -56,12 +56,40 @@ export async function createContract(formData: FormData) {
   redirect(`/contracts/${contract.id}`);
 }
 
-export async function signContract(contractId: string) {
+export async function signContractLandlord(contractId: string) {
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
 
-  const { error } = await supabase.rpc("sign_contract", {
+  const { error } = await supabase.rpc("sign_contract_landlord", {
+    p_contract_id: contractId,
+    p_actor_user_id: userRes.user!.id,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/contracts/${contractId}`);
+}
+
+export async function signContractTenant(contractId: string) {
+  const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  if (!userRes.user) redirect("/login");
+
+  const { error } = await supabase.rpc("sign_contract_tenant", {
+    p_contract_id: contractId,
+    p_actor_user_id: userRes.user!.id,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/contracts/${contractId}`);
+}
+
+export async function cancelContract(contractId: string) {
+  const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  if (!userRes.user) redirect("/login");
+
+  const { error } = await supabase.rpc("cancel_contract", {
     p_contract_id: contractId,
     p_actor_user_id: userRes.user!.id,
   });
