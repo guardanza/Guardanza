@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Home } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { one } from "@/lib/supabase/one";
 import { orgTypeLabel } from "@/lib/labels";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +18,7 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
 
   const { data: properties } = await supabase
     .from("properties")
-    .select("id, address, comuna, photo_url")
+    .select("id, address, photo_url, communes(name)")
     .or(`organization_id.eq.${id},broker_organization_id.eq.${id}`)
     .order("created_at", { ascending: false });
 
@@ -48,7 +49,7 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
                 <PropertyThumb url={p.photo_url} className="size-11 shrink-0 rounded-lg" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{p.address}</p>
-                  <p className="text-xs text-muted-foreground">{p.comuna ?? "Sin comuna"}</p>
+                  <p className="text-xs text-muted-foreground">{one(p.communes)?.name ?? "Sin comuna"}</p>
                 </div>
               </Link>
             ))}

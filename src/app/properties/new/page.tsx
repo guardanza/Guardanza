@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { createProperty } from "@/lib/actions/properties";
 import { createClient } from "@/lib/supabase/server";
+import { getRegionsWithCommunes } from "@/lib/supabase/regions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RegionCommuneSelect } from "@/components/region-commune-select";
 
 export default async function NewPropertyPage({
   searchParams,
@@ -16,6 +18,8 @@ export default async function NewPropertyPage({
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
+
+  const regions = await getRegionsWithCommunes(supabase);
 
   let orgOptions: { id: string; name: string }[] = [];
   if (!organization_id) {
@@ -41,7 +45,7 @@ export default async function NewPropertyPage({
           <CardDescription>Se asocia al participante que la administra.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={createProperty} className="space-y-3" encType="multipart/form-data">
+          <form action={createProperty} className="space-y-3">
             {organization_id ? (
               <input type="hidden" name="organization_id" defaultValue={organization_id} />
             ) : (
@@ -66,16 +70,7 @@ export default async function NewPropertyPage({
               <Label htmlFor="address">Dirección</Label>
               <Input id="address" name="address" required />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="comuna">Comuna</Label>
-                <Input id="comuna" name="comuna" />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="city">Ciudad</Label>
-                <Input id="city" name="city" />
-              </div>
-            </div>
+            <RegionCommuneSelect regions={regions} />
             <div className="space-y-1.5">
               <Label htmlFor="photo">Foto (opcional)</Label>
               <Input id="photo" name="photo" type="file" accept="image/*" className="p-1.5" />
