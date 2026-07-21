@@ -148,12 +148,12 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           </form>
         )}
 
-        {contract.status === "activo" && guarantee && (
+        {contract.status === "activo" && guarantee && myRole === "arrendador" && (
           <form action={openDispute}>
             <input type="hidden" name="guarantee_id" value={guarantee.id} />
             <input type="hidden" name="contract_id" value={id} />
             <Button type="submit" variant="outline">
-              Abrir propuesta de arreglo
+              Proponer descuentos
             </Button>
           </form>
         )}
