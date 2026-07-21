@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Landmark, FileText, AlertTriangle, CalendarClock } from "lucide-react";
+import { Landmark, FileText, AlertTriangle, CalendarClock, ShieldCheck, Percent } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,11 +16,35 @@ export default async function DashboardPage() {
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) return <MarketingHome />;
 
-  const [{ data: contracts }, { data: guarantees }, { data: disputes }] = await Promise.all([
-    supabase.from("contracts").select("id, status, end_date, properties(address)").order("end_date", { ascending: true }),
+  const { data: profile } = await supabase.from("profiles").select("is_platform_admin").eq("id", userRes.user.id).single();
+  const isPlatformAdmin = profile?.is_platform_admin ?? false;
+
+  const [{ data: contracts }, { data: guarantees }, { data: disputes }, { data: brokerMemberships }] = await Promise.all([
+    supabase.from("contracts").select("id, status, end_date, comision_guardanza_monto, properties(address)").order("end_date", { ascending: true }),
     supabase.from("guarantees").select("status, amount, currency"),
     supabase.from("disputes").select("id, status"),
+    supabase.from("memberships").select("organization_id, organizations!inner(type)").eq("user_id", userRes.user.id).eq("organizations.type", "broker"),
   ]);
+
+  // RLS already scopes `contracts` above to "everything a platform admin
+  // can see" (i.e. everything) vs. "everything this specific corredor/
+  // arrendador/arrendatario can see" — no separate admin-only query needed
+  // for the platform-wide totals, only for isolating what belongs to a
+  // corredor's own delegated properties specifically.
+  const totalComisionGuardanza = isPlatformAdmin
+    ? (contracts ?? []).reduce((sum, c) => sum + Number(c.comision_guardanza_monto ?? 0), 0)
+    : 0;
+
+  const brokerOrgIds = (brokerMemberships ?? []).map((m) => m.organization_id);
+  const { data: brokerContracts } =
+    brokerOrgIds.length > 0
+      ? await supabase
+          .from("contracts")
+          .select("comision_corredor_monto, properties!inner(broker_organization_id)")
+          .not("comision_corredor_monto", "is", null)
+          .in("properties.broker_organization_id", brokerOrgIds)
+      : { data: [] };
+  const totalComisionCorredor = (brokerContracts ?? []).reduce((sum, c) => sum + Number(c.comision_corredor_monto ?? 0), 0);
 
   const custodyByCurrency = new Map<string, { count: number; amount: number }>();
   for (const g of guarantees ?? []) {
@@ -58,7 +82,11 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div>
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Estado general de tus garantías y contratos.</p>
+        <p className="text-sm text-muted-foreground">
+          {isPlatformAdmin
+            ? "Visibilidad total del sistema: garantías y contratos de todas las organizaciones."
+            : "Estado general de tus garantías y contratos."}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -105,6 +133,33 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {(isPlatformAdmin || brokerOrgIds.length > 0) && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {isPlatformAdmin && (
+            <Card>
+              <CardContent className="space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <ShieldCheck className="size-3.5" strokeWidth={2} />
+                  Comisiones Guardanza acumuladas (todo el sistema)
+                </div>
+                <p className="text-xl font-semibold tabular-nums">{formatAmount(totalComisionGuardanza, "CLP")}</p>
+              </CardContent>
+            </Card>
+          )}
+          {brokerOrgIds.length > 0 && (
+            <Card>
+              <CardContent className="space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <Percent className="size-3.5" strokeWidth={2} />
+                  Mis comisiones acumuladas (corredor)
+                </div>
+                <p className="text-xl font-semibold tabular-nums">{formatAmount(totalComisionCorredor, "CLP")}</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="p-0">
