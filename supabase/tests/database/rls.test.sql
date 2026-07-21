@@ -7,7 +7,7 @@
 -- Supabase does with a real JWT.
 
 begin;
-select plan(28);
+select plan(34);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -286,6 +286,52 @@ select throws_ok(
   'a cancelled contract cannot be cancelled again'
 );
 reset role;
+
+-- ---------------------------------------------------------------------
+-- system_config: simulated comisiones/intereses parameters.
+-- ---------------------------------------------------------------------
+select is(
+  (select comision_guardanza_pct from public.system_config where id = true),
+  0.05,
+  'system_config seeds a default comisión Guardanza of 5%'
+);
+
+select is(
+  (select comision_guardanza_monto from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  25000.00,
+  'paying the guarantee freezes comisión Guardanza at the rate in force (5% of 500000)'
+);
+
+select is(
+  (select comision_corredor_monto from public.contracts where id = '00000000-0000-0000-0000-0000000000c1'),
+  15000.00,
+  'paying the guarantee also freezes comisión corredor, since the property has a delegated broker (3% of 500000)'
+);
+
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000006', 'platform-admin@test.local');
+update public.profiles set full_name = 'Platform Admin', is_platform_admin = true where id = '00000000-0000-0000-0000-000000000006';
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord, not platform admin
+select throws_ok(
+  $$ select public.update_system_config(0.10, 0.05, 0.03, '00000000-0000-0000-0000-000000000001') $$,
+  'P0001',
+  null,
+  'a non-platform-admin cannot update system_config'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000006'); -- platform admin
+select lives_ok(
+  $$ select public.update_system_config(0.10, 0.05, 0.03, '00000000-0000-0000-0000-000000000006') $$,
+  'a platform admin can update system_config'
+);
+reset role;
+
+select is(
+  (select comision_guardanza_pct from public.system_config where id = true),
+  0.10,
+  'the updated comisión Guardanza rate is persisted'
+);
 
 -- ---------------------------------------------------------------------
 -- org_code + lookup_organization_by_code(): a landlord referencing a

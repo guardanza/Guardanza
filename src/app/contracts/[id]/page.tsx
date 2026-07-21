@@ -33,6 +33,10 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
 
   const { data: guarantee } = await supabase.from("guarantees").select("*").eq("contract_id", id).single();
 
+  const { data: interestAccrued } = contract.deposit_confirmed_at
+    ? await supabase.rpc("contract_interest_accrued", { p_contract_id: id })
+    : { data: null };
+
   const { data: disputes } = guarantee
     ? await supabase.from("disputes").select("id, status, created_at").eq("guarantee_id", guarantee.id)
     : { data: [] };
@@ -85,6 +89,37 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           )}
         </CardContent>
       </Card>
+
+      {contract.deposit_confirmed_at && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Dinero custodiado</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Intereses acumulados hasta hoy</span>
+              <span className="font-medium tabular-nums">
+                {interestAccrued ?? 0} {contract.guarantee_currency}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Comisión Guardanza</span>
+              <span className="font-medium tabular-nums">
+                {contract.comision_guardanza_monto} {contract.guarantee_currency}
+              </span>
+            </div>
+            {contract.comision_corredor_monto > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Comisión corredor</span>
+                <span className="font-medium tabular-nums">
+                  {contract.comision_corredor_monto} {contract.guarantee_currency}
+                </span>
+              </div>
+            )}
+            <p className="pt-1 text-xs text-muted-foreground">Referencia de depósito: {contract.deposit_bank_tx_id}</p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {contract.status === "pendiente_firma_arrendador" && myRole === "arrendador" && (
