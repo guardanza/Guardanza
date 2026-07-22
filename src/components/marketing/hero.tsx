@@ -8,11 +8,11 @@ export function Hero() {
       <div className="order-2 lg:order-1">
         <p className="text-xs font-semibold tracking-widest text-primary uppercase">Guardanza</p>
         <h1 className="mt-3 text-4xl leading-tight font-bold text-balance sm:text-5xl">
-          Tu garantía de arriendo, custodiada con transparencia.
+          La garantía de arriendo, custodiada con transparencia.
         </h1>
         <p className="mt-4 max-w-md text-lg leading-relaxed text-muted-foreground">
-          Guardanza registra cada movimiento de la garantía en un libro mayor visible para arrendador, arrendatario y
-          corredor al mismo tiempo. Ninguna parte decide sola qué pasa con el dinero de la otra.
+          Guardanza registra cada movimiento de la garantía en un historial de movimientos visible para arrendador,
+          arrendatario y corredor al mismo tiempo. Ninguna parte decide sola qué pasa con el dinero de la otra.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/signup" className={buttonVariants({ size: "lg" })}>

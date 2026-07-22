@@ -5,17 +5,19 @@ const BENEFITS = [
   {
     icon: Scale,
     title: "Neutralidad",
-    description: "Guardanza no es arrendador ni arrendatario. Es un tercero neutral que solo registra lo acordado.",
+    description: "Guardanza no es arrendador ni arrendatario. Solo árbitro imparcial de la garantía.",
   },
   {
     icon: ShieldCheck,
     title: "Seguridad",
-    description: "La garantía queda registrada en un libro mayor inmutable, visible para las tres partes al mismo tiempo.",
+    description:
+      "Firma digital para ambas partes, cada una con su propia firma. La garantía queda registrada en un historial de movimientos inmutable, visible para las tres partes al mismo tiempo.",
   },
   {
     icon: Eye,
-    title: "Claridad",
-    description: "Las propuestas de descuento se comparan contra valores de referencia, no contra el criterio de una sola parte.",
+    title: "Resolución justa, siempre",
+    description:
+      "Sin sorpresas: las propuestas de descuento se comparan contra valores de referencia del mercado chileno, no contra el criterio de una sola parte.",
   },
 ];
 
