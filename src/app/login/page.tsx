@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { signIn, signInWithGoogle } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
+import { LoginForm } from "@/components/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 
@@ -78,24 +75,7 @@ export default async function LoginPage({
             <CardDescription>Entra con tu cuenta existente.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={signIn} className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="signin-email">Email</Label>
-                <Input id="signin-email" name="email" type="email" required />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="signin-password">Contraseña</Label>
-                <Input id="signin-password" name="password" type="password" required />
-              </div>
-              <Button type="submit" className="w-full">
-                Entrar
-              </Button>
-            </form>
-            <form action={signInWithGoogle} className="mt-3">
-              <Button type="submit" variant="outline" className="w-full">
-                Continuar con Google
-              </Button>
-            </form>
+            <LoginForm startExpanded={Boolean(error)} />
           </CardContent>
         </Card>
 
