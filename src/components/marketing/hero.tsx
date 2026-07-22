@@ -1,24 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
-
-// Reuses the logo's shield silhouette at hero scale, with nested layers
-// (contrato → garantía → dinero) echoing the design system's "capas de
-// protección" idea — each layer a step lighter, forest green to gold.
-function ShieldIllustration() {
-  return (
-    <svg viewBox="0 0 320 320" className="h-full w-full max-w-sm" aria-hidden="true">
-      <path
-        d="M160 20C118 20 78 34 48 52V150c0 78 44 132 112 150 68-18 112-72 112-150V52c-30-18-70-32-112-32Z"
-        fill="var(--color-secondary)"
-        stroke="var(--color-primary)"
-        strokeWidth="3"
-      />
-      <rect x="95" y="110" width="130" height="130" rx="10" fill="none" stroke="var(--color-brand-sand)" strokeWidth="2.5" />
-      <rect x="120" y="140" width="80" height="70" rx="6" fill="none" stroke="var(--color-brand-gold)" strokeWidth="2.5" />
-      <path d="M160 155v40M140 175h40" stroke="var(--color-brand-gold)" strokeWidth="2.5" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export function Hero() {
   return (
@@ -43,8 +25,18 @@ export function Hero() {
         <p className="mt-6 text-sm text-muted-foreground">Pensado para arrendadores, arrendatarios y corredores en Chile.</p>
       </div>
 
-      <div className="order-1 flex justify-center lg:order-2">
-        <ShieldIllustration />
+      <div className="order-1 lg:order-2">
+        <div className="relative overflow-hidden rounded-2xl border border-border shadow-[0_8px_24px_rgba(15,61,46,0.12)]">
+          <Image
+            src="/hero-arrendataria.webp"
+            alt="Arrendataria revisando su contrato de arriendo desde el teléfono"
+            width={1024}
+            height={559}
+            className="h-auto w-full object-cover"
+            priority
+          />
+          <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-brand-gold/20" />
+        </div>
       </div>
     </section>
   );
