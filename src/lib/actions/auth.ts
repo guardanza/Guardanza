@@ -63,6 +63,9 @@ export async function signUpWithRole(formData: FormData) {
 
   if (!["arrendador", "corredor", "arrendatario"].includes(role)) return fail("Selecciona un tipo de cuenta.");
   if (!full_name) return fail("Ingresa tu nombre completo.");
+  if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return fail("La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.");
+  }
 
   let rut: string | null = null;
   if (role === "corredor") {

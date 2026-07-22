@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, User, Home, KeyRound, ArrowLeft } from "lucide-react";
+import { Building2, User, Home, KeyRound, ArrowLeft, Mail } from "lucide-react";
 import { signUpWithRole, signInWithGoogle } from "@/lib/actions/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 
 type Role = "arrendador" | "corredor" | "arrendatario";
 type LegalForm = "persona_natural" | "empresa" | "";
+type RoleOption = { role: Role; legalForm: LegalForm; title: string; description: string; icon: typeof User };
 
-const ROLE_OPTIONS: { role: Role; legalForm: LegalForm; title: string; description: string; icon: typeof User }[] = [
+const ROLE_OPTIONS: RoleOption[] = [
   { role: "arrendador", legalForm: "", title: "Arrendador", description: "Tengo una propiedad y la arriendo yo mismo.", icon: Home },
   {
     role: "corredor",
@@ -30,13 +31,45 @@ const ROLE_OPTIONS: { role: Role; legalForm: LegalForm; title: string; descripti
   { role: "arrendatario", legalForm: "", title: "Arrendatario", description: "Estoy arrendando o buscando arriendo.", icon: KeyRound },
 ];
 
+// Google signup doesn't need a role tile at all — it creates the account
+// straight away (no empresa/RUT collected), so the role choice only makes
+// sense once someone has picked the email path, which is where it needs
+// the extra fields (company, RUT) that Google can't supply.
 export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: string; initialLegalForm?: string }) {
   const preset = ROLE_OPTIONS.find((o) => o.role === initialRole && o.legalForm === (initialLegalForm ?? ""));
-  const [selected, setSelected] = useState<(typeof ROLE_OPTIONS)[number] | null>(preset ?? null);
+  const [step, setStep] = useState<"choice" | "roles" | "form">(preset ? "form" : "choice");
+  const [selected, setSelected] = useState<RoleOption | null>(preset ?? null);
 
-  if (!selected) {
+  if (step === "choice") {
     return (
       <div className="space-y-3">
+        <form action={signInWithGoogle}>
+          <Button type="submit" className="w-full">
+            Registrarse con Google
+          </Button>
+        </form>
+
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="h-px flex-1 bg-border" />O<div className="h-px flex-1 bg-border" />
+        </div>
+
+        <Button type="button" variant="outline" className="w-full" onClick={() => setStep("roles")}>
+          <Mail /> Registrarse con Email
+        </Button>
+      </div>
+    );
+  }
+
+  if (step === "roles") {
+    return (
+      <div className="animate-fade-in-up space-y-3">
+        <button
+          type="button"
+          onClick={() => setStep("choice")}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" /> Atrás
+        </button>
         <p className="text-sm text-muted-foreground">¿Qué tipo de cuenta necesitas?</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {ROLE_OPTIONS.map((opt) => {
@@ -45,7 +78,10 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
               <button
                 key={`${opt.role}-${opt.legalForm}`}
                 type="button"
-                onClick={() => setSelected(opt)}
+                onClick={() => {
+                  setSelected(opt);
+                  setStep("form");
+                }}
                 className="text-left"
               >
                 <Card className="h-full transition-colors hover:border-primary">
@@ -63,13 +99,17 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
     );
   }
 
+  if (!selected) return null;
   const isCorredor = selected.role === "corredor";
 
   return (
-    <div className="space-y-3">
+    <div className="animate-fade-in-up space-y-3">
       <button
         type="button"
-        onClick={() => setSelected(null)}
+        onClick={() => {
+          setSelected(null);
+          setStep("roles");
+        }}
         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" /> Cambiar tipo de cuenta
@@ -90,7 +130,8 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">Contraseña</Label>
-          <Input id="password" name="password" type="password" required minLength={6} />
+          <Input id="password" name="password" type="password" required minLength={8} />
+          <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, una mayúscula y un número.</p>
         </div>
 
         {isCorredor && (
@@ -109,17 +150,6 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
         <Button type="submit" className="w-full">
           Crear cuenta
         </Button>
-      </form>
-
-      <form action={signInWithGoogle} className="mt-3 space-y-2">
-        <Button type="submit" variant="outline" className="w-full">
-          Continuar con Google
-        </Button>
-        {isCorredor && (
-          <p className="text-center text-xs text-muted-foreground">
-            Con Google creamos tu cuenta sin empresa/RUT — los agregas después desde Participantes.
-          </p>
-        )}
       </form>
     </div>
   );
