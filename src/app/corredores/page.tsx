@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { ShieldCheck, Users2, TrendingDown, Layers, Building2, User } from "lucide-react";
+import { ShieldCheck, Users2, TrendingDown, Layers, Building2, User, PenLine, LineChart } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
+import { PersonaHero } from "@/components/marketing/persona-hero";
+import { PersonaBenefits } from "@/components/marketing/persona-benefits";
+import { PersonaSteps } from "@/components/marketing/persona-steps";
+import { PersonaValue } from "@/components/marketing/persona-value";
+import { PersonaCTA } from "@/components/marketing/persona-cta";
 
-const valueProps = [
+const benefits = [
   {
     icon: Layers,
     title: "Todas tus propiedades, un solo lugar",
@@ -33,55 +37,31 @@ const steps = [
   { title: "Al término, se resuelve entre las partes", detail: "Con propuestas de arreglo, no con tu criterio unilateral." },
 ];
 
+const valuePoints = [
+  { icon: PenLine, text: "Firma digital para arrendador y arrendatario, cada uno con su propia firma y en su propio momento — sin imprimir ni coordinar horarios." },
+  { icon: LineChart, text: "Estado de cada contrato, garantía en custodia y comisión, actualizado en tiempo real, desde el computador o el celular." },
+];
+
 export default function CorredoresPage() {
   return (
     <div>
-      <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 sm:py-24">
-        <p className="text-xs font-semibold tracking-widest text-primary uppercase">Para corredores</p>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-          Corretaje sin quedar en medio de la garantía.
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
-          Hoy la garantía pasa por tu cuenta o tu criterio, y eso te hace responsable de una disputa que no es
-          tuya. Con Guardanza, el dinero queda registrado de forma neutral y tú te enfocas en corretaje.
-        </p>
+      <PersonaHero
+        eyebrow="Para corredores"
+        title="Corretaje sin quedar en medio de la garantía."
+        description="Hoy la garantía pasa por tu cuenta o tu criterio, y eso te hace responsable de una disputa que no es tuya. Con Guardanza, firman digitalmente, la garantía queda en custodia neutral, y tú te enfocas en corretaje."
+        primaryHref="/signup?role=corredor"
+        primaryLabel="Prueba gratis"
+        secondaryHref="#como-funciona"
+        secondaryLabel="Ver cómo funciona"
+      />
+
+      <PersonaBenefits title="Por qué los corredores usan Guardanza" items={benefits} />
+
+      <div id="como-funciona">
+        <PersonaSteps title="Cómo funciona" items={steps} />
       </div>
 
-      <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {valueProps.map((v) => {
-            const Icon = v.icon;
-            return (
-              <Card key={v.title}>
-                <CardContent className="space-y-1.5">
-                  <Icon className="size-5 text-primary" strokeWidth={2} />
-                  <p className="font-medium">{v.title}</p>
-                  <p className="text-sm text-muted-foreground">{v.description}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="border-y bg-card">
-        <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-          <h2 className="text-center text-2xl font-semibold tracking-tight">Cómo funciona</h2>
-          <div className="mt-8 space-y-0">
-            {steps.map((s, i) => (
-              <div key={s.title} className={`flex gap-4 py-4 ${i !== steps.length - 1 ? "border-b" : ""}`}>
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-sm font-medium">{s.title}</p>
-                  <p className="text-sm text-muted-foreground">{s.detail}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <PersonaValue title="Lo que ya está funcionando" items={valuePoints} />
 
       <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
         <h2 className="text-2xl font-semibold tracking-tight">Elige cómo trabajas</h2>
@@ -106,10 +86,16 @@ export default function CorredoresPage() {
             </Card>
           </Link>
         </div>
-        <Link href="/signup?role=corredor" className={buttonVariants({ size: "lg", className: "mt-8" })}>
-          Registrarme como corredor
-        </Link>
       </div>
+
+      <PersonaCTA
+        title="¿Listo para dejar de responder por una garantía que no es tuya?"
+        description="Crea tu cuenta de corredor gratis."
+        primaryHref="/signup?role=corredor"
+        primaryLabel="Registrarme como corredor"
+        secondaryHref="/login"
+        secondaryLabel="Iniciar sesión"
+      />
     </div>
   );
 }

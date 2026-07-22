@@ -18,14 +18,14 @@ const SEGMENTS = [
     icon: Home,
     title: "Para arrendadores",
     description:
-      "Tu garantía queda registrada y protegida desde el primer depósito, sin depender de la buena fe de nadie ni de un tercero que favorezca a una de las partes.",
+      "La garantía queda registrada y protegida desde el primer depósito, sin depender de la buena fe de nadie ni de un tercero que favorezca a una de las partes.",
   },
   {
     href: "/arrendatarios",
     icon: KeyRound,
     title: "Para arrendatarios",
     description:
-      "Tu garantía se devuelve según lo acordado en el contrato — nunca según el criterio de una sola parte. Si hay desacuerdo, se resuelve con evidencia, no con poder.",
+      "La garantía se devuelve según lo acordado en el contrato — nunca según el criterio de una sola parte. Si hay desacuerdo, se resuelve con evidencia, no con poder.",
   },
 ];
 

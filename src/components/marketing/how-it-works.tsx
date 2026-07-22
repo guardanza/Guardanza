@@ -1,10 +1,26 @@
 import { PenLine, ArrowDownCircle, ShieldCheck, Scale } from "lucide-react";
 
 const STEPS = [
-  { icon: PenLine, title: "Firma", description: "Arrendador y arrendatario firman el contrato digitalmente, cada uno por su parte." },
-  { icon: ArrowDownCircle, title: "Deposita", description: "La garantía se registra como depositada en custodia." },
-  { icon: ShieldCheck, title: "Custodia", description: "Guardanza mantiene el registro neutral mientras el contrato está vigente." },
-  { icon: Scale, title: "Resuelve", description: "Al terminar, las propuestas se aceptan o se resuelven con un tercero neutral — nunca por decisión unilateral." },
+  {
+    icon: PenLine,
+    title: "Firma digital",
+    description: "Arrendador y arrendatario firman el contrato en la plataforma, cada uno con su propia firma y en su propio momento.",
+  },
+  {
+    icon: ArrowDownCircle,
+    title: "Deposita",
+    description: "La garantía se registra como depositada en custodia.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Custodia segura",
+    description: "Guardanza custodia la garantía de forma neutral mientras el contrato está vigente, con historial de movimientos siempre disponible.",
+  },
+  {
+    icon: Scale,
+    title: "Resuelve sin sorpresas",
+    description: "Al terminar, las propuestas se comparan contra valores de referencia del mercado chileno y se aceptan o se resuelven con un tercero neutral — nunca por decisión unilateral.",
+  },
 ];
 
 export function HowItWorks() {
