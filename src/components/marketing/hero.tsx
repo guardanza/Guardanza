@@ -34,10 +34,10 @@ export function Hero() {
       <div>
         <div className="relative overflow-hidden rounded-2xl border-2 border-r-0 border-brand-gold shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
           <Image
-            src="/hero-illustration.svg"
-            alt="Una casa protegida por un escudo, con una línea dorada que representa el historial de movimientos de la garantía"
-            width={1024}
-            height={559}
+            src="/hero-skyline.png"
+            alt="Skyline de Santiago con una red de nodos conectados, en los colores de marca de Guardanza"
+            width={1376}
+            height={768}
             className="h-auto w-full object-cover"
             priority
           />
