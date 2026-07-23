@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 type Role = "arrendador" | "corredor" | "arrendatario";
 type LegalForm = "persona_natural" | "empresa" | "";
 type RoleOption = { role: Role; legalForm: LegalForm; title: string; description: string; icon: typeof User };
+type Step = "roles" | "choice" | "corredor-google" | "form";
 
 const ROLE_OPTIONS: RoleOption[] = [
   { role: "arrendador", legalForm: "", title: "Arrendador", description: "Tengo una propiedad y la arriendo yo mismo.", icon: Home },
@@ -31,45 +32,23 @@ const ROLE_OPTIONS: RoleOption[] = [
   { role: "arrendatario", legalForm: "", title: "Arrendatario", description: "Estoy arrendando o buscando arriendo.", icon: KeyRound },
 ];
 
-// Google signup doesn't need a role tile at all — it creates the account
-// straight away (no empresa/RUT collected), so the role choice only makes
-// sense once someone has picked the email path, which is where it needs
-// the extra fields (company, RUT) that Google can't supply.
+// Role first, then channel (Google vs Email) — asking "what type of account"
+// before "how do you want to sign up" so the answer to the first question
+// can actually shape the second (corredor + Google needs an extra step to
+// collect company_name/rut, since Google doesn't hand those over).
+//
+// Arriving with a preset role (from a persona landing page's "Registrarme
+// como corredor" link) skips the roles step — that choice was already made
+// by which page's CTA was clicked — but still lands on "choice", not the
+// form directly, so Google stays available from those entry points too.
 export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: string; initialLegalForm?: string }) {
   const preset = ROLE_OPTIONS.find((o) => o.role === initialRole && o.legalForm === (initialLegalForm ?? ""));
-  const [step, setStep] = useState<"choice" | "roles" | "form">(preset ? "form" : "choice");
+  const [step, setStep] = useState<Step>(preset ? "choice" : "roles");
   const [selected, setSelected] = useState<RoleOption | null>(preset ?? null);
 
-  if (step === "choice") {
+  if (step === "roles" || !selected) {
     return (
       <div className="space-y-3">
-        <form action={signInWithGoogle}>
-          <Button type="submit" className="w-full">
-            Registrarse con Google
-          </Button>
-        </form>
-
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <div className="h-px flex-1 bg-border" />O<div className="h-px flex-1 bg-border" />
-        </div>
-
-        <Button type="button" variant="outline" className="w-full" onClick={() => setStep("roles")}>
-          <Mail /> Registrarse con Email
-        </Button>
-      </div>
-    );
-  }
-
-  if (step === "roles") {
-    return (
-      <div className="animate-fade-in-up space-y-3">
-        <button
-          type="button"
-          onClick={() => setStep("choice")}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" /> Atrás
-        </button>
         <p className="text-sm text-muted-foreground">¿Qué tipo de cuenta necesitas?</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {ROLE_OPTIONS.map((opt) => {
@@ -80,7 +59,7 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
                 type="button"
                 onClick={() => {
                   setSelected(opt);
-                  setStep("form");
+                  setStep("choice");
                 }}
                 className="text-left"
               >
@@ -99,20 +78,86 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
     );
   }
 
-  if (!selected) return null;
   const isCorredor = selected.role === "corredor";
+
+  if (step === "choice") {
+    return (
+      <div className="animate-fade-in-up space-y-3">
+        <button
+          type="button"
+          onClick={() => {
+            setSelected(null);
+            setStep("roles");
+          }}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" /> Cambiar tipo de cuenta
+        </button>
+        <p className="text-sm font-medium">{selected.title}</p>
+
+        {isCorredor ? (
+          <Button type="button" className="w-full" onClick={() => setStep("corredor-google")}>
+            Registrarse con Google
+          </Button>
+        ) : (
+          <form action={signInWithGoogle}>
+            <input type="hidden" name="role" value={selected.role} />
+            <input type="hidden" name="legal_form" value={selected.legalForm} />
+            <Button type="submit" className="w-full">
+              Registrarse con Google
+            </Button>
+          </form>
+        )}
+
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="h-px flex-1 bg-border" />O<div className="h-px flex-1 bg-border" />
+        </div>
+
+        <Button type="button" variant="outline" className="w-full" onClick={() => setStep("form")}>
+          <Mail /> Registrarse con Email
+        </Button>
+      </div>
+    );
+  }
+
+  if (step === "corredor-google") {
+    return (
+      <div className="animate-fade-in-up space-y-3">
+        <button
+          type="button"
+          onClick={() => setStep("choice")}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" /> Atrás
+        </button>
+        <p className="text-sm font-medium">{selected.title}</p>
+        <p className="text-xs text-muted-foreground">Google no nos da estos datos, así que los pedimos antes de continuar.</p>
+
+        <form action={signInWithGoogle} className="space-y-3">
+          <input type="hidden" name="role" value={selected.role} />
+          <input type="hidden" name="legal_form" value={selected.legalForm} />
+
+          <div className="space-y-1.5">
+            <Label htmlFor="google_company_name">{selected.legalForm === "empresa" ? "Nombre de la oficina" : "Nombre comercial"}</Label>
+            <Input id="google_company_name" name="company_name" required />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="google_rut">RUT</Label>
+            <Input id="google_rut" name="rut" placeholder="12.345.678-9" required />
+          </div>
+
+          <Button type="submit" className="w-full">
+            Continuar con Google
+          </Button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in-up space-y-3">
-      <button
-        type="button"
-        onClick={() => {
-          setSelected(null);
-          setStep("roles");
-        }}
-        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-3.5" /> Cambiar tipo de cuenta
+      <button type="button" onClick={() => setStep("choice")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="size-3.5" /> Atrás
       </button>
       <p className="text-sm font-medium">{selected.title}</p>
 
