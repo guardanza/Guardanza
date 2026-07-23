@@ -114,13 +114,45 @@ export async function signUpWithRole(formData: FormData) {
 // Google provider is configured in Supabase (Authentication > Providers)
 // with a real Client ID/Secret from Google Cloud Console — that part is
 // the one piece left for the user to set up themselves.
-export async function signInWithGoogle() {
+//
+// Role-first signup: when the signup wizard calls this with role/legal_form
+// (and company_name/rut for corredor) hidden fields, those ride along on
+// redirectTo's query string — Supabase preserves it and appends its own
+// `code` param, so /auth/callback gets everything it needs to create the
+// organization + membership once the OAuth round-trip lands, the same way
+// signUpWithRole does for the email path. Plain login (LoginForm) calls
+// this with an empty form, so no role param ever reaches the callback and
+// it behaves like a normal sign-in.
+export async function signInWithGoogle(formData: FormData) {
   const supabase = await createClient();
   const origin = await siteOrigin();
 
+  const role = String(formData.get("role") || "");
+  const legal_form = String(formData.get("legal_form") || "");
+  const company_name = String(formData.get("company_name") || "").trim();
+  const rutInput = String(formData.get("rut") || "").trim();
+
+  const failSignup = (message: string): never =>
+    redirect(`/signup?role=${role}&legal_form=${legal_form}&error=${encodeURIComponent(message)}`);
+
+  const callbackUrl = new URL(`${origin}/auth/callback`);
+  if (role) {
+    if (!["arrendador", "corredor", "arrendatario"].includes(role)) return failSignup("Selecciona un tipo de cuenta.");
+    callbackUrl.searchParams.set("role", role);
+    if (legal_form) callbackUrl.searchParams.set("legal_form", legal_form);
+
+    if (role === "corredor") {
+      if (!company_name) return failSignup("Ingresa el nombre de tu empresa o corretaje.");
+      if (!rutInput || !validateRut(rutInput)) return failSignup(`El RUT ${rutInput || ""} no es válido.`);
+      if (!["persona_natural", "empresa"].includes(legal_form)) return failSignup("Selecciona corredor independiente u oficina de corretaje.");
+      callbackUrl.searchParams.set("company_name", company_name);
+      callbackUrl.searchParams.set("rut", formatRut(rutInput));
+    }
+  }
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${origin}/auth/callback` },
+    options: { redirectTo: callbackUrl.toString() },
   });
   if (error || !data.url) redirect(`/login?error=${encodeURIComponent(error?.message ?? "No se pudo iniciar sesión con Google.")}`);
   redirect(data.url);
