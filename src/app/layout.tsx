@@ -8,6 +8,7 @@ import { Logo, LogoMark } from "@/components/logo";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { MobileTabBar } from "@/components/mobile-tabbar";
 import { MarketingHeader } from "@/components/marketing-header";
+import { METADATA_DESCRIPTION } from "@/lib/copy";
 import "./globals.css";
 
 const inter = Inter({
@@ -22,7 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Guardanza",
-  description: "Custodia neutral de garantías de arriendo — Fase A (demo simulado)",
+  description: METADATA_DESCRIPTION,
 };
 
 export default async function RootLayout({
