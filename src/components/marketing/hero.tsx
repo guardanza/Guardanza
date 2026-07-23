@@ -1,41 +1,46 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { HOME_HERO } from "@/lib/copy";
 
 export function Hero() {
   return (
     <section id="hero" className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-16">
-      <div className="order-2 lg:order-1">
-        <p className="text-xs font-semibold tracking-widest text-primary uppercase">Guardanza</p>
-        <h1 className="mt-3 text-4xl leading-tight font-bold text-balance sm:text-5xl">
-          La garantía de arriendo, custodiada con transparencia.
-        </h1>
-        <p className="mt-4 max-w-md text-lg leading-relaxed text-muted-foreground">
-          Guardanza registra cada movimiento de la garantía en un historial de movimientos visible para arrendador,
-          arrendatario y corredor al mismo tiempo. Ninguna parte decide sola qué pasa con el dinero de la otra.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/signup" className={buttonVariants({ size: "lg" })}>
-            Crear cuenta gratis
+      <div>
+        <p className="text-xs font-semibold tracking-widest text-primary uppercase">{HOME_HERO.eyebrow}</p>
+        <h1 className="mt-3 text-4xl leading-tight font-bold text-balance sm:text-5xl">{HOME_HERO.title}</h1>
+        <p className="mt-4 max-w-md text-lg leading-relaxed text-muted-foreground">{HOME_HERO.description}</p>
+
+        <span className="mt-6 inline-flex items-center rounded-full bg-brand-gold px-3 py-1 text-xs font-bold tracking-wide text-brand-gold-foreground uppercase">
+          {HOME_HERO.badge}
+        </span>
+
+        <div className="mt-4 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
+          <Link href={HOME_HERO.primaryHref} className={buttonVariants({ size: "xl", className: "w-full sm:w-auto" })}>
+            {HOME_HERO.primaryLabel}
+            <ArrowRight className="size-4 transition-transform duration-300 group-hover/button:translate-x-1" />
           </Link>
-          <a href="#como-funciona" className={buttonVariants({ variant: "outline", size: "lg" })}>
-            Ver cómo funciona
+          <a
+            href={HOME_HERO.secondaryHref}
+            className={buttonVariants({ variant: "outline", size: "xl", className: "w-full sm:w-auto" })}
+          >
+            {HOME_HERO.secondaryLabel}
           </a>
         </div>
-        <p className="mt-6 text-sm text-muted-foreground">Pensado para arrendadores, arrendatarios y corredores en Chile.</p>
+        <p className="mt-6 text-sm text-muted-foreground">{HOME_HERO.supportLine}</p>
       </div>
 
-      <div className="order-1 lg:order-2">
-        <div className="relative overflow-hidden rounded-2xl border border-border shadow-[0_8px_24px_rgba(15,61,46,0.12)]">
+      <div>
+        <div className="relative overflow-hidden rounded-2xl border-2 border-r-0 border-brand-gold shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
           <Image
-            src="/hero-arrendataria.webp"
-            alt="Arrendataria revisando su contrato de arriendo desde el teléfono"
+            src="/hero-illustration.svg"
+            alt="Una casa protegida por un escudo, con una línea dorada que representa el historial de movimientos de la garantía"
             width={1024}
             height={559}
             className="h-auto w-full object-cover"
             priority
           />
-          <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-brand-gold/20" />
         </div>
       </div>
     </section>

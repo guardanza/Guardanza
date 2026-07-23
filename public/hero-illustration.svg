@@ -1,0 +1,41 @@
+<svg viewBox="0 0 1024 559" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de una casa protegida por un escudo, con una línea dorada que representa el historial de movimientos de la garantía">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f2ede4"/>
+      <stop offset="100%" stop-color="#e9e2d3"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#d4a574"/>
+      <stop offset="100%" stop-color="#c8963e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="559" fill="url(#bg)"/>
+
+  <!-- flowing gold line: the garantía's movement history -->
+  <path d="M -20 420 C 200 380, 260 460, 460 420 S 700 340, 900 380 S 1080 420, 1140 400"
+        fill="none" stroke="url(#gold)" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+  <circle cx="260" cy="452" r="5" fill="#c8963e" opacity="0.7"/>
+  <circle cx="580" cy="368" r="5" fill="#c8963e" opacity="0.7"/>
+  <circle cx="820" cy="398" r="5" fill="#c8963e" opacity="0.7"/>
+
+  <!-- house silhouette -->
+  <g>
+    <rect x="352" y="290" width="320" height="220" rx="10" fill="#0f3d2e"/>
+    <polygon points="332,300 512,180 692,300" fill="#0f3d2e"/>
+    <rect x="486" y="176" width="16" height="46" fill="#0f3d2e"/>
+    <polygon points="470,176 502,176 502,150 486,140" fill="#0f3d2e"/>
+
+    <!-- windows -->
+    <rect x="390" y="336" width="54" height="54" rx="6" fill="#f2ede4" opacity="0.16"/>
+    <rect x="580" y="336" width="54" height="54" rx="6" fill="#f2ede4" opacity="0.16"/>
+  </g>
+
+  <!-- shield emblem centered on the façade -->
+  <g transform="translate(512 400)">
+    <path d="M0 -78 C 34 -66, 58 -60, 78 -58 C 78 6, 46 62, 0 88 C -46 62, -78 6, -78 -58 C -58 -60, -34 -66, 0 -78 Z"
+          fill="#f2ede4" stroke="url(#gold)" stroke-width="6"/>
+    <path d="M0 -60 C 26 -50, 44 -46, 60 -44 C 60 8, 36 48, 0 68 L 0 -60 Z" fill="#0f3d2e" opacity="0.08"/>
+    <path d="M-30 -2 L -8 22 L 34 -28" fill="none" stroke="#0f3d2e" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { FOOTER_TAGLINE } from "@/lib/copy";
 
 // No Legal/Contacto links to real pages or addresses we don't actually
 // have yet (Términos, Privacidad, support email) — a dead link or a
@@ -10,7 +11,7 @@ export function Footer() {
       <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-12 sm:px-6 md:grid-cols-4">
         <div className="col-span-2 md:col-span-1">
           <Logo />
-          <p className="mt-3 max-w-[220px] text-sm text-muted-foreground">El historial de movimientos de la garantía de arriendo.</p>
+          <p className="mt-3 max-w-[220px] text-sm text-muted-foreground">{FOOTER_TAGLINE}</p>
         </div>
 
         <div>
