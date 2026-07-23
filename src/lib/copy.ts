@@ -16,7 +16,7 @@ export const HOME_HERO = {
   eyebrow: "Guardanza",
   title: "La garantía de arriendo, resuelta de principio a fin.",
   description: "Firma digital simple para ambas partes, custodia neutral y un cierre sin sorpresas — todo en un solo lugar.",
-  badge: "FIRMA DIGITAL SIN COSTO",
+  badge: "FIRMA DIGITAL GRATIS",
   primaryLabel: "Empieza gratis",
   primaryHref: "/signup",
   secondaryLabel: "Ver cómo funciona",

@@ -32,16 +32,15 @@ export function Hero() {
       </div>
 
       <div>
-        <div className="relative overflow-hidden rounded-2xl border border-border shadow-[0_8px_24px_rgba(15,61,46,0.12)]">
+        <div className="relative overflow-hidden rounded-2xl border-2 border-r-0 border-brand-gold shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
           <Image
-            src="/hero-arrendataria.webp"
-            alt="Arrendataria revisando su contrato de arriendo desde el teléfono"
+            src="/hero-illustration.svg"
+            alt="Una casa protegida por un escudo, con una línea dorada que representa el historial de movimientos de la garantía"
             width={1024}
             height={559}
             className="h-auto w-full object-cover"
             priority
           />
-          <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-brand-gold/20" />
         </div>
       </div>
     </section>
