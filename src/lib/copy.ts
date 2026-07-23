@@ -25,6 +25,8 @@ export const HOME_HERO = {
 };
 
 // "¿Por qué Guardanza?" — only real, already-built differentiators.
+// Kept deliberately distinct from HOME_PROTECTIONS below (no repeating
+// "historial de movimientos" / "visibilidad total" in both sections).
 export const HOME_ATTRIBUTES_TITLE = "¿Por qué Guardanza?";
 export const HOME_ATTRIBUTES = [
   {
@@ -36,16 +38,6 @@ export const HOME_ATTRIBUTES = [
     key: "firma-digital",
     title: "Firma digital, sin costo",
     description: "Arrendador y arrendatario firman el contrato digitalmente, cada uno con su propia firma y en su propio momento.",
-  },
-  {
-    key: "historial",
-    title: "Historial de movimientos inmutable",
-    description: "Cada movimiento de la garantía queda registrado. Nadie puede editarlo después.",
-  },
-  {
-    key: "visibilidad",
-    title: "Visibilidad total",
-    description: "Arrendador, arrendatario y corredor ven el mismo estado, al mismo tiempo.",
   },
   {
     key: "resolucion",

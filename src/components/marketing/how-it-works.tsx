@@ -1,41 +1,26 @@
 import { PenLine, ArrowDownCircle, ShieldCheck, Scale } from "lucide-react";
+import { HOME_STEPS_TITLE, HOME_STEPS_SUBTITLE, HOME_STEPS } from "@/lib/copy";
 
-const STEPS = [
-  {
-    icon: PenLine,
-    title: "Firma digital",
-    description: "Arrendador y arrendatario firman el contrato en la plataforma, cada uno con su propia firma y en su propio momento.",
-  },
-  {
-    icon: ArrowDownCircle,
-    title: "Deposita",
-    description: "La garantía se registra como depositada en custodia.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Custodia segura",
-    description: "Guardanza custodia la garantía de forma neutral mientras el contrato está vigente, con historial de movimientos siempre disponible.",
-  },
-  {
-    icon: Scale,
-    title: "Resuelve sin sorpresas",
-    description: "Al terminar, las propuestas se comparan contra valores de referencia del mercado chileno y se aceptan o se resuelven con un tercero neutral — nunca por decisión unilateral.",
-  },
-];
+const STEP_ICONS = {
+  firma: PenLine,
+  deposita: ArrowDownCircle,
+  custodia: ShieldCheck,
+  resuelve: Scale,
+} as const;
 
 export function HowItWorks() {
   return (
     <section id="como-funciona" className="bg-muted/40 py-16">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 className="text-center text-3xl">Cómo funciona Guardanza</h2>
-        <p className="mt-2 text-center text-muted-foreground">4 pasos simples</p>
+        <h2 className="text-center text-3xl">{HOME_STEPS_TITLE}</h2>
+        <p className="mt-2 text-center text-muted-foreground">{HOME_STEPS_SUBTITLE}</p>
 
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((step, i) => {
-            const Icon = step.icon;
+          {HOME_STEPS.map((step, i) => {
+            const Icon = STEP_ICONS[step.key as keyof typeof STEP_ICONS];
             return (
-              <div key={step.title} className="relative flex flex-col items-center text-center">
-                {i < STEPS.length - 1 && (
+              <div key={step.key} className="relative flex flex-col items-center text-center">
+                {i < HOME_STEPS.length - 1 && (
                   <div className="absolute top-6 left-[calc(50%+28px)] hidden h-px w-[calc(100%-56px)] bg-border lg:block" />
                 )}
                 <div className="relative flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground">

@@ -1,41 +1,24 @@
 import Link from "next/link";
 import { Building2, Home, KeyRound, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { HOME_SEGMENTS_TITLE, HOME_SEGMENTS } from "@/lib/copy";
 
 // Deliberately not testimonials — Guardanza is a new product with no real
 // reviews yet, and this is the public production site. Genuine per-persona
 // value props instead of fabricated quotes/ratings.
-const SEGMENTS = [
-  {
-    href: "/corredores",
-    icon: Building2,
-    title: "Para corredores",
-    description:
-      "Gestiona todas tus propiedades y clientes desde un solo lugar. Cada garantía queda registrada y visible, sin depender de tu palabra frente al arrendador o al arrendatario.",
-  },
-  {
-    href: "/arrendadores",
-    icon: Home,
-    title: "Para arrendadores",
-    description:
-      "La garantía queda registrada y protegida desde el primer depósito, sin depender de la buena fe de nadie ni de un tercero que favorezca a una de las partes.",
-  },
-  {
-    href: "/arrendatarios",
-    icon: KeyRound,
-    title: "Para arrendatarios",
-    description:
-      "La garantía se devuelve según lo acordado en el contrato — nunca según el criterio de una sola parte. Si hay desacuerdo, se resuelve con evidencia, no con poder.",
-  },
-];
+const SEGMENT_ICONS = {
+  corredores: Building2,
+  arrendadores: Home,
+  arrendatarios: KeyRound,
+} as const;
 
 export function SegmentValue() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-      <h2 className="text-center text-3xl">Pensado para cada parte</h2>
+      <h2 className="text-center text-3xl">{HOME_SEGMENTS_TITLE}</h2>
       <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {SEGMENTS.map((s) => {
-          const Icon = s.icon;
+        {HOME_SEGMENTS.map((s) => {
+          const Icon = SEGMENT_ICONS[s.key as keyof typeof SEGMENT_ICONS];
           return (
             <Link key={s.href} href={s.href}>
               <Card className="h-full transition-colors hover:border-primary">

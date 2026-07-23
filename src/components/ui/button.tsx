@@ -28,6 +28,10 @@ const buttonVariants = cva(
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+        // Main conversion buttons (hero, CTA final): 56px tall, bold, with
+        // a scale/shadow lift on hover — deliberately louder than the rest
+        // of the (fairly compact) button scale.
+        xl: "h-14 gap-2 px-10 text-lg font-bold transition-[transform,box-shadow] duration-300 hover:scale-[1.02]",
         icon: "size-8",
         "icon-xs":
           "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
@@ -36,6 +40,13 @@ const buttonVariants = cva(
         "icon-lg": "size-9",
       },
     },
+    compoundVariants: [
+      {
+        variant: "default",
+        size: "xl",
+        class: "shadow-[0_8px_24px_rgba(15,61,46,0.25)] hover:shadow-[0_16px_40px_rgba(15,61,46,0.35)]",
+      },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",
