@@ -7,11 +7,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { GoogleIcon } from "@/components/icons/google-icon";
 
 type Role = "arrendador" | "corredor" | "arrendatario";
 type LegalForm = "persona_natural" | "empresa" | "";
 type RoleOption = { role: Role; legalForm: LegalForm; title: string; description: string; icon: typeof User };
 type Step = "roles" | "choice" | "corredor-google" | "form";
+
+function GoogleBadge() {
+  return (
+    <span className="flex size-5 items-center justify-center rounded-full bg-white">
+      <GoogleIcon className="size-3" />
+    </span>
+  );
+}
 
 const ROLE_OPTIONS: RoleOption[] = [
   { role: "arrendador", legalForm: "", title: "Arrendador", description: "Tengo una propiedad y la arriendo yo mismo.", icon: Home },
@@ -97,6 +106,7 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
 
         {isCorredor ? (
           <Button type="button" className="w-full" onClick={() => setStep("corredor-google")}>
+            <GoogleBadge />
             Registrarse con Google
           </Button>
         ) : (
@@ -104,6 +114,7 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
             <input type="hidden" name="role" value={selected.role} />
             <input type="hidden" name="legal_form" value={selected.legalForm} />
             <Button type="submit" className="w-full">
+              <GoogleBadge />
               Registrarse con Google
             </Button>
           </form>
@@ -147,6 +158,7 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
           </div>
 
           <Button type="submit" className="w-full">
+            <GoogleBadge />
             Continuar con Google
           </Button>
         </form>

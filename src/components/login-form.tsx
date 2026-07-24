@@ -6,6 +6,7 @@ import { signIn, signInWithGoogle } from "@/lib/actions/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { GoogleIcon } from "@/components/icons/google-icon";
 
 // Email/password stays collapsed behind an explicit choice — Google is the
 // fast path, email is for anyone who'd rather not use it. Starts expanded
@@ -19,6 +20,9 @@ export function LoginForm({ startExpanded = false }: { startExpanded?: boolean }
     <div className="space-y-3">
       <form action={signInWithGoogle}>
         <Button type="submit" className="w-full">
+          <span className="flex size-5 items-center justify-center rounded-full bg-white">
+            <GoogleIcon className="size-3" />
+          </span>
           Continuar con Google
         </Button>
       </form>
