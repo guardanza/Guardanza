@@ -6,7 +6,8 @@ import { one } from "@/lib/supabase/one";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { StaggerGroup, StaggerItem } from "@/components/motion/stagger";
 
 export default async function ContractsPage() {
   const supabase = await createClient();
@@ -63,23 +64,25 @@ export default async function ContractsPage() {
       {contracts && contracts.length > 0 ? (
         <>
           {/* Cards on mobile, table from sm+ — a 4-column table doesn't fit a phone. */}
-          <div className="space-y-3 sm:hidden">
+          <StaggerGroup as="div" className="space-y-3 sm:hidden">
             {contracts.map((c) => (
-              <Link key={c.id} href={`/contracts/${c.id}`}>
-                <Card>
-                  <CardContent className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium">{one(c.properties)?.address ?? c.id}</p>
-                      <StatusBadge status={c.status} />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {c.guarantee_amount} {c.guarantee_currency} · {roleByContract.get(c.id) ?? "corredor"}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+              <StaggerItem as="div" key={c.id}>
+                <Link href={`/contracts/${c.id}`}>
+                  <Card>
+                    <CardContent className="space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium">{one(c.properties)?.address ?? c.id}</p>
+                        <StatusBadge status={c.status} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {c.guarantee_amount} {c.guarantee_currency} · {roleByContract.get(c.id) ?? "corredor"}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGroup>
 
           <Card className="hidden p-0 sm:block">
             <Table>
@@ -91,9 +94,13 @@ export default async function ContractsPage() {
                   <TableHead>Tu rol</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <StaggerGroup as="tbody" className="[&_tr:last-child]:border-0">
                 {contracts.map((c) => (
-                  <TableRow key={c.id}>
+                  <StaggerItem
+                    as="tr"
+                    key={c.id}
+                    className="relative border-b transition-colors duration-200 before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:origin-top before:scale-y-0 before:bg-brand-gold before:transition-transform before:duration-200 hover:bg-muted/50 hover:before:scale-y-100"
+                  >
                     <TableCell>
                       <Link href={`/contracts/${c.id}`} className="font-medium underline-offset-4 hover:underline">
                         {one(c.properties)?.address ?? c.id}
@@ -108,9 +115,9 @@ export default async function ContractsPage() {
                     <TableCell className="text-muted-foreground">
                       {roleByContract.get(c.id) ?? "corredor (vía participante)"}
                     </TableCell>
-                  </TableRow>
+                  </StaggerItem>
                 ))}
-              </TableBody>
+              </StaggerGroup>
             </Table>
           </Card>
         </>

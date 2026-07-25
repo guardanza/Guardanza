@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { MarketingHome } from "@/components/marketing-home";
 import { DashboardCardsSkeleton } from "@/components/skeletons/dashboard-cards-skeleton";
 import { DashboardDetailsSkeleton } from "@/components/skeletons/dashboard-details-skeleton";
+import { StaggerGroup, StaggerItem } from "@/components/motion/stagger";
 
 function formatAmount(amount: number, currency: string) {
   if (currency === "UF") return `UF ${amount.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -229,16 +230,18 @@ async function DashboardDetails() {
             <h2 className="text-sm font-medium">Vencen en los próximos 60 días</h2>
           </div>
           {upcomingEndings.length > 0 ? (
-            <div className="divide-y">
+            <StaggerGroup as="div" className="divide-y">
               {upcomingEndings.map((c) => (
-                <Link key={c.id} href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
-                  <span className="truncate">{one(c.properties)?.address ?? c.id}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {new Date(c.end_date!).toLocaleDateString("es-CL")}
-                  </span>
-                </Link>
+                <StaggerItem as="div" key={c.id}>
+                  <Link href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
+                    <span className="truncate">{one(c.properties)?.address ?? c.id}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {new Date(c.end_date!).toLocaleDateString("es-CL")}
+                    </span>
+                  </Link>
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerGroup>
           ) : (
             <CardContent className="py-8 text-center text-sm text-muted-foreground">Nada por vencer pronto.</CardContent>
           )}
@@ -250,14 +253,16 @@ async function DashboardDetails() {
           <div className="border-b px-4 py-3">
             <h2 className="text-sm font-medium">Acuerdos pendientes</h2>
           </div>
-          <div className="divide-y">
+          <StaggerGroup as="div" className="divide-y">
             {openDisputes.map((d) => (
-              <Link key={d.id} href={`/disputes/${d.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
-                <span>Disputa {d.id.slice(0, 8)}</span>
-                <StatusBadge status={d.status} />
-              </Link>
+              <StaggerItem as="div" key={d.id}>
+                <Link href={`/disputes/${d.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
+                  <span>Disputa {d.id.slice(0, 8)}</span>
+                  <StatusBadge status={d.status} />
+                </Link>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGroup>
         </Card>
       )}
     </>
