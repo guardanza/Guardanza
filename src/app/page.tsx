@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Landmark, FileText, AlertTriangle, CalendarClock, ShieldCheck, Percent } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { MarketingHome } from "@/components/marketing-home";
+import { DashboardCardsSkeleton } from "@/components/skeletons/dashboard-cards-skeleton";
+import { DashboardDetailsSkeleton } from "@/components/skeletons/dashboard-details-skeleton";
+import { StaggerGroup, StaggerItem } from "@/components/motion/stagger";
 
 function formatAmount(amount: number, currency: string) {
   if (currency === "UF") return `UF ${amount.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -19,11 +23,40 @@ export default async function DashboardPage() {
   const { data: profile } = await supabase.from("profiles").select("is_platform_admin").eq("id", userRes.user.id).single();
   const isPlatformAdmin = profile?.is_platform_admin ?? false;
 
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 md:px-6 md:py-10">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          {isPlatformAdmin
+            ? "Visibilidad total del sistema: garantías y contratos de todas las organizaciones."
+            : "Estado general de tus garantías y contratos."}
+        </p>
+      </div>
+
+      {/* Two independent Suspense regions so the cards don't wait on the
+          detail sections (and vice versa) — each streams in as soon as its
+          own queries resolve, instead of the whole page blocking on
+          everything at once. */}
+      <Suspense fallback={<DashboardCardsSkeleton />}>
+        <SummaryCards userId={userRes.user.id} isPlatformAdmin={isPlatformAdmin} />
+      </Suspense>
+
+      <Suspense fallback={<DashboardDetailsSkeleton />}>
+        <DashboardDetails />
+      </Suspense>
+    </div>
+  );
+}
+
+async function SummaryCards({ userId, isPlatformAdmin }: { userId: string; isPlatformAdmin: boolean }) {
+  const supabase = await createClient();
+
   const [{ data: contracts }, { data: guarantees }, { data: disputes }, { data: brokerMemberships }] = await Promise.all([
-    supabase.from("contracts").select("id, status, end_date, comision_guardanza_monto, properties(address)").order("end_date", { ascending: true }),
+    supabase.from("contracts").select("id, status, comision_guardanza_monto, properties(broker_organization_id)"),
     supabase.from("guarantees").select("status, amount, currency"),
     supabase.from("disputes").select("id, status"),
-    supabase.from("memberships").select("organization_id, organizations!inner(type)").eq("user_id", userRes.user.id).eq("organizations.type", "broker"),
+    supabase.from("memberships").select("organization_id, organizations!inner(type)").eq("user_id", userId).eq("organizations.type", "broker"),
   ]);
 
   // RLS already scopes `contracts` above to "everything a platform admin
@@ -54,41 +87,11 @@ export default async function DashboardPage() {
     }
   }
 
-  const contractsByStatus = new Map<string, number>();
-  for (const c of contracts ?? []) {
-    contractsByStatus.set(c.status, (contractsByStatus.get(c.status) ?? 0) + 1);
-  }
-
+  const activeContracts = (contracts ?? []).filter((c) => c.status === "activo").length;
   const openDisputes = (disputes ?? []).filter((d) => d.status === "abierta" || d.status === "negociando" || d.status === "escalada");
 
-  const today = new Date();
-  const in60days = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
-  const upcomingEndings = (contracts ?? [])
-    .filter((c) => c.status === "activo" && c.end_date && new Date(c.end_date) <= in60days && new Date(c.end_date) >= today)
-    .slice(0, 5);
-
-  const contractStatusOrder: { key: string; label: string }[] = [
-    { key: "pendiente_firma_arrendador", label: "Pendiente firma arrendador" },
-    { key: "pendiente_firma_arrendatario", label: "Pendiente firma arrendatario" },
-    { key: "pendiente_deposito", label: "Pendiente de depósito" },
-    { key: "activo", label: "Activos" },
-    { key: "propuesta_termino", label: "Propuesta de término" },
-    { key: "en_disputa", label: "En disputa" },
-    { key: "finalizado", label: "Finalizados" },
-    { key: "cancelado", label: "Cancelados" },
-  ];
-
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 md:px-6 md:py-10">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          {isPlatformAdmin
-            ? "Visibilidad total del sistema: garantías y contratos de todas las organizaciones."
-            : "Estado general de tus garantías y contratos."}
-        </p>
-      </div>
-
+    <>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card>
           <CardContent className="space-y-1">
@@ -119,7 +122,7 @@ export default async function DashboardPage() {
               <FileText className="size-3.5" strokeWidth={2} />
               Contratos activos
             </div>
-            <p className="text-xl font-semibold tabular-nums">{contractsByStatus.get("activo") ?? 0}</p>
+            <p className="text-xl font-semibold tabular-nums">{activeContracts}</p>
           </CardContent>
         </Card>
 
@@ -135,7 +138,7 @@ export default async function DashboardPage() {
       </div>
 
       {(isPlatformAdmin || brokerOrgIds.length > 0) && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {isPlatformAdmin && (
             <Card>
               <CardContent className="space-y-1">
@@ -160,7 +163,44 @@ export default async function DashboardPage() {
           )}
         </div>
       )}
+    </>
+  );
+}
 
+async function DashboardDetails() {
+  const supabase = await createClient();
+
+  const [{ data: contracts }, { data: disputes }] = await Promise.all([
+    supabase.from("contracts").select("id, status, end_date, properties(address)").order("end_date", { ascending: true }),
+    supabase.from("disputes").select("id, status"),
+  ]);
+
+  const contractsByStatus = new Map<string, number>();
+  for (const c of contracts ?? []) {
+    contractsByStatus.set(c.status, (contractsByStatus.get(c.status) ?? 0) + 1);
+  }
+
+  const openDisputes = (disputes ?? []).filter((d) => d.status === "abierta" || d.status === "negociando" || d.status === "escalada");
+
+  const today = new Date();
+  const in60days = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
+  const upcomingEndings = (contracts ?? [])
+    .filter((c) => c.status === "activo" && c.end_date && new Date(c.end_date) <= in60days && new Date(c.end_date) >= today)
+    .slice(0, 5);
+
+  const contractStatusOrder: { key: string; label: string }[] = [
+    { key: "pendiente_firma_arrendador", label: "Pendiente firma arrendador" },
+    { key: "pendiente_firma_arrendatario", label: "Pendiente firma arrendatario" },
+    { key: "pendiente_deposito", label: "Pendiente de depósito" },
+    { key: "activo", label: "Activos" },
+    { key: "propuesta_termino", label: "Propuesta de término" },
+    { key: "en_disputa", label: "En disputa" },
+    { key: "finalizado", label: "Finalizados" },
+    { key: "cancelado", label: "Cancelados" },
+  ];
+
+  return (
+    <>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="p-0">
           <div className="border-b px-4 py-3">
@@ -190,16 +230,18 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-medium">Vencen en los próximos 60 días</h2>
           </div>
           {upcomingEndings.length > 0 ? (
-            <div className="divide-y">
+            <StaggerGroup as="div" className="divide-y">
               {upcomingEndings.map((c) => (
-                <Link key={c.id} href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
-                  <span className="truncate">{one(c.properties)?.address ?? c.id}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {new Date(c.end_date!).toLocaleDateString("es-CL")}
-                  </span>
-                </Link>
+                <StaggerItem as="div" key={c.id}>
+                  <Link href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
+                    <span className="truncate">{one(c.properties)?.address ?? c.id}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {new Date(c.end_date!).toLocaleDateString("es-CL")}
+                    </span>
+                  </Link>
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerGroup>
           ) : (
             <CardContent className="py-8 text-center text-sm text-muted-foreground">Nada por vencer pronto.</CardContent>
           )}
@@ -207,20 +249,22 @@ export default async function DashboardPage() {
       </div>
 
       {openDisputes.length > 0 && (
-        <Card className="p-0">
+        <Card className="mt-6 p-0">
           <div className="border-b px-4 py-3">
             <h2 className="text-sm font-medium">Acuerdos pendientes</h2>
           </div>
-          <div className="divide-y">
+          <StaggerGroup as="div" className="divide-y">
             {openDisputes.map((d) => (
-              <Link key={d.id} href={`/disputes/${d.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
-                <span>Disputa {d.id.slice(0, 8)}</span>
-                <StatusBadge status={d.status} />
-              </Link>
+              <StaggerItem as="div" key={d.id}>
+                <Link href={`/disputes/${d.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
+                  <span>Disputa {d.id.slice(0, 8)}</span>
+                  <StatusBadge status={d.status} />
+                </Link>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGroup>
         </Card>
       )}
-    </div>
+    </>
   );
 }
