@@ -9,6 +9,7 @@ import { SidebarNav } from "@/components/sidebar-nav";
 import { MobileTabBar } from "@/components/mobile-tabbar";
 import { MarketingHeader } from "@/components/marketing-header";
 import { PageTransitionProvider } from "@/components/page-transition";
+import { UserAvatar } from "@/components/user-avatar";
 import { METADATA_DESCRIPTION } from "@/lib/copy";
 import "./globals.css";
 
@@ -36,6 +37,9 @@ export default async function RootLayout({
   const { data: userRes } = await supabase.auth.getUser();
 
   const profileType = userRes.user ? await getProfileTypeLabel(supabase, userRes.user.id) : null;
+  const { data: avatarProfile } = userRes.user
+    ? await supabase.from("profiles").select("full_name, avatar_url").eq("id", userRes.user.id).single()
+    : { data: null };
 
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
@@ -49,11 +53,8 @@ export default async function RootLayout({
               <SidebarNav />
               <div className="mt-auto border-t p-4">
                 <div className="flex items-center gap-2.5">
-                  <Link
-                    href="/profile"
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-gold text-xs font-medium text-brand-gold-foreground"
-                  >
-                    {userRes.user.email?.[0]?.toUpperCase()}
+                  <Link href="/profile" className="shrink-0">
+                    <UserAvatar avatarUrl={avatarProfile?.avatar_url} name={avatarProfile?.full_name ?? userRes.user.email ?? ""} size={32} />
                   </Link>
                   <div className="min-w-0 flex-1">
                     <Link href="/profile" className="block truncate text-xs font-medium hover:underline">
@@ -74,11 +75,8 @@ export default async function RootLayout({
               <Link href="/" className="flex items-center">
                 <LogoMark size={26} />
               </Link>
-              <Link
-                href="/more"
-                className="flex size-8 items-center justify-center rounded-full bg-brand-gold text-xs font-medium text-brand-gold-foreground"
-              >
-                {userRes.user.email?.[0]?.toUpperCase()}
+              <Link href="/more">
+                <UserAvatar avatarUrl={avatarProfile?.avatar_url} name={avatarProfile?.full_name ?? userRes.user.email ?? ""} size={32} />
               </Link>
             </header>
 

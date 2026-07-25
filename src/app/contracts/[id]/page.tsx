@@ -4,10 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { signContractLandlord, signContractTenant, cancelContract, payGuarantee } from "@/lib/actions/contracts";
 import { openDispute } from "@/lib/actions/disputes";
 import { one } from "@/lib/supabase/one";
+import { hasCompletedProfile } from "@/lib/profile-completeness";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { Separator } from "@/components/ui/separator";
+import { RequireRutPrompt } from "@/components/require-rut-prompt";
 
 const CANCELLABLE_STATUSES = ["pendiente_firma_arrendador", "pendiente_firma_arrendatario", "pendiente_deposito"];
 
@@ -48,6 +50,12 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
     .eq("user_id", userRes.user.id)
     .maybeSingle();
   const myRole = myParty?.role;
+
+  const { data: profile } = await supabase.from("profiles").select("rut").eq("id", userRes.user.id).single();
+  const needsSignature =
+    (contract.status === "pendiente_firma_arrendador" && myRole === "arrendador") ||
+    (contract.status === "pendiente_firma_arrendatario" && myRole === "arrendatario");
+  const blockedBySignature = needsSignature && !hasCompletedProfile(profile);
 
   const signLandlordAction = signContractLandlord.bind(null, id);
   const signTenantAction = signContractTenant.bind(null, id);
@@ -121,14 +129,16 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         </Card>
       )}
 
+      {blockedBySignature && <RequireRutPrompt returnTo={`/contracts/${id}`} />}
+
       <div className="flex flex-wrap gap-2">
-        {contract.status === "pendiente_firma_arrendador" && myRole === "arrendador" && (
+        {contract.status === "pendiente_firma_arrendador" && myRole === "arrendador" && !blockedBySignature && (
           <form action={signLandlordAction}>
             <Button type="submit">Firmar como arrendador (mock)</Button>
           </form>
         )}
 
-        {contract.status === "pendiente_firma_arrendatario" && myRole === "arrendatario" && (
+        {contract.status === "pendiente_firma_arrendatario" && myRole === "arrendatario" && !blockedBySignature && (
           <form action={signTenantAction}>
             <Button type="submit">Firmar como arrendatario (mock)</Button>
           </form>

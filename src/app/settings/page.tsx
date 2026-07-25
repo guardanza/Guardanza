@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthProvider } from "@/lib/auth-provider";
 import { changePassword } from "@/lib/actions/settings";
 import { updateSystemConfig } from "@/lib/actions/system-config";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ChangePasswordForm } from "@/components/change-password-form";
+import { GoogleIcon } from "@/components/icons/google-icon";
 
 export default async function SettingsPage({
   searchParams,
@@ -22,6 +25,7 @@ export default async function SettingsPage({
   const { data: config } = profile?.is_platform_admin
     ? await supabase.from("system_config").select("*").single()
     : { data: null };
+  const provider = getAuthProvider(userRes.user);
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -31,7 +35,7 @@ export default async function SettingsPage({
         </Alert>
       )}
       {success && (
-        <Alert>
+        <Alert variant="success">
           <AlertDescription>{success === "config" ? "Parámetros del sistema actualizados." : "Contraseña actualizada."}</AlertDescription>
         </Alert>
       )}
@@ -40,23 +44,32 @@ export default async function SettingsPage({
         <p className="text-sm text-muted-foreground">{userRes.user.email}</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Cambiar contraseña</CardTitle>
-          <CardDescription>Mínimo 6 caracteres.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={changePassword} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Nueva contraseña</Label>
-              <Input id="password" name="password" type="password" minLength={6} required />
+      {provider === "google" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Seguridad</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-start gap-3">
+            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+              <GoogleIcon className="size-4" />
+            </span>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Inicias sesión con Google.</p>
+              <p className="text-xs text-muted-foreground">Tu contraseña la gestiona Google. No necesitas una en Guardanza.</p>
             </div>
-            <Button type="submit" className="w-full">
-              Actualizar
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cambiar contraseña</CardTitle>
+            <CardDescription>Necesitamos tu contraseña actual para confirmar que eres tú.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChangePasswordForm action={changePassword} />
+          </CardContent>
+        </Card>
+      )}
 
       {config && (
         <Card>

@@ -26,6 +26,18 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
+      // Backfill the Google photo as a default avatar — only when the
+      // profile doesn't have one yet, so this never clobbers a photo the
+      // user uploaded themselves. Runs on every Google login (not just
+      // signup) so it also catches accounts created before this existed.
+      const googleAvatarUrl = data.user.user_metadata?.avatar_url ?? data.user.user_metadata?.picture ?? null;
+      if (googleAvatarUrl) {
+        const { data: existingProfile } = await supabase.from("profiles").select("avatar_url").eq("id", data.user.id).single();
+        if (existingProfile && !existingProfile.avatar_url) {
+          await supabase.from("profiles").update({ avatar_url: googleAvatarUrl }).eq("id", data.user.id);
+        }
+      }
+
       if (role === "arrendador" || role === "corredor") {
         const admin = createServiceRoleClient();
         const { data: existingMemberships } = await admin.from("memberships").select("id").eq("user_id", data.user.id).limit(1);

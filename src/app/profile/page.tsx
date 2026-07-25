@@ -1,22 +1,29 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfileTypeLabel } from "@/lib/profile-label";
+import { getAuthProvider } from "@/lib/auth-provider";
 import { updateProfile } from "@/lib/actions/profile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { ProfileForm } from "@/components/profile-form";
+import { SavedIndicator } from "@/components/saved-indicator";
+import { AvatarPicker } from "@/components/avatar-picker";
 
-export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; next?: string; highlight?: string }>;
+}) {
+  const { error, next, highlight } = await searchParams;
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", userRes.user.id).single();
   const profileType = await getProfileTypeLabel(supabase, userRes.user.id);
+  const provider = getAuthProvider(userRes.user);
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -35,27 +42,33 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
 
       <Card>
         <CardHeader>
-          <CardTitle>Datos personales</CardTitle>
-          <CardDescription>Tu RUT se valida automáticamente.</CardDescription>
+          <CardTitle>Foto de perfil</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={updateProfile} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="full_name">Nombre completo</Label>
-              <Input id="full_name" name="full_name" defaultValue={profile?.full_name ?? ""} required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="rut">RUT</Label>
-              <Input id="rut" name="rut" defaultValue={profile?.rut ?? ""} placeholder="12.345.678-9" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="phone">Teléfono</Label>
-              <Input id="phone" name="phone" defaultValue={profile?.phone ?? ""} placeholder="+56 9 1234 5678" />
-            </div>
-            <Button type="submit" className="w-full">
-              Guardar cambios
-            </Button>
-          </form>
+          <AvatarPicker avatarUrl={profile?.avatar_url ?? null} name={profile?.full_name ?? userRes.user.email ?? ""} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex items-center justify-between">
+          <div>
+            <CardTitle>Datos personales</CardTitle>
+            <CardDescription>Tu RUT se valida automáticamente.</CardDescription>
+          </div>
+          <Suspense fallback={null}>
+            <SavedIndicator />
+          </Suspense>
+        </CardHeader>
+        <CardContent>
+          <ProfileForm
+            action={updateProfile}
+            provider={provider}
+            initialFullName={profile?.full_name ?? ""}
+            initialRut={profile?.rut ?? ""}
+            initialPhone={profile?.phone ?? ""}
+            rutHighlighted={highlight === "rut"}
+            next={next}
+          />
         </CardContent>
       </Card>
     </div>
