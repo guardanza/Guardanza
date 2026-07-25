@@ -8,6 +8,7 @@ import { Logo, LogoMark } from "@/components/logo";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { MobileTabBar } from "@/components/mobile-tabbar";
 import { MarketingHeader } from "@/components/marketing-header";
+import { PageTransitionProvider } from "@/components/page-transition";
 import { METADATA_DESCRIPTION } from "@/lib/copy";
 import "./globals.css";
 
@@ -81,14 +82,18 @@ export default async function RootLayout({
               </Link>
             </header>
 
-            <main className="w-full flex-1 pt-14 pb-16 md:ml-60 md:pt-0 md:pb-0">{children}</main>
+            <main className="w-full flex-1 pt-14 pb-16 md:ml-60 md:pt-0 md:pb-0">
+              <PageTransitionProvider>{children}</PageTransitionProvider>
+            </main>
 
             <MobileTabBar />
           </div>
         ) : (
           <>
             <MarketingHeader />
-            <main>{children}</main>
+            <main>
+              <PageTransitionProvider>{children}</PageTransitionProvider>
+            </main>
           </>
         )}
       </body>
