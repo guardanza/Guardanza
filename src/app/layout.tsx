@@ -38,7 +38,7 @@ export default async function RootLayout({
 
   const profileType = userRes.user ? await getProfileTypeLabel(supabase, userRes.user.id) : null;
   const { data: avatarProfile } = userRes.user
-    ? await supabase.from("profiles").select("full_name, avatar_url").eq("id", userRes.user.id).single()
+    ? await supabase.from("profiles").select("full_name, avatar_url, is_platform_admin").eq("id", userRes.user.id).single()
     : { data: null };
 
   return (
@@ -50,7 +50,7 @@ export default async function RootLayout({
               <Link href="/" className="flex items-center px-5 py-5">
                 <Logo />
               </Link>
-              <SidebarNav />
+              <SidebarNav isPlatformAdmin={avatarProfile?.is_platform_admin ?? false} />
               <div className="mt-auto border-t p-4">
                 <div className="flex items-center gap-2.5">
                   <Link href="/profile" className="shrink-0">
