@@ -9,7 +9,7 @@ export async function changePassword(formData: FormData) {
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
 
-  const fail = (message: string): never => redirect(`/settings?error=${encodeURIComponent(message)}`);
+  const fail = (message: string): never => redirect(`/profile?error=${encodeURIComponent(message)}`);
 
   // Google accounts have no Guardanza password to change — this route
   // shouldn't even be reachable from that UI, but the server has to refuse
@@ -39,5 +39,5 @@ export async function changePassword(formData: FormData) {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) return fail(error.message);
 
-  redirect("/settings?success=1");
+  redirect("/profile?success=1");
 }

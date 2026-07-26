@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/password-input";
 import { Label } from "@/components/ui/label";
 import { SaveButton } from "@/components/save-button";
 import { PasswordStrength } from "@/components/password-strength";
@@ -15,14 +15,13 @@ export function ChangePasswordForm({ action }: { action: (formData: FormData) =>
     <form action={action} className="space-y-3">
       <div className="space-y-1.5">
         <Label htmlFor="current_password">Contraseña actual</Label>
-        <Input id="current_password" name="current_password" type="password" required />
+        <PasswordInput id="current_password" name="current_password" required />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="new_password">Nueva contraseña</Label>
-        <Input
+        <PasswordInput
           id="new_password"
           name="new_password"
-          type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           minLength={8}
@@ -32,10 +31,9 @@ export function ChangePasswordForm({ action }: { action: (formData: FormData) =>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="confirm_password">Confirmar nueva contraseña</Label>
-        <Input
+        <PasswordInput
           id="confirm_password"
           name="confirm_password"
-          type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           aria-invalid={mismatch}

@@ -5,6 +5,7 @@ import { Building2, User, Home, KeyRound, ArrowLeft, Mail } from "lucide-react";
 import { signUpWithRole, signInWithGoogle } from "@/lib/actions/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/icons/google-icon";
@@ -187,7 +188,7 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">Contraseña</Label>
-          <Input id="password" name="password" type="password" required minLength={8} />
+          <PasswordInput id="password" name="password" required minLength={8} />
           <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, una mayúscula y un número.</p>
         </div>
 

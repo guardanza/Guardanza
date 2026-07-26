@@ -11,7 +11,7 @@ import {
   PenLine,
   FolderOpen,
   Bell,
-  Settings,
+  User,
 } from "lucide-react";
 
 // Defined here (not passed as props from the server layout) because Lucide
@@ -30,7 +30,7 @@ const secondaryLinks = [
   { href: "/signatures", label: "Firmas", icon: PenLine },
   { href: "/documents", label: "Análisis de documentos", icon: FolderOpen },
   { href: "/notifications", label: "Notificaciones", icon: Bell },
-  { href: "/settings", label: "Configuración", icon: Settings },
+  { href: "/profile", label: "Perfil", icon: User },
 ];
 
 function NavLinks({ links, pathname }: { links: typeof primaryLinks; pathname: string }) {

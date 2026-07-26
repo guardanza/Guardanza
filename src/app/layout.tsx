@@ -4,7 +4,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/auth";
 import { getProfileTypeLabel } from "@/lib/profile-label";
-import { Logo, LogoMark } from "@/components/logo";
+import { Logo } from "@/components/logo";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { MobileTabBar } from "@/components/mobile-tabbar";
 import { MarketingHeader } from "@/components/marketing-header";
@@ -73,7 +73,7 @@ export default async function RootLayout({
 
             <header className="fixed inset-x-0 top-0 z-10 flex h-14 items-center justify-between border-b bg-card px-4 md:hidden">
               <Link href="/" className="flex items-center">
-                <LogoMark size={26} />
+                <Logo />
               </Link>
               <Link href="/more">
                 <UserAvatar avatarUrl={avatarProfile?.avatar_url} name={avatarProfile?.full_name ?? userRes.user.email ?? ""} size={32} />
