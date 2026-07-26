@@ -12,6 +12,7 @@ import {
   FolderOpen,
   Bell,
   User,
+  ShieldCheck,
 } from "lucide-react";
 
 // Defined here (not passed as props from the server layout) because Lucide
@@ -59,7 +60,7 @@ function NavLinks({ links, pathname }: { links: typeof primaryLinks; pathname: s
   );
 }
 
-export function SidebarNav() {
+export function SidebarNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -67,6 +68,15 @@ export function SidebarNav() {
       <NavLinks links={primaryLinks} pathname={pathname} />
       <div className="my-2 border-t" />
       <NavLinks links={secondaryLinks} pathname={pathname} />
+      {isPlatformAdmin && (
+        <>
+          <div className="my-2 border-t" />
+          <NavLinks
+            links={[{ href: "/admin/solicitudes-rol", label: "Solicitudes de rol", icon: ShieldCheck }]}
+            pathname={pathname}
+          />
+        </>
+      )}
     </nav>
   );
 }

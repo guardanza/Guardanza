@@ -69,6 +69,13 @@ export default async function HistoryPage({
                     <Badge variant="outline" className="font-mono">
                       {e.entity_type}:{String(e.entity_id).slice(0, 8)}
                     </Badge>
+                    {e.entity_type === "profile_role_change" && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {e.metadata?.rol_anterior_snapshot ? `${e.metadata.rol_anterior_snapshot} → ` : ""}
+                        {e.metadata?.rol_nuevo ?? e.metadata?.rol_solicitado}
+                        {e.metadata?.motivo_rechazo ? ` — ${e.metadata.motivo_rechazo}` : ""}
+                      </p>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

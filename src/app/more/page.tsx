@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Handshake, PenLine, FolderOpen, Bell, User, ChevronRight } from "lucide-react";
+import { Handshake, PenLine, FolderOpen, Bell, User, ShieldCheck, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getProfileTypeLabel } from "@/lib/profile-label";
 import { signOut } from "@/lib/actions/auth";
@@ -21,6 +21,10 @@ export default async function MorePage() {
   if (!userRes.user) redirect("/login");
 
   const profileType = await getProfileTypeLabel(supabase, userRes.user.id);
+  const { data: profile } = await supabase.from("profiles").select("is_platform_admin").eq("id", userRes.user.id).single();
+  const allLinks = profile?.is_platform_admin
+    ? [...links, { href: "/admin/solicitudes-rol", label: "Solicitudes de rol", icon: ShieldCheck }]
+    : links;
 
   return (
     <div className="mx-auto max-w-md space-y-6 px-4 py-6 md:hidden">
@@ -33,7 +37,7 @@ export default async function MorePage() {
       </div>
 
       <Card className="gap-0 divide-y p-0">
-        {links.map((l) => {
+        {allLinks.map((l) => {
           const Icon = l.icon;
           return (
             <Link key={l.href} href={l.href} className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium">

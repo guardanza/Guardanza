@@ -18,6 +18,11 @@ export default async function OrganizationsPage() {
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
 
+  // Creating an *additional* organization is still self-service — but a
+  // first one is a role change, and create_organization() now rejects that
+  // from anyone with zero existing memberships (see Fase 0 migration).
+  const hasAnyMembership = (memberships?.length ?? 0) > 0;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -25,9 +30,15 @@ export default async function OrganizationsPage() {
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Participantes</h1>
           <p className="text-sm text-muted-foreground">Arrendadores y corredoras que administras.</p>
         </div>
-        <Link href="/organizations/new" className={buttonVariants()}>
-          + Nuevo participante
-        </Link>
+        {hasAnyMembership ? (
+          <Link href="/organizations/new" className={buttonVariants()}>
+            + Nuevo participante
+          </Link>
+        ) : (
+          <Link href="/profile" className={buttonVariants()}>
+            Solicitar cambio de rol
+          </Link>
+        )}
       </div>
 
       <div className="space-y-3">
