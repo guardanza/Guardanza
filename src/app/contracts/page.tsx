@@ -21,11 +21,17 @@ export default async function ContractsPage() {
 
   if (error) throw new Error(error.message);
 
-  const { data: parties } = await supabase
-    .from("contract_parties")
-    .select("contract_id, role")
-    .eq("user_id", userRes.user.id);
+  const [{ data: parties }, { data: profile }] = await Promise.all([
+    supabase.from("contract_parties").select("contract_id, role").eq("user_id", userRes.user.id),
+    supabase.from("profiles").select("is_platform_admin").eq("id", userRes.user.id).single(),
+  ]);
   const roleByContract = new Map((parties ?? []).map((p) => [p.contract_id, p.role]));
+  // A contract with no contract_parties row for the current user means
+  // either they're a platform admin viewing it via global visibility, or
+  // (for older, pre-freeze contracts) a corredor derived live from
+  // membership rather than a frozen row — never assume "corredor" by
+  // default, that was the bug.
+  const fallbackRole = profile?.is_platform_admin ? "administrador" : "—";
 
   // A contract needs an existing participante AND an existing propiedad —
   // the empty state should say exactly what's missing instead of always
@@ -37,9 +43,12 @@ export default async function ContractsPage() {
       supabase.from("properties").select("*", { count: "exact", head: true }),
     ]);
     if (!orgCount) {
+      // create_organization() now rejects a first organization from a
+      // zero-membership user — that's a role change, and has to go through
+      // the request flow on Perfil instead of the old self-service page.
       emptyStateHint = {
-        message: "Primero necesitas un participante (arrendador o corredora) para crear un contrato.",
-        cta: { href: "/organizations/new", label: "Crear participante" },
+        message: "Para crear un contrato primero necesitas ser arrendador o corredora. Solicita el cambio desde tu perfil.",
+        cta: { href: "/profile", label: "Solicitar cambio de rol" },
       };
     } else if (!propertyCount) {
       emptyStateHint = {
@@ -75,7 +84,7 @@ export default async function ContractsPage() {
                         <StatusBadge status={c.status} />
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {c.guarantee_amount} {c.guarantee_currency} · {roleByContract.get(c.id) ?? "corredor"}
+                        {c.guarantee_amount} {c.guarantee_currency} · {roleByContract.get(c.id) ?? fallbackRole}
                       </p>
                     </CardContent>
                   </Card>
@@ -113,7 +122,7 @@ export default async function ContractsPage() {
                       {c.guarantee_amount} {c.guarantee_currency}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {roleByContract.get(c.id) ?? "corredor (vía participante)"}
+                      {roleByContract.get(c.id) ?? fallbackRole}
                     </TableCell>
                   </StaggerItem>
                 ))}
