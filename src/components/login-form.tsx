@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Mail, ArrowLeft } from "lucide-react";
 import { signIn, signInWithGoogle } from "@/lib/actions/auth";
 import { Input } from "@/components/ui/input";
@@ -46,7 +47,12 @@ export function LoginForm({ startExpanded = false }: { startExpanded?: boolean }
             <Input id="signin-email" name="email" type="email" required autoFocus />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="signin-password">Contraseña</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="signin-password">Contraseña</Label>
+              <Link href="/forgot-password" className="text-xs text-primary underline-offset-4 hover:underline">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
             <PasswordInput id="signin-password" name="password" required />
           </div>
           <div className="flex gap-2">
