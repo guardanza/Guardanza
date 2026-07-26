@@ -6,6 +6,9 @@ import { getAuthProvider } from "@/lib/auth-provider";
 import { updateProfile } from "@/lib/actions/profile";
 import { changePassword } from "@/lib/actions/settings";
 import { updateSystemConfig } from "@/lib/actions/system-config";
+import { requestRoleChange } from "@/lib/actions/role-change";
+import { labelToRoleBucket } from "@/lib/role-bucket";
+import { one } from "@/lib/supabase/one";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +19,7 @@ import { ProfileForm } from "@/components/profile-form";
 import { SavedIndicator } from "@/components/saved-indicator";
 import { AvatarPicker } from "@/components/avatar-picker";
 import { ChangePasswordForm } from "@/components/change-password-form";
+import { RoleChangeRequestDialog } from "@/components/role-change-request-dialog";
 import { GoogleIcon } from "@/components/icons/google-icon";
 
 export default async function ProfilePage({
@@ -31,10 +35,25 @@ export default async function ProfilePage({
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", userRes.user.id).single();
   const profileType = await getProfileTypeLabel(supabase, userRes.user.id);
   const provider = getAuthProvider(userRes.user);
+  const currentBucket = labelToRoleBucket(profileType);
 
   const { data: config } = profile?.is_platform_admin
     ? await supabase.from("system_config").select("*").single()
     : { data: null };
+
+  const [{ data: ultimaSolicitud }, { data: misPartidas }] = profile?.is_platform_admin
+    ? [{ data: null }, { data: null }]
+    : await Promise.all([
+        supabase
+          .from("solicitudes_cambio_rol")
+          .select("id, estado, rol_solicitado, motivo_rechazo, created_at, resuelto_at")
+          .eq("user_id", userRes.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase.from("contract_parties").select("contracts(status)").eq("user_id", userRes.user.id),
+      ]);
+  const activeContractsCount = (misPartidas ?? []).filter((p) => one(p.contracts)?.status !== "finalizado").length;
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -45,15 +64,46 @@ export default async function ProfilePage({
       )}
       {success && (
         <Alert variant="success">
-          <AlertDescription>{success === "config" ? "Parámetros del sistema actualizados." : "Contraseña actualizada."}</AlertDescription>
+          <AlertDescription>
+            {success === "config"
+              ? "Parámetros del sistema actualizados."
+              : success === "solicitud"
+                ? "Tu solicitud de cambio de rol fue enviada. Te avisamos acá cuando la revisen."
+                : "Contraseña actualizada."}
+          </AlertDescription>
         </Alert>
       )}
       <div>
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Perfil</h1>
-        <div className="mt-1 flex items-center gap-2">
+        <div className="mt-1 flex flex-wrap items-center gap-2">
           <p className="text-sm text-muted-foreground">{userRes.user.email}</p>
           <Badge variant="outline">{profileType}</Badge>
+          {!profile?.is_platform_admin && ultimaSolicitud?.estado !== "pendiente" && (
+            <RoleChangeRequestDialog
+              action={requestRoleChange}
+              currentBucket={currentBucket}
+              currentLabel={profileType}
+              activeContractsCount={activeContractsCount}
+            />
+          )}
         </div>
+        {ultimaSolicitud && ultimaSolicitud.estado === "pendiente" && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Tienes una solicitud de cambio de rol <span className="font-medium text-foreground">pendiente</span> de
+            revisión.
+          </p>
+        )}
+        {ultimaSolicitud && ultimaSolicitud.estado === "aprobada" && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Tu última solicitud de cambio de rol fue <span className="font-medium text-foreground">aprobada</span>.
+          </p>
+        )}
+        {ultimaSolicitud && ultimaSolicitud.estado === "rechazada" && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Tu última solicitud de cambio de rol fue <span className="font-medium text-destructive">rechazada</span>
+            {ultimaSolicitud.motivo_rechazo ? `: ${ultimaSolicitud.motivo_rechazo}` : "."}
+          </p>
+        )}
       </div>
 
       <Card>
