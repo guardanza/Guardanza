@@ -9,7 +9,7 @@ export async function updateSystemConfig(formData: FormData) {
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
 
-  const fail = (message: string): never => redirect(`/settings?error=${encodeURIComponent(message)}`);
+  const fail = (message: string): never => redirect(`/profile?error=${encodeURIComponent(message)}`);
 
   const comision_guardanza_pct = Number(formData.get("comision_guardanza_pct")) / 100;
   const comision_corredor_pct = Number(formData.get("comision_corredor_pct")) / 100;
@@ -23,6 +23,6 @@ export async function updateSystemConfig(formData: FormData) {
   });
   if (error) return fail(error.message);
 
-  revalidatePath("/settings");
-  redirect("/settings?success=config");
+  revalidatePath("/profile");
+  redirect("/profile?success=config");
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Handshake, PenLine, FolderOpen, Bell, Settings, User, ChevronRight } from "lucide-react";
+import { Handshake, PenLine, FolderOpen, Bell, User, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getProfileTypeLabel } from "@/lib/profile-label";
 import { signOut } from "@/lib/actions/auth";
@@ -13,7 +13,6 @@ const links = [
   { href: "/documents", label: "Análisis de documentos", icon: FolderOpen },
   { href: "/notifications", label: "Notificaciones", icon: Bell },
   { href: "/profile", label: "Perfil", icon: User },
-  { href: "/settings", label: "Configuración", icon: Settings },
 ];
 
 export default async function MorePage() {
