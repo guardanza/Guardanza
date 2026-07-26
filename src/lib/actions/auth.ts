@@ -9,7 +9,7 @@ import { validateRut, formatRut } from "@/lib/rut";
 // Works out this deployment's own origin from the incoming request instead
 // of a hardcoded env var, so the same code redirects correctly whether it's
 // running on localhost, a Vercel preview, or production.
-async function siteOrigin() {
+export async function siteOrigin() {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const protocol = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");

@@ -65,5 +65,12 @@ export async function GET(request: Request) {
     }
   }
 
+  // A password-recovery link (see requestPasswordReset in
+  // password-reset.ts) also lands here — if the code exchange failed
+  // (expired or already-used link), send it on to /reset-password so that
+  // page can show its own "this link expired" message instead of a
+  // Google-flavored error that makes no sense for this flow.
+  if (next.startsWith("/reset-password")) return NextResponse.redirect(`${origin}${next}`);
+
   return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("No se pudo iniciar sesión con Google.")}`);
 }
