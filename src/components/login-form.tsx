@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Mail, ArrowLeft } from "lucide-react";
 import { signIn, signInWithGoogle } from "@/lib/actions/auth";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/icons/google-icon";
@@ -46,7 +47,7 @@ export function LoginForm({ startExpanded = false }: { startExpanded?: boolean }
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="signin-password">Contraseña</Label>
-            <Input id="signin-password" name="password" type="password" required />
+            <PasswordInput id="signin-password" name="password" required />
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="outline" size="icon" onClick={() => setShowEmailForm(false)} aria-label="Atrás">
