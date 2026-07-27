@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Handshake, PenLine, FolderOpen, Bell, User, ShieldCheck, ChevronRight } from "lucide-react";
+import { Handshake, PenLine, FolderOpen, Bell, User, ShieldCheck, History, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getProfileTypeLabel } from "@/lib/profile-label";
 import { signOut } from "@/lib/actions/auth";
@@ -12,6 +12,7 @@ const links = [
   { href: "/signatures", label: "Firmas", icon: PenLine },
   { href: "/documents", label: "Análisis de documentos", icon: FolderOpen },
   { href: "/notifications", label: "Notificaciones", icon: Bell },
+  { href: "/history", label: "Historial", icon: History },
   { href: "/profile", label: "Perfil", icon: User },
 ];
 

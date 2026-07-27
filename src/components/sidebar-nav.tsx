@@ -13,6 +13,7 @@ import {
   Bell,
   User,
   ShieldCheck,
+  History,
 } from "lucide-react";
 
 // Defined here (not passed as props from the server layout) because Lucide
@@ -31,6 +32,7 @@ const secondaryLinks = [
   { href: "/signatures", label: "Firmas", icon: PenLine },
   { href: "/documents", label: "Análisis de documentos", icon: FolderOpen },
   { href: "/notifications", label: "Notificaciones", icon: Bell },
+  { href: "/history", label: "Historial", icon: History },
   { href: "/profile", label: "Perfil", icon: User },
 ];
 

@@ -8,12 +8,10 @@ import { approveRoleRequest, rejectRoleRequest, changeRoleDirect } from "@/lib/a
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { buttonVariants } from "@/components/ui/button";
-import { SaveButton } from "@/components/save-button";
 import { ApproveRoleRequestDialog } from "@/components/admin/approve-role-request-dialog";
 import { RejectRoleRequestDialog } from "@/components/admin/reject-role-request-dialog";
+import { DirectRoleChangeForm } from "@/components/admin/direct-role-change-form";
 
 const ESTADOS = ["pendiente", "aprobada", "rechazada", "todas"] as const;
 const ESTADO_LABEL: Record<(typeof ESTADOS)[number], string> = {
@@ -26,9 +24,9 @@ const ESTADO_LABEL: Record<(typeof ESTADOS)[number], string> = {
 export default async function AdminSolicitudesRolPage({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string; error?: string; success?: string }>;
+  searchParams: Promise<{ estado?: string; error?: string; success?: string; target_user_id?: string }>;
 }) {
-  const { estado: estadoParam, error, success } = await searchParams;
+  const { estado: estadoParam, error, success, target_user_id } = await searchParams;
   const estado = ESTADOS.includes(estadoParam as (typeof ESTADOS)[number]) ? (estadoParam as (typeof ESTADOS)[number]) : "pendiente";
 
   const supabase = await createClient();
@@ -95,8 +93,15 @@ export default async function AdminSolicitudesRolPage({
       )}
       {success && (
         <Alert variant="success">
-          <AlertDescription>
-            {success === "aprobada" ? "Solicitud aprobada." : success === "rechazada" ? "Solicitud rechazada." : "Rol actualizado."}
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              {success === "aprobada" ? "Solicitud aprobada." : success === "rechazada" ? "Solicitud rechazada." : "Rol actualizado."}
+            </span>
+            {target_user_id && (
+              <Link href={`/history?user_id=${target_user_id}`} className="underline underline-offset-4">
+                Ver historial de este usuario
+              </Link>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -159,17 +164,25 @@ export default async function AdminSolicitudesRolPage({
                     Resuelto por {resolver.full_name} el {new Date(s.resuelto_at).toLocaleString()}
                   </p>
                 )}
-                {s.estado === "pendiente" && (
-                  <div className="flex gap-2 pt-1">
-                    <ApproveRoleRequestDialog
-                      action={approveRoleRequest}
-                      solicitudId={s.id}
-                      rolSolicitado={s.rol_solicitado}
-                      currentOrgLabel={org ? `${org.name} (${org.type === "broker" ? "corredora" : "arrendador"})` : null}
-                    />
-                    <RejectRoleRequestDialog action={rejectRoleRequest} solicitudId={s.id} />
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {s.estado === "pendiente" && (
+                    <>
+                      <ApproveRoleRequestDialog
+                        action={approveRoleRequest}
+                        solicitudId={s.id}
+                        rolSolicitado={s.rol_solicitado}
+                        currentOrgLabel={org ? `${org.name} (${org.type === "broker" ? "corredora" : "arrendador"})` : null}
+                      />
+                      <RejectRoleRequestDialog action={rejectRoleRequest} solicitudId={s.id} />
+                    </>
+                  )}
+                  <Link
+                    href={`/history?user_id=${s.user_id}`}
+                    className={buttonVariants({ variant: "ghost", size: "sm" })}
+                  >
+                    Ver historial
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           );
@@ -182,57 +195,7 @@ export default async function AdminSolicitudesRolPage({
           <CardDescription>Sin pasar por una solicitud del usuario. Igual queda en el historial.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={changeRoleDirect} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email del usuario</Label>
-              <Input id="email" name="email" type="email" required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="rol_nuevo">Rol nuevo</Label>
-              <select
-                id="rol_nuevo"
-                name="rol_nuevo"
-                required
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <option value="arrendador">Arrendador(a)</option>
-                <option value="corredor">Corredor(a)</option>
-                <option value="arrendatario">Arrendatario(a)</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="motivo">Motivo</Label>
-              <Input id="motivo" name="motivo" placeholder="Opcional, queda en el historial" />
-            </div>
-            <details className="rounded-lg border border-input p-2.5 text-sm">
-              <summary className="cursor-pointer text-muted-foreground">
-                Datos del participante (solo si hay que crear uno nuevo)
-              </summary>
-              <div className="mt-3 space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="org_name">Nombre</Label>
-                  <Input id="org_name" name="org_name" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="org_rut">RUT (solo corredora)</Label>
-                  <Input id="org_rut" name="org_rut" placeholder="12.345.678-9" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="org_legal_form">Tipo (solo corredora)</Label>
-                  <select
-                    id="org_legal_form"
-                    name="org_legal_form"
-                    defaultValue="persona_natural"
-                    className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    <option value="persona_natural">Corredor independiente</option>
-                    <option value="empresa">Oficina de corretaje</option>
-                  </select>
-                </div>
-              </div>
-            </details>
-            <SaveButton className="w-full">Cambiar rol</SaveButton>
-          </form>
+          <DirectRoleChangeForm action={changeRoleDirect} />
         </CardContent>
       </Card>
 
