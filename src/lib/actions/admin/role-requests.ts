@@ -109,5 +109,8 @@ export async function changeRoleDirect(formData: FormData) {
   if (error) return fail(error.message);
 
   revalidatePath(PANEL_PATH);
-  redirect(`${PANEL_PATH}?success=directo`);
+  // A direct change has no solicitud row to attach a "ver historial" link
+  // to anywhere else in the panel — carry the target id through so the
+  // success message itself can link straight to their filtered history.
+  redirect(`${PANEL_PATH}?success=directo&target_user_id=${targetUser.id}`);
 }
