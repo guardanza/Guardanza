@@ -52,12 +52,12 @@ export default async function ContractsPage() {
       };
     } else if (!propertyCount) {
       emptyStateHint = {
-        message: "Ya tienes un participante — ahora agrégale una propiedad para poder crear un contrato.",
+        message: "Ya tienes un contacto — ahora agrégale una propiedad para poder crear un contrato.",
         cta: { href: "/properties/new", label: "Agregar propiedad" },
       };
     } else {
       emptyStateHint = {
-        message: "Tienes participantes y propiedades listas. Crea tu primer contrato desde una propiedad.",
+        message: "Tienes contactos y propiedades listas. Crea tu primer contrato desde una propiedad.",
         cta: { href: "/properties", label: "Ver propiedades" },
       };
     }
@@ -67,7 +67,7 @@ export default async function ContractsPage() {
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div>
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Contratos</h1>
-        <p className="text-sm text-muted-foreground">Contratos donde participas como parte o participante.</p>
+        <p className="text-sm text-muted-foreground">Contratos donde participas como parte o contacto vinculado.</p>
       </div>
 
       {contracts && contracts.length > 0 ? (

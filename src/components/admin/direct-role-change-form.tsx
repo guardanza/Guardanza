@@ -9,11 +9,11 @@ import type { RoleBucket } from "@/lib/role-bucket";
 
 const WARNINGS: Record<RoleBucket, string> = {
   arrendatario:
-    "Si el usuario administra un participante sin propiedades asociadas, se lo quita — el participante en sí no se borra, queda sin nadie a cargo. Si además no tiene contratos donde participe, su perfil va a mostrar \"Sin rol definido\": es el resultado correcto (no administra nada y no es parte de ningún contrato), no un error.",
+    "Si el usuario administra un contacto sin propiedades asociadas, se lo quita — el contacto en sí no se borra, queda sin nadie a cargo. Si además no tiene contratos donde participe, su perfil va a mostrar \"Sin rol definido\": es el resultado correcto (no administra nada y no es parte de ningún contrato), no un error.",
   arrendador:
-    "Si el usuario ya administra un participante individual, no hace falta nada más. Si no administra ninguno (o administra uno de otro tipo), completa \"Datos del participante\" abajo — sin nombre, la operación falla con un error y no cambia nada.",
+    "Si el usuario ya administra un contacto individual, no hace falta nada más. Si no administra ninguno (o administra uno de otro tipo), completa \"Datos del contacto\" abajo — sin nombre, la operación falla con un error y no cambia nada.",
   corredor:
-    "Si el usuario ya administra una corredora, no hace falta nada más. Si no administra ninguna (o administra un participante de otro tipo), completa \"Datos del participante\" abajo (nombre y RUT) — si faltan, la operación falla con un error y no cambia nada.",
+    "Si el usuario ya administra una corredora, no hace falta nada más. Si no administra ninguna (o administra un contacto de otro tipo), completa \"Datos del contacto\" abajo (nombre y RUT) — si faltan, la operación falla con un error y no cambia nada.",
 };
 
 export function DirectRoleChangeForm({ action }: { action: (formData: FormData) => void }) {
@@ -49,7 +49,7 @@ export function DirectRoleChangeForm({ action }: { action: (formData: FormData) 
       </div>
       {rolNuevo !== "arrendatario" && (
         <div className="space-y-3 rounded-lg border border-input p-2.5">
-          <p className="text-sm font-medium">Datos del participante (solo si hay que crear uno nuevo)</p>
+          <p className="text-sm font-medium">Datos del contacto (solo si hay que crear uno nuevo)</p>
           <div className="space-y-1.5">
             <Label htmlFor="org_name">Nombre</Label>
             <Input id="org_name" name="org_name" />

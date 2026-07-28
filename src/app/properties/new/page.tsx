@@ -42,7 +42,7 @@ export default async function NewPropertyPage({
       <Card>
         <CardHeader>
           <CardTitle>Nueva propiedad</CardTitle>
-          <CardDescription>Se asocia al participante que la administra.</CardDescription>
+          <CardDescription>Se asocia al contacto que la administra.</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={createProperty} className="space-y-3">
@@ -50,14 +50,14 @@ export default async function NewPropertyPage({
               <input type="hidden" name="organization_id" defaultValue={organization_id} />
             ) : (
               <div className="space-y-1.5">
-                <Label htmlFor="organization_id">Participante</Label>
+                <Label htmlFor="organization_id">Contacto</Label>
                 <select
                   id="organization_id"
                   name="organization_id"
                   required
                   className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
-                  {orgOptions.length === 0 && <option value="">No administras ningún participante todavía</option>}
+                  {orgOptions.length === 0 && <option value="">No administras ningún contacto todavía</option>}
                   {orgOptions.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.name}
