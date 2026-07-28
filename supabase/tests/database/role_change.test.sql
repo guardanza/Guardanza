@@ -63,8 +63,7 @@ $$ language plpgsql;
 -- ---------------------------------------------------------------------
 select pg_temp.login_as('00000000-0000-0000-0000-000000000102'); -- landlord-freeze, admin of the property's org
 select (public.create_contract(
-  '00000000-0000-0000-0000-0000000101b1', '2026-01-01', '2027-01-01', 500000, 'CLP', 'CLP', 500000,
-  '00000000-0000-0000-0000-000000000102'
+  '00000000-0000-0000-0000-0000000101b1', '2026-01-01', '2027-01-01', 500000, 'CLP', 'CLP', 500000
 )).id as new_contract_id \gset
 reset role;
 
@@ -83,7 +82,7 @@ select is(
 -- ---------------------------------------------------------------------
 select pg_temp.login_as('00000000-0000-0000-0000-000000000104'); -- pure tenant, zero memberships
 select throws_ok(
-  $$select public.create_organization('individual', 'Sneaky Org', '00000000-0000-0000-0000-000000000104')$$,
+  $$select public.create_organization('individual', 'Sneaky Org')$$,
   'P0001', null,
   'create_organization refuses a first org from a zero-membership, non-admin user'
 );
@@ -91,7 +90,7 @@ reset role;
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000102'); -- already admins Landlord Freeze Org
 select isnt(
-  (select (public.create_organization('individual', 'Second Org', '00000000-0000-0000-0000-000000000102')).id),
+  (select (public.create_organization('individual', 'Second Org')).id),
   null,
   'create_organization still allows an existing org-admin to self-serve an additional organization'
 );
