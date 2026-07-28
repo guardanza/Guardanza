@@ -4,62 +4,84 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  FileText,
   Building2,
   Users,
-  Handshake,
+  FileText,
   PenLine,
-  FolderOpen,
-  Bell,
-  User,
-  ShieldCheck,
+  ClipboardCheck,
+  Handshake,
   History,
+  User,
+  Bell,
+  ShieldCheck,
 } from "lucide-react";
 
 // Defined here (not passed as props from the server layout) because Lucide
 // icon components aren't plain serializable objects — passing them across
 // the server/client boundary as props throws "Only plain objects can be
 // passed to Client Components".
-const primaryLinks = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/contracts", label: "Contratos", icon: FileText },
-  { href: "/properties", label: "Propiedades", icon: Building2 },
-  { href: "/organizations", label: "Participantes", icon: Users },
-  { href: "/proposals", label: "Propuestas de arreglo", icon: Handshake },
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard };
+type NavGroup = { label: string; items: NavItem[] };
+
+const dashboardItem: NavItem = { href: "/", label: "Dashboard", icon: LayoutDashboard };
+
+const GROUPS: NavGroup[] = [
+  {
+    label: "Cartera",
+    items: [
+      { href: "/properties", label: "Propiedades", icon: Building2 },
+      { href: "/organizations", label: "Contactos", icon: Users },
+      { href: "/contracts", label: "Contratos", icon: FileText },
+    ],
+  },
+  {
+    label: "Operación",
+    items: [
+      { href: "/signatures", label: "Firmas pendientes", icon: PenLine },
+      { href: "/documents", label: "Evaluaciones", icon: ClipboardCheck },
+      { href: "/proposals", label: "Propuestas de descuento", icon: Handshake },
+      { href: "/history", label: "Movimientos", icon: History },
+    ],
+  },
+  {
+    label: "Cuenta",
+    items: [
+      { href: "/profile", label: "Perfil", icon: User },
+      { href: "/notifications", label: "Notificaciones", icon: Bell },
+    ],
+  },
 ];
 
-const secondaryLinks = [
-  { href: "/signatures", label: "Firmas", icon: PenLine },
-  { href: "/documents", label: "Análisis de documentos", icon: FolderOpen },
-  { href: "/notifications", label: "Notificaciones", icon: Bell },
-  { href: "/history", label: "Historial", icon: History },
-  { href: "/profile", label: "Perfil", icon: User },
-];
+function isActive(href: string, pathname: string) {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
 
-function NavLinks({ links, pathname }: { links: typeof primaryLinks; pathname: string }) {
+// Active item: ForestGuard tint + a gold left accent — the same
+// before:bg-brand-gold accent-line pattern already used for row hover in
+// contracts/page.tsx, applied here to the persistent active state instead.
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const active = isActive(item.href, pathname);
+  const Icon = item.icon;
   return (
-    <>
-      {links.map((l) => {
-        const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
-        const Icon = l.icon;
-        return (
-          <Link
-            key={l.href}
-            href={l.href}
-            className={
-              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors " +
-              (active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground")
-            }
-          >
-            <Icon className="size-4 shrink-0" strokeWidth={2} />
-            {l.label}
-          </Link>
-        );
-      })}
-    </>
+    <Link
+      href={item.href}
+      className={
+        "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors before:absolute before:inset-y-1 before:left-0 before:w-0.5 before:rounded-full before:bg-brand-gold before:transition-opacity " +
+        (active
+          ? "bg-primary/10 text-primary before:opacity-100"
+          : "text-muted-foreground before:opacity-0 hover:bg-secondary hover:text-foreground")
+      }
+    >
+      <Icon className="size-4 shrink-0" strokeWidth={2} />
+      {item.label}
+    </Link>
   );
+}
+
+// Group labels are presentational only — 12px uppercase, muted-foreground
+// (#7a8fa0 in the light theme), tracked out. Not a link, not a button.
+function GroupHeader({ label }: { label: string }) {
+  return <p className="px-3 pt-4 pb-1 text-xs font-medium tracking-wider text-muted-foreground uppercase">{label}</p>;
 }
 
 export function SidebarNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boolean }) {
@@ -67,17 +89,20 @@ export function SidebarNav({ isPlatformAdmin = false }: { isPlatformAdmin?: bool
 
   return (
     <nav className="flex flex-col gap-0.5 px-3">
-      <NavLinks links={primaryLinks} pathname={pathname} />
-      <div className="my-2 border-t" />
-      <NavLinks links={secondaryLinks} pathname={pathname} />
+      <NavLink item={dashboardItem} pathname={pathname} />
+      {GROUPS.map((group) => (
+        <div key={group.label} className="flex flex-col gap-0.5">
+          <GroupHeader label={group.label} />
+          {group.items.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </div>
+      ))}
       {isPlatformAdmin && (
-        <>
+        <div className="flex flex-col gap-0.5">
           <div className="my-2 border-t" />
-          <NavLinks
-            links={[{ href: "/admin/solicitudes-rol", label: "Solicitudes de rol", icon: ShieldCheck }]}
-            pathname={pathname}
-          />
-        </>
+          <NavLink item={{ href: "/admin/solicitudes-rol", label: "Solicitudes de rol", icon: ShieldCheck }} pathname={pathname} />
+        </div>
       )}
     </nav>
   );
