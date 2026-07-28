@@ -12,7 +12,7 @@ export async function createOrganization(formData: FormData) {
   const name = String(formData.get("name"));
 
   const { data: org, error } = await supabase
-    .rpc("create_organization", { p_type: type, p_name: name, p_actor_user_id: userRes.user!.id })
+    .rpc("create_organization", { p_type: type, p_name: name })
     .single<{ id: string }>();
 
   if (error) throw new Error(error.message);

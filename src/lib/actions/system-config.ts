@@ -19,7 +19,6 @@ export async function updateSystemConfig(formData: FormData) {
     p_comision_guardanza_pct: comision_guardanza_pct,
     p_comision_corredor_pct: comision_corredor_pct,
     p_tasa_interes_anual: tasa_interes_anual,
-    p_actor_user_id: userRes.user.id,
   });
   if (error) return fail(error.message);
 

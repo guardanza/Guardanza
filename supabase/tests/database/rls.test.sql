@@ -7,7 +7,7 @@
 -- Supabase does with a real JWT.
 
 begin;
-select plan(53);
+select plan(57);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -173,7 +173,7 @@ select is(
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000005'); -- outsider
 select throws_ok(
-  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000005') $$,
+  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1') $$,
   'P0001',
   null,
   'an outsider cannot sign a contract as arrendador'
@@ -182,7 +182,7 @@ reset role;
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant, wrong role
 select throws_ok(
-  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000002') $$,
+  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1') $$,
   'P0001',
   null,
   'the tenant cannot sign a contract as arrendador'
@@ -191,7 +191,7 @@ reset role;
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord
 select lives_ok(
-  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000001') $$,
+  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1') $$,
   'the landlord can sign the contract'
 );
 reset role;
@@ -204,7 +204,7 @@ select is(
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord again
 select throws_ok(
-  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000001') $$,
+  $$ select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c1') $$,
   'P0001',
   null,
   'the landlord cannot sign twice'
@@ -213,7 +213,7 @@ reset role;
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord, wrong role for tenant sign
 select throws_ok(
-  $$ select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000001') $$,
+  $$ select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c1') $$,
   'P0001',
   null,
   'the landlord cannot sign as arrendatario'
@@ -222,7 +222,7 @@ reset role;
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant
 select lives_ok(
-  $$ select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000002') $$,
+  $$ select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c1') $$,
   'the tenant can sign after the landlord'
 );
 reset role;
@@ -236,7 +236,7 @@ select is(
 select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord, wrong role for deposit
 select throws_ok(
   $$
-    select public.pay_guarantee(g.id, '00000000-0000-0000-0000-000000000001')
+    select public.pay_guarantee(g.id)
     from public.guarantees g where g.contract_id = '00000000-0000-0000-0000-0000000000c1'
   $$,
   'P0001',
@@ -248,7 +248,7 @@ reset role;
 select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant
 select lives_ok(
   $$
-    select public.pay_guarantee(g.id, '00000000-0000-0000-0000-000000000002')
+    select public.pay_guarantee(g.id)
     from public.guarantees g where g.contract_id = '00000000-0000-0000-0000-0000000000c1'
   $$,
   'the tenant can pay the guarantee once both signatures are in'
@@ -281,14 +281,14 @@ insert into public.contract_parties (contract_id, user_id, role) values
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant can cancel too, not just landlord
 select lives_ok(
-  $$ select public.cancel_contract('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000002') $$,
+  $$ select public.cancel_contract('00000000-0000-0000-0000-0000000000c2') $$,
   'a party can cancel a contract before the deposit is confirmed'
 );
 reset role;
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000001');
 select throws_ok(
-  $$ select public.cancel_contract('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000001') $$,
+  $$ select public.cancel_contract('00000000-0000-0000-0000-0000000000c2') $$,
   'P0001',
   null,
   'a cancelled contract cannot be cancelled again'
@@ -321,7 +321,7 @@ update public.profiles set full_name = 'Platform Admin', is_platform_admin = tru
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord, not platform admin
 select throws_ok(
-  $$ select public.update_system_config(0.10, 0.05, 0.03, '00000000-0000-0000-0000-000000000001') $$,
+  $$ select public.update_system_config(0.10, 0.05, 0.03) $$,
   'P0001',
   null,
   'a non-platform-admin cannot update system_config'
@@ -330,7 +330,7 @@ reset role;
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000006'); -- platform admin
 select lives_ok(
-  $$ select public.update_system_config(0.10, 0.05, 0.03, '00000000-0000-0000-0000-000000000006') $$,
+  $$ select public.update_system_config(0.10, 0.05, 0.03) $$,
   'a platform admin can update system_config'
 );
 reset role;
@@ -404,7 +404,7 @@ reset role;
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant
 select throws_ok(
-  $$ select public.reject_proposal('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-000000000002', 'too short') $$,
+  $$ select public.reject_proposal('00000000-0000-0000-0000-0000000000f1', 'too short') $$,
   'P0001',
   null,
   'rejecting a proposal requires a motivo_rechazo of at least 50 characters'
@@ -413,7 +413,7 @@ select throws_ok(
 select lives_ok(
   $$
     select public.reject_proposal(
-      '00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-000000000002',
+      '00000000-0000-0000-0000-0000000000f1',
       'Los daños fotografiados ya estaban presentes antes de mi ingreso al inmueble, según consta en el informe inicial.'
     )
   $$,
@@ -437,7 +437,7 @@ select pg_temp.login_as('00000000-0000-0000-0000-000000000002');
 select throws_ok(
   $$
     select public.reject_proposal(
-      '00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-000000000002',
+      '00000000-0000-0000-0000-0000000000f1',
       'Intentando rechazar la misma propuesta una segunda vez, lo cual ya no debería ser posible en este estado.'
     )
   $$,
@@ -455,7 +455,6 @@ select throws_ok(
   $$
     select public.reject_proposal(
       (select id from public.proposals where dispute_id = '00000000-0000-0000-0000-0000000000d2' and status = 'pendiente'),
-      '00000000-0000-0000-0000-000000000002',
       'Tratando de rechazar mi propia contrapropuesta, algo que la función debería impedir explícitamente.'
     )
   $$,
@@ -480,13 +479,12 @@ insert into public.contract_parties (contract_id, user_id, role) values
   ('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-000000000002', 'arrendatario');
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000001');
-select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-000000000001');
+select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c3');
 reset role;
 select pg_temp.login_as('00000000-0000-0000-0000-000000000002');
-select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-000000000002');
+select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c3');
 select public.pay_guarantee(
-  (select id from public.guarantees where contract_id = '00000000-0000-0000-0000-0000000000c3'),
-  '00000000-0000-0000-0000-000000000002'
+  (select id from public.guarantees where contract_id = '00000000-0000-0000-0000-0000000000c3')
 );
 
 select throws_ok(
@@ -512,9 +510,49 @@ select lives_ok(
 );
 reset role;
 
+-- accept_proposal used to trust a client-supplied p_actor_user_id for both
+-- the "not your own proposal" check and has_contract_access — a caller
+-- could pass someone else's uuid and act (or be treated as acting) in their
+-- place. Both checks now key off auth.uid(), which can't be spoofed by an
+-- RPC argument, so an outsider and the proposal's own creator are still
+-- correctly blocked, and only the genuine counterparty can accept.
+insert into public.proposals (id, dispute_id, created_by, total_amount)
+  values ('00000000-0000-0000-0000-0000000000f2', '00000000-0000-0000-0000-0000000000d3', '00000000-0000-0000-0000-000000000001', 50000);
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000005'); -- outsider, not a party on C3 at all
+select throws_ok(
+  $$ select public.accept_proposal('00000000-0000-0000-0000-0000000000f2') $$,
+  'P0001',
+  null,
+  'an outsider cannot accept a proposal on a contract they are not party to'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord, created this proposal
+select throws_ok(
+  $$ select public.accept_proposal('00000000-0000-0000-0000-0000000000f2') $$,
+  'P0001',
+  null,
+  'the proposal''s own creator cannot accept it, even though they are a genuine contract party'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002'); -- tenant, the genuine counterparty
+select lives_ok(
+  $$ select public.accept_proposal('00000000-0000-0000-0000-0000000000f2') $$,
+  'the genuine counterparty can accept the proposal'
+);
+reset role;
+
+select is(
+  (select status::text from public.contracts where id = '00000000-0000-0000-0000-0000000000c3'),
+  'finalizado',
+  'accepting the proposal finalizes contract C3'
+);
+
 select pg_temp.login_as('00000000-0000-0000-0000-000000000001'); -- landlord, not admin
 select throws_ok(
-  $$ select public.resolve_dispute_admin('00000000-0000-0000-0000-0000000000d2', '00000000-0000-0000-0000-000000000001', 50000, 'test') $$,
+  $$ select public.resolve_dispute_admin('00000000-0000-0000-0000-0000000000d2', 50000, 'test') $$,
   'P0001',
   null,
   'a non-platform-admin cannot resolve a dispute'
@@ -523,7 +561,7 @@ reset role;
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000006'); -- platform admin
 select throws_ok(
-  $$ select public.resolve_dispute_admin('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-000000000006', 10000, null) $$,
+  $$ select public.resolve_dispute_admin('00000000-0000-0000-0000-0000000000d1', 10000, null) $$,
   'P0001',
   null,
   'a dispute that is not escalada cannot be resolved by admin'
@@ -532,7 +570,7 @@ select throws_ok(
 select lives_ok(
   $$
     select public.resolve_dispute_admin(
-      '00000000-0000-0000-0000-0000000000d2', '00000000-0000-0000-0000-000000000006', 30000,
+      '00000000-0000-0000-0000-0000000000d2', 30000,
       'Evidencia insuficiente para justificar el monto propuesto, se retienen 30000'
     )
   $$,

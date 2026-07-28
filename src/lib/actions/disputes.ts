@@ -101,7 +101,6 @@ export async function acceptProposal(proposalId: string, disputeId: string) {
 
   const { error } = await supabase.rpc("accept_proposal", {
     p_proposal_id: proposalId,
-    p_actor_user_id: userRes.user!.id,
   });
   if (error) throw new Error(error.message);
 
@@ -117,7 +116,6 @@ export async function rejectProposal(proposalId: string, disputeId: string, form
 
   const { error } = await supabase.rpc("reject_proposal", {
     p_proposal_id: proposalId,
-    p_actor_user_id: userRes.user!.id,
     p_motivo_rechazo: motivo_rechazo,
   });
   if (error) throw new Error(error.message);
@@ -135,7 +133,6 @@ export async function resolveDisputeAdmin(disputeId: string, formData: FormData)
 
   const { error } = await supabase.rpc("resolve_dispute_admin", {
     p_dispute_id: disputeId,
-    p_actor_user_id: userRes.user!.id,
     p_monto_retenido: monto_retenido,
     p_notas: notas,
   });

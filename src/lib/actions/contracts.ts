@@ -53,7 +53,6 @@ export async function createContract(formData: FormData) {
       p_rent_currency: rent_currency,
       p_guarantee_currency: guarantee_currency,
       p_guarantee_amount: guarantee_amount,
-      p_actor_user_id: userRes.user!.id,
     })
     .single<{ id: string }>();
   if (error) return fail(error.message);
@@ -74,7 +73,6 @@ export async function signContractLandlord(contractId: string) {
 
   const { error } = await supabase.rpc("sign_contract_landlord", {
     p_contract_id: contractId,
-    p_actor_user_id: userRes.user!.id,
   });
   if (error) throw new Error(error.message);
 
@@ -89,7 +87,6 @@ export async function signContractTenant(contractId: string) {
 
   const { error } = await supabase.rpc("sign_contract_tenant", {
     p_contract_id: contractId,
-    p_actor_user_id: userRes.user!.id,
   });
   if (error) throw new Error(error.message);
 
@@ -103,7 +100,6 @@ export async function cancelContract(contractId: string) {
 
   const { error } = await supabase.rpc("cancel_contract", {
     p_contract_id: contractId,
-    p_actor_user_id: userRes.user!.id,
   });
   if (error) throw new Error(error.message);
 
@@ -117,7 +113,6 @@ export async function payGuarantee(guaranteeId: string, contractId: string) {
 
   const { error } = await supabase.rpc("pay_guarantee", {
     p_guarantee_id: guaranteeId,
-    p_actor_user_id: userRes.user!.id,
   });
   if (error) throw new Error(error.message);
 
