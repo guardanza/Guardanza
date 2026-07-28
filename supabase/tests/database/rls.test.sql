@@ -7,7 +7,7 @@
 -- Supabase does with a real JWT.
 
 begin;
-select plan(57);
+select plan(61);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -466,12 +466,19 @@ reset role;
 
 -- ---------------------------------------------------------------------
 -- Permissions matrix: only arrendador can propose (open a dispute);
--- only platform admin can resolve an escalated dispute directly.
+-- only platform admin can resolve an escalada dispute directly.
 -- ---------------------------------------------------------------------
+-- Own property, not b1 — C1 is still activo on b1 at this point in the
+-- file, and contracts_one_active_per_property (added later) correctly
+-- forbids a second contract reaching pendiente_deposito on the same
+-- property while one is already active.
+insert into public.properties (id, organization_id, broker_organization_id, address) values
+  ('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a2', 'Calle Falsa 456');
+
 insert into public.contracts (
   id, property_id, start_date, end_date, rent_amount, rent_currency, guarantee_currency, guarantee_amount
 ) values (
-  '00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-0000000000b1',
+  '00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-0000000000b2',
   '2026-03-01', '2027-03-01', 300000, 'CLP', 'CLP', 300000
 );
 insert into public.contract_parties (contract_id, user_id, role) values
@@ -589,6 +596,72 @@ select is(
   'finalizado',
   'admin resolution finalizes the contract'
 );
+
+-- ---------------------------------------------------------------------
+-- contracts_one_active_per_property (20260728110001): race-safe "at most
+-- one firmado-o-posterior contract per property" rule, enforced by a
+-- partial unique index and translated to a clear message inside
+-- sign_contract_tenant. Own property (b3) so it doesn't depend on C1/C3
+-- above having cleared.
+-- ---------------------------------------------------------------------
+insert into public.properties (id, organization_id, broker_organization_id, address) values
+  ('00000000-0000-0000-0000-0000000000b3', '00000000-0000-0000-0000-0000000000a1', null, 'Calle Falsa 789');
+
+insert into public.contracts (
+  id, property_id, start_date, end_date, rent_amount, rent_currency, guarantee_currency, guarantee_amount
+) values
+  ('00000000-0000-0000-0000-0000000000c4', '00000000-0000-0000-0000-0000000000b3', '2026-04-01', '2027-04-01', 350000, 'CLP', 'CLP', 350000),
+  ('00000000-0000-0000-0000-0000000000c5', '00000000-0000-0000-0000-0000000000b3', '2026-05-01', '2027-05-01', 350000, 'CLP', 'CLP', 350000);
+insert into public.contract_parties (contract_id, user_id, role) values
+  ('00000000-0000-0000-0000-0000000000c4', '00000000-0000-0000-0000-000000000001', 'arrendador'),
+  ('00000000-0000-0000-0000-0000000000c4', '00000000-0000-0000-0000-000000000002', 'arrendatario'),
+  ('00000000-0000-0000-0000-0000000000c5', '00000000-0000-0000-0000-000000000001', 'arrendador'),
+  ('00000000-0000-0000-0000-0000000000c5', '00000000-0000-0000-0000-000000000002', 'arrendatario');
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001');
+select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c4');
+reset role;
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002');
+select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c4');
+reset role;
+
+select is(
+  (select status::text from public.contracts where id = '00000000-0000-0000-0000-0000000000c4'),
+  'pendiente_deposito',
+  'C4 reaches pendiente_deposito and now occupies property b3'
+);
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001');
+select public.sign_contract_landlord('00000000-0000-0000-0000-0000000000c5');
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002');
+select throws_ok(
+  $$ select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c5') $$,
+  'P0001',
+  'Esta propiedad ya tiene un contrato firmado vigente — no se puede firmar un segundo mientras el primero siga activo.',
+  'a second contract cannot reach pendiente_deposito on a property that already has one occupying it, and the error is the translated message, not a raw unique-constraint violation'
+);
+reset role;
+
+select is(
+  (select status::text from public.contracts where id = '00000000-0000-0000-0000-0000000000c5'),
+  'pendiente_firma_arrendatario',
+  'the blocked contract C5 stays at its pre-attempt status, not silently advanced'
+);
+
+-- Once the occupying contract clears (cancelling is still allowed at
+-- pendiente_deposito), the same signature that was just blocked succeeds.
+select pg_temp.login_as('00000000-0000-0000-0000-000000000001');
+select public.cancel_contract('00000000-0000-0000-0000-0000000000c4');
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000002');
+select lives_ok(
+  $$ select public.sign_contract_tenant('00000000-0000-0000-0000-0000000000c5') $$,
+  'once the occupying contract is cancelled, the previously-blocked signature on the same property succeeds'
+);
+reset role;
 
 -- ---------------------------------------------------------------------
 -- org_code + lookup_organization_by_code(): a landlord referencing a
