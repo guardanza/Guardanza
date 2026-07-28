@@ -27,12 +27,12 @@ export default async function OrganizationsPage() {
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Participantes</h1>
+          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Contactos</h1>
           <p className="text-sm text-muted-foreground">Arrendadores y corredoras que administras.</p>
         </div>
         {hasAnyMembership ? (
           <Link href="/organizations/new" className={buttonVariants()}>
-            + Nuevo participante
+            + Nuevo contacto
           </Link>
         ) : (
           <Link href="/profile" className={buttonVariants()}>
@@ -72,7 +72,7 @@ export default async function OrganizationsPage() {
           <Card>
             <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
               <Users className="size-8 text-muted-foreground" strokeWidth={1.5} />
-              <p className="text-sm text-muted-foreground">No perteneces a ningún participante todavía.</p>
+              <p className="text-sm text-muted-foreground">No tienes ningún contacto todavía.</p>
             </CardContent>
           </Card>
         )}

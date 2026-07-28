@@ -24,7 +24,7 @@ export default async function ProposalsPage() {
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Propuestas de arreglo</h1>
+          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Propuestas de descuento</h1>
           <p className="text-sm text-muted-foreground">Acuerdos entre arrendador, arrendatario y corredor al término de un contrato.</p>
         </div>
         <Link href="/proposals/catalog" className={buttonVariants({ variant: "outline", size: "sm" })}>
@@ -54,7 +54,7 @@ export default async function ProposalsPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
             <Handshake className="size-8 text-muted-foreground" strokeWidth={1.5} />
-            <p className="text-sm text-muted-foreground">Sin propuestas de arreglo todavía.</p>
+            <p className="text-sm text-muted-foreground">Sin propuestas de descuento todavía.</p>
           </CardContent>
         </Card>
       )}

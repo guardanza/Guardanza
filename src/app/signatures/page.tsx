@@ -31,7 +31,7 @@ export default async function SignaturesPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Firmas</h1>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Firmas pendientes</h1>
         <p className="text-sm text-muted-foreground">Estado de firma de cada propiedad. Comparte el link para que la otra parte firme.</p>
       </div>
 

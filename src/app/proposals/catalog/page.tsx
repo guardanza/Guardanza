@@ -24,7 +24,7 @@ export default async function CatalogPage() {
       <div>
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Catálogo de reparaciones</h1>
         <p className="text-sm text-muted-foreground">
-          Referencia de precios para las propuestas de arreglo. Solo el administrador de la plataforma puede editarlo.
+          Referencia de precios para las propuestas de descuento. Solo el administrador de la plataforma puede editarlo.
         </p>
       </div>
 

@@ -171,14 +171,14 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
 
       {contract.status === "propuesta_termino" && (
         <p className="text-sm text-muted-foreground">
-          Hay una propuesta de arreglo pendiente — revísala abajo para aceptarla o rechazarla.
+          Hay una propuesta de descuento pendiente — revísala abajo para aceptarla o rechazarla.
         </p>
       )}
 
       <Separator />
 
       <div className="space-y-3">
-        <h2 className="font-medium">Propuestas de arreglo</h2>
+        <h2 className="font-medium">Propuestas de descuento</h2>
         <Card className="p-0">
           {disputes && disputes.length > 0 ? (
             <ul className="divide-y">
@@ -192,7 +192,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
               ))}
             </ul>
           ) : (
-            <CardContent className="py-6 text-center text-sm text-muted-foreground">Sin propuestas de arreglo.</CardContent>
+            <CardContent className="py-6 text-center text-sm text-muted-foreground">Sin propuestas de descuento.</CardContent>
           )}
         </Card>
       </div>

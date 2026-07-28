@@ -1,0 +1,77 @@
+-- Documentation only — no schema or behavior change in this migration.
+-- (Deliberately not re-declaring sign_contract_tenant itself to attach
+-- this as an inline comment: another migration in flight at the same
+-- time changes that function's signature, and duplicating its body here
+-- would either conflict with or silently overload that change. This note
+-- stands on its own, anchored by name instead.)
+--
+-- Recorded because the business model was refined in a later planning
+-- conversation than the original state-machine migration
+-- (20260721190001_contract_state_machine.sql), and turned out to need
+-- two independent branches, not the single combined `status` column
+-- this system actually has:
+--
+--   Ramal de firmas:   Borrador -> Esperando firmas -> Firmado parcialmente -> Firmado por todos
+--                      (Cancelado reachable from any state before completing)
+--   Ramal de garantía: Garantía pendiente -> En custodia -> (En revisión, optional) -> Liberada
+--
+-- "Firmado por todos" = every convened arrendador AND every convened
+-- arrendatario signed; the corredor never signs. sign_contract_tenant is
+-- where that completes today — the UPDATE that sets
+-- status = 'pendiente_deposito' is the exact join point between the two
+-- branches: the firma branch finishes there, and the garantía branch
+-- starts there. Note a real gap against "todos los convocados": this
+-- system only ever supports exactly one arrendador and one arrendatario
+-- signing sequentially — sign_contract_landlord flips the whole contract
+-- to 'pendiente_firma_arrendatario' on the first authorized landlord
+-- signature, with no check that every arrendador-role party (if there
+-- were ever more than one) has signed. Not fixed here, just noted.
+--
+-- The garantía branch cannot start before the firma branch reaches
+-- "Firmado por todos" — enforced today by pay_guarantee requiring
+-- status = 'pendiente_deposito'.
+--
+-- Current single-column contract_status <-> two-branch mapping:
+--   pendiente_firma_arrendador   = Esperando firmas     + (garantía branch not started)
+--   pendiente_firma_arrendatario = Firmado parcialmente  + (garantía branch not started)
+--   pendiente_deposito           = Firmado por todos     + Garantía pendiente
+--   activo                       = Firmado por todos     + En custodia
+--   propuesta_termino            = Firmado por todos     + En revisión (propuesta abierta)
+--   en_disputa                   = Firmado por todos     + En revisión (propuesta rechazada, escalada)
+--   finalizado                   = Firmado por todos     + Liberada
+--   cancelado                    = Cancelado             + (n/a)
+--
+-- Pending business rules — NOT implemented, nothing today enforces
+-- either of these:
+--   1. A property can have at most one contract in "firmado-o-posterior"
+--      status (pendiente_deposito or later) at a time. Contracts still
+--      in pendiente_firma_arrendador/arrendatario don't count, so
+--      preparing a replacement before the current one closes is fine.
+--      The check belongs at the exact point "Firmado por todos" is
+--      reached (inside sign_contract_tenant) — NOT in pay_guarantee,
+--      since the business rule triggers off completed signing, not
+--      deposit.
+--   2. The same contact cannot be party to two "firmado-o-posterior"
+--      contracts on the same property at once.
+--   Both are already expressible against today's single `status` column
+--   (status not in ('pendiente_firma_arrendador', 'pendiente_firma_arrendatario',
+--   'cancelado')) — implementing them does not require the branch-split
+--   refactor below to happen first.
+--
+-- Pending refactor — NOT done here, a separate future tanda: splitting
+-- `contracts.status` into two independent columns (e.g. estado_firma +
+-- estado_garantia) has real precedent in this codebase (see
+-- 20260721190001_contract_state_machine.sql, an equivalent
+-- enum-swap-with-backfill done once already), but touches every
+-- SECURITY DEFINER function that reads or writes contract status
+-- (create_contract, sign_contract_landlord, sign_contract_tenant,
+-- pay_guarantee, cancel_contract, disputes_propose_termination,
+-- reject_proposal, accept_proposal, resolve_dispute_admin — 8-9
+-- functions), at least one RLS policy
+-- (contract_parties_insert_pending_landlord), several frontend surfaces
+-- (StatusBadge, dashboard summary, /signatures, /contracts,
+-- /contracts/[id], /disputes/[id]), and both pgTAP suites' fixtures.
+-- Also needs a real design decision this note doesn't resolve: whether
+-- "cancelado" becomes a firma-branch terminal value or an orthogonal
+-- flag independent of both branches. Medium-sized, contained, but not
+-- small — plan as its own tanda.
