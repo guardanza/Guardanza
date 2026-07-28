@@ -34,7 +34,7 @@ const steps = [
   { title: "Creas tu cuenta de corredora", detail: "Con el RUT de tu oficina o el tuyo si eres independiente." },
   { title: "Vinculas las propiedades", detail: "Las tuyas o las que administras para arrendadores." },
   { title: "Se firma el contrato", detail: "Arrendador y arrendatario firman, la garantía queda en custodia." },
-  { title: "Al término, se resuelve entre las partes", detail: "Con propuestas de arreglo, no con tu criterio unilateral." },
+  { title: "Al término, se resuelve entre las partes", detail: "Con propuestas de descuento, no con tu criterio unilateral." },
 ];
 
 const valuePoints = [

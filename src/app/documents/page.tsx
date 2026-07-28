@@ -51,7 +51,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         </Alert>
       )}
       <div>
-        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Análisis de documentos</h1>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Evaluaciones</h1>
         <p className="text-sm text-muted-foreground">
           Sube tus documentos para evaluación de arriendo. Por ahora solo se guardan — el análisis automático llega después.
         </p>
