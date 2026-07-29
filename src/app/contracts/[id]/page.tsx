@@ -11,15 +11,19 @@ import { StatusBadge } from "@/components/status-badge";
 import { Separator } from "@/components/ui/separator";
 import { RequireRutPrompt } from "@/components/require-rut-prompt";
 
-const CANCELLABLE_STATUSES = ["pendiente_firma_arrendador", "pendiente_firma_arrendatario", "pendiente_deposito"];
-
 export default async function ContractDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
 
-  const { data: contract, error } = await supabase.from("contracts").select("*, properties(address)").eq("id", id).single();
+  // Refactor Paso 1: reads estado_firma/estado_garantia from
+  // contracts_branch_status instead of branching on the combined
+  // contracts.status directly — see 20260728120001. contract.status
+  // itself is still present (the view passes through every column) and
+  // stays in use for the header badge, where the finer detail is useful
+  // rather than a maintenance burden.
+  const { data: contract, error } = await supabase.from("contracts_branch_status").select("*, properties(address)").eq("id", id).single();
   if (error || !contract) notFound();
 
   const { data: amounts } = await supabase
@@ -53,9 +57,18 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
 
   const { data: profile } = await supabase.from("profiles").select("rut").eq("id", userRes.user.id).single();
   const needsSignature =
-    (contract.status === "pendiente_firma_arrendador" && myRole === "arrendador") ||
-    (contract.status === "pendiente_firma_arrendatario" && myRole === "arrendatario");
+    (contract.estado_firma === "esperando_firmas" && myRole === "arrendador") ||
+    (contract.estado_firma === "firmado_parcialmente" && myRole === "arrendatario");
   const blockedBySignature = needsSignature && !hasCompletedProfile(profile);
+  // The one check that genuinely spans both branches: still signing, OR
+  // signed but the deposit hasn't been paid yet. Enumerated explicitly
+  // rather than negating "not firmado_por_todos" — that form would also
+  // match estado_firma === "cancelado" and re-show the button on an
+  // already-cancelled contract.
+  const isCancellable =
+    contract.estado_firma === "esperando_firmas" ||
+    contract.estado_firma === "firmado_parcialmente" ||
+    contract.estado_garantia === "pendiente";
 
   const signLandlordAction = signContractLandlord.bind(null, id);
   const signTenantAction = signContractTenant.bind(null, id);
@@ -132,25 +145,25 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
       {blockedBySignature && <RequireRutPrompt returnTo={`/contracts/${id}`} />}
 
       <div className="flex flex-wrap gap-2">
-        {contract.status === "pendiente_firma_arrendador" && myRole === "arrendador" && !blockedBySignature && (
+        {contract.estado_firma === "esperando_firmas" && myRole === "arrendador" && !blockedBySignature && (
           <form action={signLandlordAction}>
             <Button type="submit">Firmar como arrendador (mock)</Button>
           </form>
         )}
 
-        {contract.status === "pendiente_firma_arrendatario" && myRole === "arrendatario" && !blockedBySignature && (
+        {contract.estado_firma === "firmado_parcialmente" && myRole === "arrendatario" && !blockedBySignature && (
           <form action={signTenantAction}>
             <Button type="submit">Firmar como arrendatario (mock)</Button>
           </form>
         )}
 
-        {contract.status === "pendiente_deposito" && myRole === "arrendatario" && payAction && (
+        {contract.estado_garantia === "pendiente" && myRole === "arrendatario" && payAction && (
           <form action={payAction}>
             <Button type="submit">Pagar garantía (simulado)</Button>
           </form>
         )}
 
-        {CANCELLABLE_STATUSES.includes(contract.status) && (myRole === "arrendador" || myRole === "arrendatario") && (
+        {isCancellable && (myRole === "arrendador" || myRole === "arrendatario") && (
           <form action={cancelAction}>
             <Button type="submit" variant="outline">
               Cancelar contrato
@@ -158,7 +171,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           </form>
         )}
 
-        {contract.status === "activo" && guarantee && myRole === "arrendador" && (
+        {contract.estado_garantia === "en_custodia" && guarantee && myRole === "arrendador" && (
           <form action={openDispute}>
             <input type="hidden" name="guarantee_id" value={guarantee.id} />
             <input type="hidden" name="contract_id" value={id} />
@@ -169,7 +182,10 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         )}
       </div>
 
-      {contract.status === "propuesta_termino" && (
+      {/* "Hay una propuesta pendiente" specifically means propuesta abierta,
+          not yet escalated — that distinction lives in disputes.status, not
+          in estado_garantia (which only knows "en_revision", either kind). */}
+      {disputes?.some((d) => d.status === "abierta") && (
         <p className="text-sm text-muted-foreground">
           Hay una propuesta de descuento pendiente — revísala abajo para aceptarla o rechazarla.
         </p>
