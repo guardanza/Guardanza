@@ -42,7 +42,9 @@ export default async function NewPropertyPage({
       <Card>
         <CardHeader>
           <CardTitle>Nueva propiedad</CardTitle>
-          <CardDescription>Se asocia al contacto que la administra.</CardDescription>
+          <CardDescription>
+            Guardá lo básico ahora — foto, arriendo, garantía y copropietarios se completan después, sin perder nada.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={createProperty} className="space-y-3">
@@ -71,16 +73,8 @@ export default async function NewPropertyPage({
               <Input id="address" name="address" required />
             </div>
             <RegionCommuneSelect regions={regions} />
-            <div className="space-y-1.5">
-              <Label htmlFor="photo">Foto (opcional)</Label>
-              <Input id="photo" name="photo" type="file" accept="image/*" className="p-1.5" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="broker_org_code">Código de corredora (opcional)</Label>
-              <Input id="broker_org_code" name="broker_org_code" placeholder="Ej: 384021 — te lo comparte la corredora" />
-            </div>
             <Button type="submit" className="w-full">
-              Crear
+              Crear y continuar
             </Button>
           </form>
         </CardContent>

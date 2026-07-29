@@ -23,43 +23,38 @@ async function uploadPhotoIfPresent(
   return data.publicUrl;
 }
 
+// Reduced to the minimum properties needs to exist at all — dirección,
+// comuna, and the first owning org (organization_id stays not null, so
+// there's always at least one owner from the start; guardado incremental
+// means everything else — foto, código de corredora, expected_* fields,
+// copropietarios adicionales — gets filled in afterwards on /edit, never
+// lost, never blocking the initial save).
 export async function createProperty(formData: FormData) {
   const supabase = await createClient();
 
   const organization_id = String(formData.get("organization_id"));
   const address = String(formData.get("address"));
   const commune_id = String(formData.get("commune_id") || "") || null;
-  const broker_org_code = String(formData.get("broker_org_code") || "").trim() || null;
 
   const fail = (message: string): never =>
     redirect(`/properties/new?organization_id=${organization_id}&error=${encodeURIComponent(message)}`);
 
-  let broker_organization_id: string | null = null;
-  if (broker_org_code) {
-    const { data: broker, error: lookupError } = await supabase
-      .rpc("lookup_organization_by_code", { p_code: broker_org_code })
-      .maybeSingle<{ id: string; name: string; type: string }>();
-    if (lookupError) return fail(lookupError.message);
-    if (!broker) return fail(`No existe ninguna corredora con el código ${broker_org_code}.`);
-    broker_organization_id = broker.id;
-  }
-
-  let photo_url: string | null = null;
-  try {
-    photo_url = await uploadPhotoIfPresent(supabase, formData);
-  } catch (e) {
-    return fail(e instanceof Error ? e.message : "No se pudo subir la foto.");
-  }
-
   const { data: property, error } = await supabase
     .from("properties")
-    .insert({ organization_id, address, commune_id, broker_organization_id, photo_url })
+    .insert({ organization_id, address, commune_id })
     .select("id")
     .single();
-
   if (error) return fail(error.message);
 
-  redirect(`/properties/${property.id}`);
+  // The creating org is the first row in property_landlords — same
+  // invariant the Paso 1 backfill established for every pre-existing
+  // property (always at least one landlord row matching organization_id).
+  const { error: landlordError } = await supabase
+    .from("property_landlords")
+    .insert({ property_id: property.id, organization_id });
+  if (landlordError) return fail(landlordError.message);
+
+  redirect(`/properties/${property.id}/edit`);
 }
 
 export async function updateProperty(formData: FormData) {
