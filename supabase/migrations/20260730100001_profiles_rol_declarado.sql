@@ -1,0 +1,24 @@
+-- Paso 1 del refactor de rol persistente: "arrendatario" deja de ser algo
+-- que se deriva únicamente de contract_parties (ver diagnóstico) y pasa a
+-- ser también un dato de la persona. Reusa el enum contract_role existente
+-- (arrendador/arrendatario/corredor) — no hace falta un tipo nuevo, y
+-- nullable porque "nunca se declaró explícitamente" es un estado real
+-- (todo usuario recién registrado sin elegir rol, o registrado antes de
+-- que este campo existiera).
+--
+-- Una cuenta = un rol: una sola columna con un solo valor, a propósito —
+-- así el futuro flujo de invitación ("si existe con un rol distinto, se
+-- rechaza") calza directo contra esto sin necesitar una tabla de roles
+-- múltiples por cuenta.
+--
+-- Protección column-level: NO se agrega ningún grant para esta columna.
+-- 20260729100001 ya reemplazó el `grant update on profiles to
+-- authenticated` (tabla completa) por uno explícito de columnas
+-- (full_name, rut, phone, avatar_url) — cualquier columna nueva queda
+-- fuera de ese grant por defecto, sin necesitar un revoke aparte. Un
+-- usuario autenticado puede seguir editando su propio perfil (esas 4
+-- columnas) pero no puede tocar rol_declarado con un UPDATE directo desde
+-- el cliente — solo lo escriben caminos security definer (signUpWithRole
+-- vía el trigger de creación de perfil, y ejecutar_cambio_rol). Verificado
+-- más abajo, antes de escribir el resto del refactor.
+alter table public.profiles add column rol_declarado public.contract_role;
