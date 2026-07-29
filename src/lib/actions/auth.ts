@@ -103,6 +103,25 @@ export async function signUpWithRole(formData: FormData) {
       .from("memberships")
       .insert({ user_id: signUpData.user.id, organization_id: org.id, role: "admin" });
     if (memError) return fail(memError.message);
+
+    // rol_declarado consolidated for every role, not just arrendatario —
+    // it's meant to be the single source of truth for "what role does this
+    // account have" (the future one-role-per-account invitation flow reads
+    // only this, not re-derived from organizations). Doesn't change
+    // anything observable today: getProfileTypeLabel still prioritizes the
+    // organization signal over this field for arrendador/corredor.
+    const { error: roleError } = await admin.from("profiles").update({ rol_declarado: role }).eq("id", signUpData.user.id);
+    if (roleError) return fail(roleError.message);
+  } else if (role === "arrendatario") {
+    // rol_declarado is column-protected from client writes (20260729100001)
+    // — service_role bypasses that, same as the org/membership inserts
+    // above need it before an email-confirmation-pending session exists.
+    const admin = createServiceRoleClient();
+    const { error: roleError } = await admin
+      .from("profiles")
+      .update({ rol_declarado: "arrendatario" })
+      .eq("id", signUpData.user.id);
+    if (roleError) return fail(roleError.message);
   }
 
   redirect("/");
