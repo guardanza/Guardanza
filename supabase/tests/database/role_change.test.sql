@@ -229,12 +229,14 @@ select is(
 );
 
 -- ---------------------------------------------------------------------
--- G) ejecutar_cambio_rol: downgrade blocked when the org has properties,
---    allowed when it doesn't
+-- G) ejecutar_cambio_rol (via cambiar_rol_admin_directo, its only
+--    legitimate entry point since 20260730100002 — direct EXECUTE on
+--    ejecutar_cambio_rol is revoked): downgrade blocked when the org has
+--    properties, allowed when it doesn't
 -- ---------------------------------------------------------------------
 select pg_temp.login_as('00000000-0000-0000-0000-000000000101');
 select throws_ok(
-  $$select public.ejecutar_cambio_rol('00000000-0000-0000-0000-000000000106', 'arrendatario')$$,
+  $$select public.cambiar_rol_admin_directo('00000000-0000-0000-0000-000000000106', 'arrendatario')$$,
   'P0001', null,
   'downgrading to arrendatario is blocked when the org has properties'
 );
@@ -248,7 +250,7 @@ select is(
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000101');
 select lives_ok(
-  $$select public.ejecutar_cambio_rol('00000000-0000-0000-0000-000000000105', 'arrendatario')$$,
+  $$select public.cambiar_rol_admin_directo('00000000-0000-0000-0000-000000000105', 'arrendatario')$$,
   'downgrading to arrendatario succeeds when the org has zero properties'
 );
 reset role;
@@ -281,7 +283,7 @@ select is(
   (
     select count(*)::int from public.audit_log
     where entity_type = 'profile_role_change' and entity_id = '00000000-0000-0000-0000-000000000105'
-      and action = 'profile_role_change.directo'
+      and action = 'profile_role_change.directo' and metadata->>'rol_nuevo' = 'arrendador'
   ),
   1,
   'cambiar_rol_admin_directo writes a profile_role_change.directo audit_log entry'

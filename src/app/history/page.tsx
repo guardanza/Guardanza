@@ -105,6 +105,9 @@ export default async function HistoryPage({
                           {nameById.get(e.entity_id) ?? String(e.entity_id).slice(0, 8)}:{" "}
                           {e.metadata?.rol_anterior_snapshot ? `${e.metadata.rol_anterior_snapshot} → ` : ""}
                           <span className="font-medium">{e.metadata?.rol_nuevo ?? e.metadata?.rol_solicitado}</span>
+                          {e.metadata?.sin_cambios === true && (
+                            <span className="ml-1.5 text-xs font-normal text-muted-foreground">(sin cambios)</span>
+                          )}
                         </p>
                         {(e.metadata?.motivo || e.metadata?.motivo_rechazo) && (
                           <p className="text-xs text-muted-foreground">
