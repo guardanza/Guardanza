@@ -5,7 +5,7 @@
 -- as rls.test.sql — separate file/transaction, own UUID range.
 
 begin;
-select plan(25);
+select plan(32);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -305,6 +305,65 @@ select is(
   'a non-admin still cannot read an unrelated user''s profile'
 );
 reset role;
+
+-- ---------------------------------------------------------------------
+-- J) profiles column-level grant (20260729100001): is_platform_admin is
+--    not self-writable, legitimate self-edit columns still are
+-- ---------------------------------------------------------------------
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000108', 'privesc-target@test.local');
+update public.profiles set full_name = 'Privesc Target' where id = '00000000-0000-0000-0000-000000000108';
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000108');
+select throws_ok(
+  $$update public.profiles set is_platform_admin = true where id = '00000000-0000-0000-0000-000000000108'$$,
+  '42501', null,
+  'a non-admin cannot self-promote is_platform_admin via direct UPDATE'
+);
+select lives_ok(
+  $$update public.profiles set full_name = 'Privesc Target Renamed' where id = '00000000-0000-0000-0000-000000000108'$$,
+  'legitimate self-edit columns (full_name/rut/phone/avatar_url) remain writable'
+);
+reset role;
+
+select is(
+  (select is_platform_admin from public.profiles where id = '00000000-0000-0000-0000-000000000108'),
+  false,
+  'is_platform_admin stayed false despite the blocked self-update attempt'
+);
+
+-- ---------------------------------------------------------------------
+-- K) set_platform_admin (20260729100001): the controlled replacement path
+-- ---------------------------------------------------------------------
+select pg_temp.login_as('00000000-0000-0000-0000-000000000108'); -- non-admin
+select throws_ok(
+  $$select public.set_platform_admin('00000000-0000-0000-0000-000000000108', true)$$,
+  'P0001', null,
+  'a non-admin cannot call set_platform_admin'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000101'); -- admin
+select lives_ok(
+  $$select public.set_platform_admin('00000000-0000-0000-0000-000000000108', true)$$,
+  'a platform admin can grant platform admin via set_platform_admin'
+);
+reset role;
+
+select is(
+  (select is_platform_admin from public.profiles where id = '00000000-0000-0000-0000-000000000108'),
+  true,
+  'set_platform_admin actually persisted the grant'
+);
+
+select is(
+  (
+    select count(*)::int from public.audit_log
+    where entity_type = 'platform_admin' and entity_id = '00000000-0000-0000-0000-000000000108'
+      and action = 'platform_admin.granted'
+  ),
+  1,
+  'set_platform_admin writes a platform_admin.granted audit_log entry'
+);
 
 select * from finish();
 rollback;
