@@ -9,7 +9,7 @@ import type { RoleBucket } from "@/lib/role-bucket";
 
 const WARNINGS: Record<RoleBucket, string> = {
   arrendatario:
-    "Si el usuario administra un contacto sin propiedades asociadas, se lo quita — el contacto en sí no se borra, queda sin nadie a cargo. Si además no tiene contratos donde participe, su perfil va a mostrar \"Sin rol definido\": es el resultado correcto (no administra nada y no es parte de ningún contrato), no un error.",
+    "Si el usuario administra un contacto sin propiedades asociadas, se lo quita — el contacto en sí no se borra, queda sin nadie a cargo. El rol de arrendatario queda registrado en el perfil de la persona, tenga o no un contrato: su perfil va a mostrar \"Arrendatario(a)\" de inmediato.",
   arrendador:
     "Si el usuario ya administra un contacto individual, no hace falta nada más. Si no administra ninguno (o administra uno de otro tipo), completa \"Datos del contacto\" abajo — sin nombre, la operación falla con un error y no cambia nada.",
   corredor:

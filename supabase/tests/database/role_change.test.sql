@@ -5,7 +5,7 @@
 -- as rls.test.sql — separate file/transaction, own UUID range.
 
 begin;
-select plan(32);
+select plan(40);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -229,12 +229,14 @@ select is(
 );
 
 -- ---------------------------------------------------------------------
--- G) ejecutar_cambio_rol: downgrade blocked when the org has properties,
---    allowed when it doesn't
+-- G) ejecutar_cambio_rol (via cambiar_rol_admin_directo, its only
+--    legitimate entry point since 20260730100002 — direct EXECUTE on
+--    ejecutar_cambio_rol is revoked): downgrade blocked when the org has
+--    properties, allowed when it doesn't
 -- ---------------------------------------------------------------------
 select pg_temp.login_as('00000000-0000-0000-0000-000000000101');
 select throws_ok(
-  $$select public.ejecutar_cambio_rol('00000000-0000-0000-0000-000000000106', 'arrendatario')$$,
+  $$select public.cambiar_rol_admin_directo('00000000-0000-0000-0000-000000000106', 'arrendatario')$$,
   'P0001', null,
   'downgrading to arrendatario is blocked when the org has properties'
 );
@@ -248,7 +250,7 @@ select is(
 
 select pg_temp.login_as('00000000-0000-0000-0000-000000000101');
 select lives_ok(
-  $$select public.ejecutar_cambio_rol('00000000-0000-0000-0000-000000000105', 'arrendatario')$$,
+  $$select public.cambiar_rol_admin_directo('00000000-0000-0000-0000-000000000105', 'arrendatario')$$,
   'downgrading to arrendatario succeeds when the org has zero properties'
 );
 reset role;
@@ -281,7 +283,7 @@ select is(
   (
     select count(*)::int from public.audit_log
     where entity_type = 'profile_role_change' and entity_id = '00000000-0000-0000-0000-000000000105'
-      and action = 'profile_role_change.directo'
+      and action = 'profile_role_change.directo' and metadata->>'rol_nuevo' = 'arrendador'
   ),
   1,
   'cambiar_rol_admin_directo writes a profile_role_change.directo audit_log entry'
@@ -363,6 +365,118 @@ select is(
   ),
   1,
   'set_platform_admin writes a platform_admin.granted audit_log entry'
+);
+
+-- ---------------------------------------------------------------------
+-- L) rol_declarado (20260730100001/20260730100002): ejecutar_cambio_rol
+--    actually persists it now (the reported bug), a repeat call is a real
+--    no-op, and a user who already admins the right org but never had
+--    this field gets it consolidated on next touch. Fresh fixture users
+--    so these don't depend on state accumulated by earlier sections.
+-- ---------------------------------------------------------------------
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-000000000109', 'sinrol-declarado@test.local'),
+  ('00000000-0000-0000-0000-000000000110', 'legacy-arrendador@test.local'),
+  ('00000000-0000-0000-0000-000000000111', 'sinrol-corredor@test.local');
+update public.profiles set full_name = 'Sinrol Declarado' where id = '00000000-0000-0000-0000-000000000109';
+update public.profiles set full_name = 'Legacy Arrendador' where id = '00000000-0000-0000-0000-000000000110';
+update public.profiles set full_name = 'Sinrol Corredor' where id = '00000000-0000-0000-0000-000000000111';
+
+-- 110 already admins an individual org (like any real arrendador) but
+-- rol_declarado is still null — the exact shape of an account that became
+-- arrendador before this column existed.
+insert into public.organizations (id, type, name, created_by) values
+  ('00000000-0000-0000-0000-0000000101a6', 'individual', 'Legacy Org (pre rol_declarado)', '00000000-0000-0000-0000-000000000110');
+insert into public.memberships (user_id, organization_id, role) values
+  ('00000000-0000-0000-0000-000000000110', '00000000-0000-0000-0000-0000000101a6', 'admin');
+
+-- L1: the reported bug itself — sin rol -> arrendatario actually persists.
+select pg_temp.login_as('00000000-0000-0000-0000-000000000101');
+select public.cambiar_rol_admin_directo('00000000-0000-0000-0000-000000000109', 'arrendatario');
+reset role;
+
+select is(
+  (select rol_declarado from public.profiles where id = '00000000-0000-0000-0000-000000000109')::text,
+  'arrendatario',
+  'cambiar_rol_admin_directo actually persists rol_declarado for arrendatario (the reported bug)'
+);
+
+-- L2: repeating the same change is a genuine no-op — value unchanged,
+-- audit_log marked sin_cambios instead of pretending something happened.
+select pg_temp.login_as('00000000-0000-0000-0000-000000000101');
+select public.cambiar_rol_admin_directo('00000000-0000-0000-0000-000000000109', 'arrendatario', 'repitiendo sin necesidad');
+reset role;
+
+select is(
+  (select rol_declarado from public.profiles where id = '00000000-0000-0000-0000-000000000109')::text,
+  'arrendatario',
+  'repeating the same change leaves rol_declarado unchanged'
+);
+select is(
+  (
+    select (metadata->>'sin_cambios')::boolean from public.audit_log
+    where entity_type = 'profile_role_change' and entity_id = '00000000-0000-0000-0000-000000000109'
+      and metadata->>'motivo' = 'repitiendo sin necesidad'
+  ),
+  true,
+  'the repeated no-op change is marked sin_cambios, not silent and not a lie'
+);
+
+-- L3: legacy consolidation — already admins the right org, rol_declarado
+-- was never set. This must count as a real change (not a no-op): nothing
+-- structural happens, but the persistent field genuinely goes from
+-- null to 'arrendador'.
+select pg_temp.login_as('00000000-0000-0000-0000-000000000101');
+select public.cambiar_rol_admin_directo('00000000-0000-0000-0000-000000000110', 'arrendador', 'consolidando dato legado');
+reset role;
+
+select is(
+  (select rol_declarado from public.profiles where id = '00000000-0000-0000-0000-000000000110')::text,
+  'arrendador',
+  'a legacy org-admin with no rol_declarado gets it consolidated on next touch'
+);
+select is(
+  (
+    select (metadata->>'sin_cambios')::boolean from public.audit_log
+    where entity_type = 'profile_role_change' and entity_id = '00000000-0000-0000-0000-000000000110'
+      and metadata->>'motivo' = 'consolidando dato legado'
+  ),
+  false,
+  'consolidating a stale rol_declarado counts as a real change, not a no-op'
+);
+
+-- L4: sin rol -> corredor also persists rol_declarado, same as arrendador.
+select pg_temp.login_as('00000000-0000-0000-0000-000000000101');
+select public.cambiar_rol_admin_directo(
+  '00000000-0000-0000-0000-000000000111', 'corredor', null, 'Org Corredor Nueva', '11111111-1', 'persona_natural'
+);
+reset role;
+
+select is(
+  (select rol_declarado from public.profiles where id = '00000000-0000-0000-0000-000000000111')::text,
+  'corredor',
+  'cambiar_rol_admin_directo persists rol_declarado for corredor too'
+);
+
+-- L5: the contract_parties filter fix, at the data level. Section A
+-- snapshotted broker-admin (103) into contract_parties as role='corredor'
+-- on :'new_contract_id'. getProfileTypeLabel's arrendatario check now
+-- filters on role='arrendatario' explicitly — pgTAP can't call that TS
+-- function directly, but it CAN prove the query shape it relies on: the
+-- old unfiltered "has any row" check would have matched here (there IS a
+-- contract_parties row for 103), the new filtered one must not.
+select is(
+  (select count(*)::int from public.contract_parties where user_id = '00000000-0000-0000-0000-000000000103'),
+  1,
+  'sanity: broker-admin does have a contract_parties row (as corredor) — the old unfiltered check would have matched'
+);
+select is(
+  (
+    select count(*)::int from public.contract_parties
+    where user_id = '00000000-0000-0000-0000-000000000103' and role = 'arrendatario'
+  ),
+  0,
+  'the role=arrendatario filter correctly excludes a corredor-only contract_parties row'
 );
 
 select * from finish();

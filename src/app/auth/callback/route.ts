@@ -58,7 +58,21 @@ export async function GET(request: Request) {
 
           if (!orgError && org) {
             await admin.from("memberships").insert({ user_id: data.user.id, organization_id: org.id, role: "admin" });
+            // rol_declarado consolidated for every role, same reasoning as
+            // the email path in auth.ts (single source of truth for "what
+            // role does this account have", future invitation flow reads
+            // only this field).
+            await admin.from("profiles").update({ rol_declarado: role }).eq("id", data.user.id);
           }
+        }
+      } else if (role === "arrendatario") {
+        // Same guard shape as the org branch above (only touch it once) —
+        // rol_declarado is column-protected from client writes
+        // (20260729100001), service_role bypasses that.
+        const admin = createServiceRoleClient();
+        const { data: profile } = await admin.from("profiles").select("rol_declarado").eq("id", data.user.id).single();
+        if (profile && !profile.rol_declarado) {
+          await admin.from("profiles").update({ rol_declarado: "arrendatario" }).eq("id", data.user.id);
         }
       }
       return NextResponse.redirect(`${origin}${next}`);
