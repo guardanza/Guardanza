@@ -7,7 +7,7 @@
 -- Supabase does with a real JWT.
 
 begin;
-select plan(61);
+select plan(68);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -699,6 +699,95 @@ select is(
   (select count(*)::int from public.lookup_organization_by_code('000000')),
   0,
   'lookup_organization_by_code returns nothing for an unknown code'
+);
+reset role;
+
+-- ---------------------------------------------------------------------
+-- organizations_select_shared_property (20260731110001): found while
+-- verifying Tanda A's copropietarios list. Seeing a property (via
+-- properties_select_member) never implied seeing every organization tied
+-- to it — organizations has its own separate RLS, so a copropietario's
+-- *name* silently disappeared from the nested select unless the viewer
+-- happened to also be a member of that specific org. Fixed additively;
+-- confirm it actually closes the gap without loosening organizations'
+-- RLS in general (an org sharing nothing stays invisible).
+-- ---------------------------------------------------------------------
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-000000000007', 'shared-prop-owner@test.local'),
+  ('00000000-0000-0000-0000-000000000008', 'shared-prop-coowner@test.local'),
+  ('00000000-0000-0000-0000-000000000009', 'shared-prop-unrelated@test.local');
+insert into public.organizations (id, type, name, created_by) values
+  ('00000000-0000-0000-0000-000000000071', 'individual', 'Shared Prop Owner Org', '00000000-0000-0000-0000-000000000007'),
+  ('00000000-0000-0000-0000-000000000072', 'individual', 'Shared Prop Coowner Org', '00000000-0000-0000-0000-000000000008'),
+  ('00000000-0000-0000-0000-000000000073', 'individual', 'Shared Prop Unrelated Org', '00000000-0000-0000-0000-000000000009');
+insert into public.memberships (user_id, organization_id, role) values
+  ('00000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000071', 'admin'),
+  ('00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000072', 'admin'),
+  ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000073', 'admin');
+insert into public.properties (id, organization_id, address) values
+  ('00000000-0000-0000-0000-000000000074', '00000000-0000-0000-0000-000000000071', 'Shared Prop St 1');
+insert into public.property_landlords (property_id, organization_id) values
+  ('00000000-0000-0000-0000-000000000074', '00000000-0000-0000-0000-000000000071'),
+  ('00000000-0000-0000-0000-000000000074', '00000000-0000-0000-0000-000000000072');
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000007'); -- the property's own owner
+select is(
+  (select count(*)::int from public.organizations where id = '00000000-0000-0000-0000-000000000072'),
+  1,
+  'the property owner can see a copropietario org''s name via the shared property'
+);
+select is(
+  (select count(*)::int from public.organizations where id = '00000000-0000-0000-0000-000000000073'),
+  0,
+  'the property owner still cannot see a genuinely unrelated org that shares nothing with them'
+);
+reset role;
+
+-- ---------------------------------------------------------------------
+-- property_landlords RLS (20260731100001) — formalizing what Paso 1
+-- verified by hand: managing the copropietarios list is reserved to the
+-- property's own organization_id admin; an outsider can neither see the
+-- list nor add themselves to it.
+-- ---------------------------------------------------------------------
+insert into public.properties (id, organization_id, address) values
+  ('00000000-0000-0000-0000-000000000075', '00000000-0000-0000-0000-000000000071', 'Shared Prop St 2');
+insert into public.property_landlords (property_id, organization_id) values
+  ('00000000-0000-0000-0000-000000000075', '00000000-0000-0000-0000-000000000071');
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000007'); -- property's own owner
+select lives_ok(
+  $$ insert into public.property_landlords (property_id, organization_id) values
+     ('00000000-0000-0000-0000-000000000075', '00000000-0000-0000-0000-000000000073') $$,
+  'the property owner can add a copropietario'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000009'); -- unrelated org's own admin
+select is_empty(
+  $$ select 1 from public.property_landlords where property_id = '00000000-0000-0000-0000-000000000075' $$,
+  'an outsider cannot see the copropietarios list of a property they have no tie to'
+);
+select lives_ok(
+  $$ delete from public.property_landlords
+     where property_id = '00000000-0000-0000-0000-000000000075' and organization_id = '00000000-0000-0000-0000-000000000073' $$,
+  'an outsider''s delete attempt does not error (RLS filters it out of the WHERE, not a hard denial)'
+);
+reset role;
+
+select is(
+  (
+    select count(*)::int from public.property_landlords
+    where property_id = '00000000-0000-0000-0000-000000000075' and organization_id = '00000000-0000-0000-0000-000000000073'
+  ),
+  1,
+  'but the row is untouched — an outsider''s delete silently affects zero rows, not a real removal'
+);
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000007');
+select lives_ok(
+  $$ delete from public.property_landlords
+     where property_id = '00000000-0000-0000-0000-000000000075' and organization_id = '00000000-0000-0000-0000-000000000073' $$,
+  'the property owner can remove a copropietario'
 );
 reset role;
 
