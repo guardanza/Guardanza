@@ -1,7 +1,14 @@
 import { notFound } from "next/navigation";
 import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { updateProperty, addPropertyTenant, removePropertyTenant } from "@/lib/actions/properties";
+import {
+  updateProperty,
+  addPropertyTenant,
+  removePropertyTenant,
+  addPropertyLandlord,
+  removePropertyLandlord,
+} from "@/lib/actions/properties";
+import { one } from "@/lib/supabase/one";
 import { getRegionsWithCommunes } from "@/lib/supabase/regions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,6 +46,16 @@ export default async function EditPropertyPage({
     .from("property_tenants")
     .select("id, profiles(full_name)")
     .eq("property_id", id);
+
+  const { data: landlords } = await supabase
+    .from("property_landlords")
+    .select("id, organizations(id, name)")
+    .eq("property_id", id);
+  const landlordOrgIds = new Set((landlords ?? []).map((l) => one(l.organizations)?.id).filter(Boolean));
+  // Buscador por nombre/email/RUT es la próxima tanda — por ahora, agregar
+  // un copropietario es elegir entre tus propias membresías admin, mismo
+  // límite que ya tiene el select de "Arrendador" arriba.
+  const landlordCandidateOptions = orgOptions.filter((o) => !landlordOrgIds.has(o.id));
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -79,10 +96,120 @@ export default async function EditPropertyPage({
               <Label htmlFor="photo">Reemplazar foto (opcional)</Label>
               <Input id="photo" name="photo" type="file" accept="image/*" className="p-1.5" />
             </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="listing_url">Link externo (opcional)</Label>
+              <Input
+                id="listing_url"
+                name="listing_url"
+                type="url"
+                placeholder="https://www.portalinmobiliario.cl/..."
+                defaultValue={property.listing_url ?? ""}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Arriendo mensual esperado (opcional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  name="expected_rent_amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  defaultValue={property.expected_rent_amount ?? ""}
+                />
+                <select name="expected_rent_currency" className={selectClass} defaultValue={property.expected_rent_currency ?? "CLP"}>
+                  <option value="CLP">CLP</option>
+                  <option value="UF">UF</option>
+                </select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="expected_term_months">Plazo esperado en meses (opcional)</Label>
+              <Input
+                id="expected_term_months"
+                name="expected_term_months"
+                type="number"
+                min="1"
+                step="1"
+                defaultValue={property.expected_term_months ?? ""}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Garantía esperada (opcional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  name="expected_guarantee_amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  defaultValue={property.expected_guarantee_amount ?? ""}
+                />
+                <select
+                  name="expected_guarantee_currency"
+                  className={selectClass}
+                  defaultValue={property.expected_guarantee_currency ?? "CLP"}
+                >
+                  <option value="CLP">CLP</option>
+                  <option value="UF">UF</option>
+                </select>
+              </div>
+            </div>
+
             <Button type="submit" className="w-full">
               Guardar cambios
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Copropietarios</CardTitle>
+          <CardDescription>
+            El contacto original ({orgOptions.find((o) => o.id === property.organization_id)?.name ?? "—"}) sigue siendo quien
+            administra la propiedad. Los demás copropietarios solo figuran acá.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {landlords && landlords.length > 0 ? (
+            <ul className="space-y-1.5">
+              {landlords.map((l) => {
+                const org = one(l.organizations);
+                return (
+                  <li key={l.id} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm">
+                    <span>{org?.name ?? "—"}</span>
+                    <form action={removePropertyLandlord}>
+                      <input type="hidden" name="id" value={l.id} />
+                      <input type="hidden" name="property_id" value={id} />
+                      <button type="submit" className="text-muted-foreground hover:text-destructive">
+                        <X className="size-4" />
+                      </button>
+                    </form>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin copropietarios todavía.</p>
+          )}
+          {landlordCandidateOptions.length > 0 && (
+            <form action={addPropertyLandlord} className="flex gap-2">
+              <input type="hidden" name="property_id" value={id} />
+              <select name="organization_id" required className={`${selectClass} flex-1`} defaultValue="">
+                <option value="" disabled>
+                  Selecciona un contacto
+                </option>
+                {landlordCandidateOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+              <Button type="submit" variant="outline" size="sm">
+                Agregar
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
 

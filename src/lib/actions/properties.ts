@@ -57,6 +57,18 @@ export async function createProperty(formData: FormData) {
   redirect(`/properties/${property.id}/edit`);
 }
 
+// Parses an optional numeric form field: "" (never touched, or cleared by
+// the user) means null, not 0 — Number("") is 0, which would silently turn
+// "leave this empty" into "set the rent to zero".
+function parseOptionalNumber(formData: FormData, key: string): number | null {
+  const raw = String(formData.get(key) || "").trim();
+  return raw === "" ? null : Number(raw);
+}
+
+function parseOptionalCurrency(formData: FormData, key: string): string | null {
+  return String(formData.get(key) || "").trim() || null;
+}
+
 export async function updateProperty(formData: FormData) {
   const supabase = await createClient();
 
@@ -65,9 +77,21 @@ export async function updateProperty(formData: FormData) {
   const commune_id = String(formData.get("commune_id") || "") || null;
   const organization_id = String(formData.get("organization_id") || "") || null;
   const broker_org_code = String(formData.get("broker_org_code") || "").trim() || null;
+  const listing_url = String(formData.get("listing_url") || "").trim() || null;
 
   const fail = (message: string): never =>
     redirect(`/properties/${id}/edit?error=${encodeURIComponent(message)}`);
+
+  // Unlike broker_org_code/photo below (blank = leave as-is), listing_url
+  // and the expected_* fields are regular value fields pre-filled from the
+  // current row — blank here means the user actually cleared it.
+  if (listing_url) {
+    try {
+      new URL(listing_url);
+    } catch {
+      return fail("El link externo no es una URL válida — tiene que incluir https://.");
+    }
+  }
 
   // Only touch broker_organization_id when a code was actually submitted —
   // the edit form leaves this field blank when there's nothing to change,
@@ -98,12 +122,55 @@ export async function updateProperty(formData: FormData) {
       ...(organization_id ? { organization_id } : {}),
       ...(broker_organization_id ? { broker_organization_id } : {}),
       ...(photo_url ? { photo_url } : {}),
+      listing_url,
+      expected_rent_amount: parseOptionalNumber(formData, "expected_rent_amount"),
+      expected_rent_currency: parseOptionalCurrency(formData, "expected_rent_currency"),
+      expected_term_months: parseOptionalNumber(formData, "expected_term_months"),
+      expected_guarantee_amount: parseOptionalNumber(formData, "expected_guarantee_amount"),
+      expected_guarantee_currency: parseOptionalCurrency(formData, "expected_guarantee_currency"),
     })
     .eq("id", id);
   if (error) return fail(error.message);
 
   revalidatePath(`/properties/${id}`);
   redirect(`/properties/${id}`);
+}
+
+// Copropietarios: mismo patrón simple que addPropertyTenant/
+// removePropertyTenant (select entre tus propias membresías admin, no el
+// buscador por nombre/email/RUT — eso es la próxima tanda). Solo el admin
+// de la org dueña original puede llamar estas acciones (RLS de
+// property_landlords, 20260731100001) — los copropietarios agregados no
+// ganan, por estar en la lista, la capacidad de gestionarla ellos mismos.
+export async function addPropertyLandlord(formData: FormData) {
+  const supabase = await createClient();
+  const property_id = String(formData.get("property_id"));
+  const organization_id = String(formData.get("organization_id") || "");
+
+  const fail = (message: string): never =>
+    redirect(`/properties/${property_id}/edit?error=${encodeURIComponent(message)}`);
+  if (!organization_id) return fail("Selecciona un contacto.");
+
+  const { error } = await supabase.from("property_landlords").insert({ property_id, organization_id });
+  if (error) {
+    if (error.code === "23505") return fail("Ese contacto ya es copropietario de esta propiedad.");
+    return fail(error.message);
+  }
+
+  revalidatePath(`/properties/${property_id}/edit`);
+  redirect(`/properties/${property_id}/edit`);
+}
+
+export async function removePropertyLandlord(formData: FormData) {
+  const supabase = await createClient();
+  const id = String(formData.get("id"));
+  const property_id = String(formData.get("property_id"));
+
+  const { error } = await supabase.from("property_landlords").delete().eq("id", id);
+  if (error) redirect(`/properties/${property_id}/edit?error=${encodeURIComponent(error.message)}`);
+
+  revalidatePath(`/properties/${property_id}/edit`);
+  redirect(`/properties/${property_id}/edit`);
 }
 
 export async function addPropertyTenant(formData: FormData) {
