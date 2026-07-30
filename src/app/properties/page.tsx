@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Building2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
+import { stripParticularSuffix } from "@/lib/labels";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ export default async function PropertiesPage() {
   const { data: properties, error } = await supabase
     .from("properties")
     .select(
-      "id, address, photo_url, organizations!properties_organization_id_fkey(name), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
+      "id, address, photo_url, property_landlords(organizations(id, name)), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
     )
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -36,7 +37,9 @@ export default async function PropertiesPage() {
       {properties && properties.length > 0 ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {properties.map((p) => {
-            const owner = one(p.organizations);
+            const owners = (p.property_landlords ?? [])
+              .map((l) => one(l.organizations))
+              .filter((o): o is { id: string; name: string } => !!o);
             const broker = one(p.broker);
             const commune = one(p.communes);
             const region = commune ? one(commune.regions) : null;
@@ -50,7 +53,11 @@ export default async function PropertiesPage() {
                       {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
                     </p>
                     <div className="flex flex-wrap gap-1.5 pt-1">
-                      {owner && <Badge variant="secondary">{owner.name}</Badge>}
+                      {owners.map((o) => (
+                        <Badge key={o.id} variant="secondary">
+                          {stripParticularSuffix(o.name)}
+                        </Badge>
+                      ))}
                       {broker && <Badge variant="outline">{broker.name}</Badge>}
                     </div>
                   </CardContent>

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { deleteProperty } from "@/lib/actions/properties";
+import { stripParticularSuffix } from "@/lib/labels";
+import { formatMoney, type MoneyCurrency } from "@/lib/money";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,16 +27,20 @@ export default async function PropertyDetailPage({
   const { data: property, error: fetchError } = await supabase
     .from("properties")
     .select(
-      "id, address, photo_url, organization_id, organizations!properties_organization_id_fkey(name), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
+      "id, address, photo_url, organization_id, listing_url, expected_rent_amount, expected_rent_currency, expected_term_months, expected_guarantee_amount, expected_guarantee_currency, property_landlords(organizations(id, name)), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
     )
     .eq("id", id)
     .single();
   if (fetchError || !property) notFound();
 
-  const owner = one(property.organizations);
+  const owners = (property.property_landlords ?? [])
+    .map((l) => one(l.organizations))
+    .filter((o): o is { id: string; name: string } => !!o);
   const broker = one(property.broker);
   const commune = one(property.communes);
   const region = commune ? one(commune.regions) : null;
+  const hasListingDetails =
+    property.listing_url || property.expected_rent_amount || property.expected_term_months || property.expected_guarantee_amount;
 
   const { data: contracts } = await supabase
     .from("contracts")
@@ -59,7 +65,11 @@ export default async function PropertyDetailPage({
             {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
           </p>
           <div className="flex flex-wrap gap-1.5 pt-1">
-            {owner && <Badge variant="secondary">{owner.name}</Badge>}
+            {owners.map((o) => (
+              <Badge key={o.id} variant="secondary">
+                {stripParticularSuffix(o.name)}
+              </Badge>
+            ))}
             {broker && <Badge variant="outline">Corredora: {broker.name}</Badge>}
           </div>
         </div>
@@ -75,6 +85,48 @@ export default async function PropertyDetailPage({
           </form>
         </div>
       </div>
+
+      {hasListingDetails && (
+        <Card className="p-0">
+          <div className="border-b px-4 py-3">
+            <h2 className="text-sm font-medium">Detalles del listado</h2>
+          </div>
+          <CardContent className="space-y-2 py-4 text-sm">
+            {property.listing_url && (
+              <a
+                href={property.listing_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-primary underline-offset-4 hover:underline"
+              >
+                Ver aviso externo <ExternalLink className="size-3.5" strokeWidth={2} />
+              </a>
+            )}
+            {property.expected_rent_amount && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Arriendo mensual esperado</span>
+                <span className="font-medium tabular-nums">
+                  {formatMoney(property.expected_rent_amount, (property.expected_rent_currency as MoneyCurrency) ?? "CLP")}
+                </span>
+              </div>
+            )}
+            {property.expected_term_months && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Plazo de arriendo esperado</span>
+                <span className="font-medium tabular-nums">{property.expected_term_months} meses</span>
+              </div>
+            )}
+            {property.expected_guarantee_amount && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Garantía esperada</span>
+                <span className="font-medium tabular-nums">
+                  {formatMoney(property.expected_guarantee_amount, (property.expected_guarantee_currency as MoneyCurrency) ?? "CLP")}
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="p-0">
         <div className="flex items-center justify-between border-b px-4 py-3">

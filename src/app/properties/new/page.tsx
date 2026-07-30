@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createProperty } from "@/lib/actions/properties";
 import { createClient } from "@/lib/supabase/server";
+import { stripParticularSuffix } from "@/lib/labels";
 import { getRegionsWithCommunes } from "@/lib/supabase/regions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -42,25 +43,37 @@ export default async function NewPropertyPage({
       <Card>
         <CardHeader>
           <CardTitle>Nueva propiedad</CardTitle>
-          <CardDescription>Se asocia al contacto que la administra.</CardDescription>
+          <CardDescription>
+            Guardá lo básico ahora — foto, arriendo, garantía y copropietarios se completan después, sin perder nada.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={createProperty} className="space-y-3">
             {organization_id ? (
+              // Arrived from a specific contacto's "+ Nueva propiedad" —
+              // no ambiguity, no field to show at all.
               <input type="hidden" name="organization_id" defaultValue={organization_id} />
+            ) : orgOptions.length === 1 ? (
+              // The common case: exactly one contacto to be. Preselected,
+              // invisible — nothing to decide, so nothing shown.
+              <input type="hidden" name="organization_id" defaultValue={orgOptions[0].id} />
             ) : (
-              <div className="space-y-1.5">
-                <Label htmlFor="organization_id">Contacto</Label>
+              // Multiple contactos (e.g. a corredor with several) — still
+              // preselected to the first so the common path never blocks
+              // on a choice, but shown small and inline (not a full field)
+              // since it's the exception, not the decision every user faces.
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Arrendador:</span>
                 <select
-                  id="organization_id"
                   name="organization_id"
                   required
-                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  defaultValue={orgOptions[0]?.id ?? ""}
+                  className="h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   {orgOptions.length === 0 && <option value="">No administras ningún contacto todavía</option>}
                   {orgOptions.map((o) => (
                     <option key={o.id} value={o.id}>
-                      {o.name}
+                      {stripParticularSuffix(o.name)}
                     </option>
                   ))}
                 </select>
@@ -71,16 +84,8 @@ export default async function NewPropertyPage({
               <Input id="address" name="address" required />
             </div>
             <RegionCommuneSelect regions={regions} />
-            <div className="space-y-1.5">
-              <Label htmlFor="photo">Foto (opcional)</Label>
-              <Input id="photo" name="photo" type="file" accept="image/*" className="p-1.5" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="broker_org_code">Código de corredora (opcional)</Label>
-              <Input id="broker_org_code" name="broker_org_code" placeholder="Ej: 384021 — te lo comparte la corredora" />
-            </div>
             <Button type="submit" className="w-full">
-              Crear
+              Crear y continuar
             </Button>
           </form>
         </CardContent>
