@@ -37,7 +37,7 @@ export default async function GatePage({
       <Card>
         <CardHeader>
           <CardTitle>Acceso privado</CardTitle>
-          <CardDescription>Guardanza todavía está en construcción. Ingresá la clave para continuar.</CardDescription>
+          <CardDescription>Guardanza todavía está en construcción. Ingresa la clave para continuar.</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={unlockGate} className="space-y-3">
