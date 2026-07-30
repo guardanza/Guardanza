@@ -69,6 +69,16 @@ function parseOptionalCurrency(formData: FormData, key: string): string | null {
   return String(formData.get(key) || "").trim() || null;
 }
 
+// Accepts "portalinmobiliario.cl" same as "https://portalinmobiliario.cl"
+// — most people typing a listing link don't think to include the scheme.
+// Prepends https:// when missing, then validates the result is a real URL
+// (catches "not a domain at all", not just "missing the protocol").
+function normalizeListingUrl(raw: string): string | null {
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  new URL(withScheme); // throws if still not a valid URL — let the caller catch it
+  return withScheme;
+}
+
 export async function updateProperty(formData: FormData) {
   const supabase = await createClient();
 
@@ -77,7 +87,7 @@ export async function updateProperty(formData: FormData) {
   const commune_id = String(formData.get("commune_id") || "") || null;
   const organization_id = String(formData.get("organization_id") || "") || null;
   const broker_org_code = String(formData.get("broker_org_code") || "").trim() || null;
-  const listing_url = String(formData.get("listing_url") || "").trim() || null;
+  const listing_url_raw = String(formData.get("listing_url") || "").trim() || null;
 
   const fail = (message: string): never =>
     redirect(`/properties/${id}/edit?error=${encodeURIComponent(message)}`);
@@ -85,11 +95,12 @@ export async function updateProperty(formData: FormData) {
   // Unlike broker_org_code/photo below (blank = leave as-is), listing_url
   // and the expected_* fields are regular value fields pre-filled from the
   // current row — blank here means the user actually cleared it.
-  if (listing_url) {
+  let listing_url: string | null = null;
+  if (listing_url_raw) {
     try {
-      new URL(listing_url);
+      listing_url = normalizeListingUrl(listing_url_raw);
     } catch {
-      return fail("El link externo no es una URL válida — tiene que incluir https://.");
+      return fail("El link externo no es válido — revisá que el dominio esté bien escrito.");
     }
   }
 

@@ -9,14 +9,16 @@ import {
   removePropertyLandlord,
 } from "@/lib/actions/properties";
 import { one } from "@/lib/supabase/one";
+import { stripParticularSuffix } from "@/lib/labels";
 import { getRegionsWithCommunes } from "@/lib/supabase/regions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PropertyThumb } from "@/components/property-thumb";
 import { RegionCommuneSelect } from "@/components/region-commune-select";
+import { PropertyPhotoField } from "@/components/property-photo-field";
+import { MoneyAmountInput } from "@/components/money-amount-input";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -51,11 +53,18 @@ export default async function EditPropertyPage({
     .from("property_landlords")
     .select("id, organizations(id, name)")
     .eq("property_id", id);
-  const landlordOrgIds = new Set((landlords ?? []).map((l) => one(l.organizations)?.id).filter(Boolean));
+  // Exclude both whatever's already in property_landlords AND
+  // property.organization_id explicitly — belt-and-suspenders so the
+  // current owner can never be offered to themselves as a "new"
+  // copropietario, even if organization_id was just changed above (in the
+  // same page, before property_landlords catches up) or a row is missing.
+  const excludedOrgIds = new Set(
+    [property.organization_id, ...(landlords ?? []).map((l) => one(l.organizations)?.id)].filter(Boolean)
+  );
   // Buscador por nombre/email/RUT es la próxima tanda — por ahora, agregar
   // un copropietario es elegir entre tus propias membresías admin, mismo
   // límite que ya tiene el select de "Arrendador" arriba.
-  const landlordCandidateOptions = orgOptions.filter((o) => !landlordOrgIds.has(o.id));
+  const landlordCandidateOptions = orgOptions.filter((o) => !excludedOrgIds.has(o.id));
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -72,7 +81,7 @@ export default async function EditPropertyPage({
         <CardContent>
           <form action={updateProperty} className="space-y-3">
             <input type="hidden" name="id" value={id} />
-            <PropertyThumb url={property.photo_url} className="h-32 w-full rounded-lg" />
+            <PropertyPhotoField photoUrl={property.photo_url} />
             <div className="space-y-1.5">
               <Label htmlFor="address">Dirección</Label>
               <Input id="address" name="address" defaultValue={property.address} required />
@@ -83,7 +92,7 @@ export default async function EditPropertyPage({
               <select id="organization_id" name="organization_id" className={selectClass} defaultValue={property.organization_id}>
                 {orgOptions.map((o) => (
                   <option key={o.id} value={o.id}>
-                    {o.name}
+                    {stripParticularSuffix(o.name)}
                   </option>
                 ))}
               </select>
@@ -92,39 +101,22 @@ export default async function EditPropertyPage({
               <Label htmlFor="broker_org_code">Código de corredora (opcional, deja vacío para no cambiar)</Label>
               <Input id="broker_org_code" name="broker_org_code" placeholder="Ej: 384021" />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="photo">Reemplazar foto (opcional)</Label>
-              <Input id="photo" name="photo" type="file" accept="image/*" className="p-1.5" />
-            </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="listing_url">Link externo (opcional)</Label>
-              <Input
-                id="listing_url"
-                name="listing_url"
-                type="url"
-                placeholder="https://www.portalinmobiliario.cl/..."
-                defaultValue={property.listing_url ?? ""}
-              />
+              <Input id="listing_url" name="listing_url" type="text" placeholder="portalinmobiliario.cl/..." defaultValue={property.listing_url ?? ""} />
             </div>
             <div className="space-y-1.5">
               <Label>Arriendo mensual esperado (opcional)</Label>
-              <div className="flex gap-2">
-                <Input
-                  name="expected_rent_amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  defaultValue={property.expected_rent_amount ?? ""}
-                />
-                <select name="expected_rent_currency" className={selectClass} defaultValue={property.expected_rent_currency ?? "CLP"}>
-                  <option value="CLP">CLP</option>
-                  <option value="UF">UF</option>
-                </select>
-              </div>
+              <MoneyAmountInput
+                amountName="expected_rent_amount"
+                currencyName="expected_rent_currency"
+                defaultAmount={property.expected_rent_amount}
+                defaultCurrency={(property.expected_rent_currency as "CLP" | "UF" | null) ?? "CLP"}
+              />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="expected_term_months">Plazo esperado en meses (opcional)</Label>
+              <Label htmlFor="expected_term_months">Plazo de arriendo esperado (meses, opcional)</Label>
               <Input
                 id="expected_term_months"
                 name="expected_term_months"
@@ -136,23 +128,12 @@ export default async function EditPropertyPage({
             </div>
             <div className="space-y-1.5">
               <Label>Garantía esperada (opcional)</Label>
-              <div className="flex gap-2">
-                <Input
-                  name="expected_guarantee_amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  defaultValue={property.expected_guarantee_amount ?? ""}
-                />
-                <select
-                  name="expected_guarantee_currency"
-                  className={selectClass}
-                  defaultValue={property.expected_guarantee_currency ?? "CLP"}
-                >
-                  <option value="CLP">CLP</option>
-                  <option value="UF">UF</option>
-                </select>
-              </div>
+              <MoneyAmountInput
+                amountName="expected_guarantee_amount"
+                currencyName="expected_guarantee_currency"
+                defaultAmount={property.expected_guarantee_amount}
+                defaultCurrency={(property.expected_guarantee_currency as "CLP" | "UF" | null) ?? "CLP"}
+              />
             </div>
 
             <Button type="submit" className="w-full">
@@ -166,8 +147,8 @@ export default async function EditPropertyPage({
         <CardHeader>
           <CardTitle>Copropietarios</CardTitle>
           <CardDescription>
-            El contacto original ({orgOptions.find((o) => o.id === property.organization_id)?.name ?? "—"}) sigue siendo quien
-            administra la propiedad. Los demás copropietarios solo figuran acá.
+            El contacto original ({stripParticularSuffix(orgOptions.find((o) => o.id === property.organization_id)?.name ?? "—")}) sigue
+            siendo quien administra la propiedad. Los demás copropietarios solo figuran acá.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -177,7 +158,7 @@ export default async function EditPropertyPage({
                 const org = one(l.organizations);
                 return (
                   <li key={l.id} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm">
-                    <span>{org?.name ?? "—"}</span>
+                    <span>{org ? stripParticularSuffix(org.name) : "—"}</span>
                     <form action={removePropertyLandlord}>
                       <input type="hidden" name="id" value={l.id} />
                       <input type="hidden" name="property_id" value={id} />
@@ -201,7 +182,7 @@ export default async function EditPropertyPage({
                 </option>
                 {landlordCandidateOptions.map((o) => (
                   <option key={o.id} value={o.id}>
-                    {o.name}
+                    {stripParticularSuffix(o.name)}
                   </option>
                 ))}
               </select>
