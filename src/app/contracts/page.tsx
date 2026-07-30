@@ -52,12 +52,12 @@ export default async function ContractsPage() {
       };
     } else if (!propertyCount) {
       emptyStateHint = {
-        message: "Ya tienes un contacto — ahora agrégale una propiedad para poder crear un contrato.",
+        message: "Ya tienes una organización — ahora agrégale una propiedad para poder crear un contrato.",
         cta: { href: "/properties/new", label: "Agregar propiedad" },
       };
     } else {
       emptyStateHint = {
-        message: "Tienes contactos y propiedades listas. Crea tu primer contrato desde una propiedad.",
+        message: "Tienes organizaciones y propiedades listas. Crea tu primer contrato desde una propiedad.",
         cta: { href: "/properties", label: "Ver propiedades" },
       };
     }

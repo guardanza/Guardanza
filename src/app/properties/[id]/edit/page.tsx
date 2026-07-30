@@ -147,7 +147,7 @@ export default async function EditPropertyPage({
         <CardHeader>
           <CardTitle>Copropietarios</CardTitle>
           <CardDescription>
-            El contacto original ({stripParticularSuffix(orgOptions.find((o) => o.id === property.organization_id)?.name ?? "—")}) sigue
+            La organización original ({stripParticularSuffix(orgOptions.find((o) => o.id === property.organization_id)?.name ?? "—")}) sigue
             siendo quien administra la propiedad. Los demás copropietarios solo figuran acá.
           </CardDescription>
         </CardHeader>
@@ -178,7 +178,7 @@ export default async function EditPropertyPage({
               <input type="hidden" name="property_id" value={id} />
               <select name="organization_id" required className={`${selectClass} flex-1`} defaultValue="">
                 <option value="" disabled>
-                  Selecciona un contacto
+                  Selecciona una organización
                 </option>
                 {landlordCandidateOptions.map((o) => (
                   <option key={o.id} value={o.id}>

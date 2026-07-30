@@ -30,7 +30,7 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
           <Badge variant="outline">{orgTypeLabel(org.type)}</Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Código para compartir (para que otro contacto te delegue propiedades como corredora):{" "}
+          Código para compartir (para que otra organización te delegue propiedades como corredora):{" "}
           <span className="font-mono font-medium text-foreground">{org.org_code}</span>
         </p>
       </div>
