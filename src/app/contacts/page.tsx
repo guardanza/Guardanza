@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Búsqueda por prefijo — misma libreta que ve el usuario vía RLS
 // (contacts_select: cualquier miembro de alguna de sus organizaciones).
@@ -21,8 +22,12 @@ function sanitizePrefix(q: string): string {
   return q.replace(/[%_,()]/g, "").trim();
 }
 
-export default async function ContactsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
+export default async function ContactsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; linked?: string }>;
+}) {
+  const { q, linked } = await searchParams;
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
@@ -47,6 +52,13 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
+      {linked && (
+        <Alert>
+          <AlertDescription>
+            <strong>{linked}</strong> ya está en Guardanza — se agregó a tus contactos de inmediato, sin necesidad de invitación.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Contactos</h1>
