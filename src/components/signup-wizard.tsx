@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, User, Home, KeyRound, ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
 import { signUpWithRole, signInWithGoogle } from "@/lib/actions/auth";
+import { ROLE_OPTIONS, type RoleOption } from "@/lib/role-options";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/password-input";
@@ -10,9 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/icons/google-icon";
 
-type Role = "arrendador" | "corredor" | "arrendatario";
-type LegalForm = "persona_natural" | "empresa" | "";
-type RoleOption = { role: Role; legalForm: LegalForm; title: string; description: string; icon: typeof User };
 type Step = "roles" | "choice" | "corredor-google" | "form";
 
 function GoogleBadge() {
@@ -22,25 +20,6 @@ function GoogleBadge() {
     </span>
   );
 }
-
-const ROLE_OPTIONS: RoleOption[] = [
-  { role: "arrendador", legalForm: "", title: "Arrendador", description: "Tengo una propiedad y la arriendo yo mismo.", icon: Home },
-  {
-    role: "corredor",
-    legalForm: "persona_natural",
-    title: "Corredor independiente",
-    description: "Corredor de propiedades por cuenta propia.",
-    icon: User,
-  },
-  {
-    role: "corredor",
-    legalForm: "empresa",
-    title: "Oficina de corretaje",
-    description: "Administro propiedades de varios clientes.",
-    icon: Building2,
-  },
-  { role: "arrendatario", legalForm: "", title: "Arrendatario", description: "Estoy arrendando o buscando arriendo.", icon: KeyRound },
-];
 
 // Role first, then channel (Google vs Email) — asking "what type of account"
 // before "how do you want to sign up" so the answer to the first question

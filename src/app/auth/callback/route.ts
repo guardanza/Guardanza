@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { assignRoleIfNone, type AssignableRole } from "@/lib/auth/role-assignment";
+import { getProfileTypeLabel } from "@/lib/profile-label";
 
 // OAuth (Google, etc.) lands here with a ?code= after the provider redirect.
 // exchangeCodeForSession trades it for a real session and sets the cookies
@@ -8,10 +9,18 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 // sign-in uses, so the rest of the app doesn't need to know the difference.
 //
 // role/legal_form/company_name/rut only show up here when signInWithGoogle
-// was called from the signup wizard (see auth.ts) — plain login never sets
-// them, so this block is a no-op for a normal sign-in. Guarded by "does
-// this user already have a membership" so a returning user re-authenticating
-// with Google never gets a second organization created for them.
+// was called from the signup wizard (see auth.ts) — plain login (LoginForm)
+// calls this with an empty form, so role is never set there. assignRoleIfNone
+// no-ops for anyone who already has a role (existing membership OR
+// rol_declarado) — a returning user re-authenticating with Google, by
+// either button, never gets a second organization or an overwritten role.
+//
+// The check at the bottom (still "Sin rol definido" after all that) is what
+// actually closes the bug this file used to have: a brand-new email that
+// authenticates via the plain /login Google button has no role param, so
+// none of the branches above ever ran for it — it used to land on the
+// dashboard with rol_declarado still null. Now it lands on /choose-role
+// instead, whether it got there via /login or /signup.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -38,43 +47,23 @@ export async function GET(request: Request) {
         }
       }
 
-      if (role === "arrendador" || role === "corredor") {
-        const admin = createServiceRoleClient();
-        const { data: existingMemberships } = await admin.from("memberships").select("id").eq("user_id", data.user.id).limit(1);
-
-        if (!existingMemberships || existingMemberships.length === 0) {
-          const fullName = data.user.user_metadata?.full_name ?? data.user.user_metadata?.name ?? data.user.email ?? "";
-          const { data: org, error: orgError } = await admin
-            .from("organizations")
-            .insert({
-              type: role === "corredor" ? "broker" : "individual",
-              name: role === "corredor" ? company_name : `${fullName} (particular)`,
-              rut,
-              legal_form: role === "corredor" ? legal_form : "persona_natural",
-              created_by: data.user.id,
-            })
-            .select("id")
-            .single();
-
-          if (!orgError && org) {
-            await admin.from("memberships").insert({ user_id: data.user.id, organization_id: org.id, role: "admin" });
-            // rol_declarado consolidated for every role, same reasoning as
-            // the email path in auth.ts (single source of truth for "what
-            // role does this account have", future invitation flow reads
-            // only this field).
-            await admin.from("profiles").update({ rol_declarado: role }).eq("id", data.user.id);
-          }
-        }
-      } else if (role === "arrendatario") {
-        // Same guard shape as the org branch above (only touch it once) —
-        // rol_declarado is column-protected from client writes
-        // (20260729100001), service_role bypasses that.
-        const admin = createServiceRoleClient();
-        const { data: profile } = await admin.from("profiles").select("rol_declarado").eq("id", data.user.id).single();
-        if (profile && !profile.rol_declarado) {
-          await admin.from("profiles").update({ rol_declarado: "arrendatario" }).eq("id", data.user.id);
-        }
+      if (role === "arrendador" || role === "corredor" || role === "arrendatario") {
+        const fullName = data.user.user_metadata?.full_name ?? data.user.user_metadata?.name ?? data.user.email ?? "";
+        await assignRoleIfNone({
+          userId: data.user.id,
+          role: role as AssignableRole,
+          legalForm: legal_form,
+          companyName: company_name,
+          rut,
+          fallbackName: fullName,
+        });
       }
+
+      const profileType = await getProfileTypeLabel(supabase, data.user.id);
+      if (profileType === "Sin rol definido") {
+        return NextResponse.redirect(`${origin}/choose-role`);
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
