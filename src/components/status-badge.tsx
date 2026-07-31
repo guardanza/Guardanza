@@ -12,6 +12,7 @@ const STATUS_STYLES: Record<string, string> = {
   pendiente_firma_arrendatario: "bg-accent text-accent-foreground",
   pendiente_deposito: "bg-accent text-accent-foreground",
   pagada: "bg-accent text-accent-foreground",
+  expirada: "bg-accent text-accent-foreground",
   activo: "bg-success/15 text-success",
   en_custodia: "bg-success/15 text-success",
   confirmado: "bg-success/15 text-success",

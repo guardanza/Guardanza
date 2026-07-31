@@ -4,7 +4,7 @@ import { Users, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
-import { deleteContact } from "@/lib/actions/contacts";
+import { deleteContact, resendContactInvite } from "@/lib/actions/contacts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
@@ -39,7 +39,7 @@ export default async function ContactsPage({
 
   let query = supabase
     .from("contacts")
-    .select("id, contact_role, full_name, email, rut, status, organizations(name)")
+    .select("id, contact_role, full_name, email, rut, status, invite_expires_at, organizations(name)")
     .order("created_at", { ascending: false });
 
   const prefix = q ? sanitizePrefix(q) : "";
@@ -90,6 +90,10 @@ export default async function ContactsPage({
       <div className="space-y-3">
         {contacts?.map((c) => {
           const org = one(c.organizations);
+          // "Expirada" es un estado derivado, no persistido — la ficha
+          // sigue pendiente en la base (no se borra al vencer), esto solo
+          // cambia cómo se muestra.
+          const expired = c.status === "pendiente" && !!c.invite_expires_at && new Date(c.invite_expires_at) < new Date();
           return (
             <Card key={c.id}>
               <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -100,19 +104,32 @@ export default async function ContactsPage({
                   </p>
                   <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     <Badge variant="outline">{roleBucketLabel(c.contact_role as RoleBucket)}</Badge>
-                    <StatusBadge status={c.status} />
+                    <StatusBadge status={expired ? "expirada" : c.status} />
                     {org && <span>· {org.name}</span>}
                   </div>
                 </div>
-                <form action={deleteContact}>
-                  <input type="hidden" name="id" value={c.id} />
-                  <button
-                    type="submit"
-                    className={buttonVariants({ variant: "outline", size: "sm", className: "w-full sm:w-auto" })}
-                  >
-                    Quitar
-                  </button>
-                </form>
+                <div className="flex w-full gap-2 sm:w-auto">
+                  {c.status === "pendiente" && (
+                    <form action={resendContactInvite}>
+                      <input type="hidden" name="id" value={c.id} />
+                      <button
+                        type="submit"
+                        className={buttonVariants({ variant: "outline", size: "sm", className: "w-full sm:w-auto" })}
+                      >
+                        Reenviar
+                      </button>
+                    </form>
+                  )}
+                  <form action={deleteContact}>
+                    <input type="hidden" name="id" value={c.id} />
+                    <button
+                      type="submit"
+                      className={buttonVariants({ variant: "outline", size: "sm", className: "w-full sm:w-auto" })}
+                    >
+                      Quitar
+                    </button>
+                  </form>
+                </div>
               </CardContent>
             </Card>
           );

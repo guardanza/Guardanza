@@ -4,7 +4,7 @@
 -- (...000301-...000305, ...000311-...000313, ...0000003a1-...0000003b1).
 
 begin;
-select plan(28);
+select plan(41);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -306,6 +306,135 @@ select throws_ok(
   'contact_target_role: no es invocable directo por un cliente autenticado'
 );
 reset role;
+
+-- ---------------------------------------------------------------------
+-- issue_contact_invite() — Paso 4: token propio, hasheado, emitir y
+-- reenviar son la misma operación.
+-- ---------------------------------------------------------------------
+-- now() is frozen for the whole test transaction, so two calls to
+-- issue_contact_invite() below would get identical expires_at — an
+-- explicit ordering column (not expires_at) is what actually
+-- distinguishes "old" from "new" token.
+create temporary table invite_capture (seq serial primary key, raw_token text, expires_at timestamptz);
+grant insert, select on invite_capture to authenticated;
+grant usage on sequence invite_capture_seq_seq to authenticated;
+
+-- camino1@test.local quedó pendiente en la sección de load_contact() más
+-- arriba en este mismo archivo — la reusamos acá.
+select pg_temp.login_as('00000000-0000-0000-0000-000000000301'); -- org1 admin
+insert into invite_capture (raw_token, expires_at)
+  select raw_token, expires_at from public.issue_contact_invite(
+    (select id from public.contacts where email = 'camino1@test.local')
+  );
+reset role;
+
+select isnt(
+  (select raw_token from invite_capture),
+  null,
+  'issue_contact_invite: devuelve un token crudo'
+);
+select is(
+  (select invite_token_hash from public.contacts where email = 'camino1@test.local'),
+  (select extensions.digest((select raw_token from invite_capture), 'sha256')),
+  'issue_contact_invite: guarda el hash sha256 del token, no el token en sí'
+);
+select isnt(
+  (select invited_at from public.contacts where email = 'camino1@test.local'),
+  null,
+  'issue_contact_invite: deja invited_at asentado'
+);
+select cmp_ok(
+  (select expires_at from invite_capture),
+  '>',
+  now() + interval '6 days 23 hours',
+  'issue_contact_invite: expira a ~7 días, no antes'
+);
+select cmp_ok(
+  (select expires_at from invite_capture),
+  '<',
+  now() + interval '7 days 1 hour',
+  'issue_contact_invite: expira a ~7 días, no después'
+);
+
+-- Autorización: mismo criterio que load_contact — solo el admin de la
+-- organización dueña puede invitar (o reenviar) para esa ficha.
+select pg_temp.login_as('00000000-0000-0000-0000-000000000302'); -- org1 non-admin member
+select throws_ok(
+  $$ select public.issue_contact_invite(
+       (select id from public.contacts where email = 'camino1@test.local')
+     ) $$,
+  'P0001',
+  null,
+  'issue_contact_invite: un miembro no-admin no puede invitar'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000303'); -- org2 admin, unrelated
+select throws_ok(
+  $$ select public.issue_contact_invite(
+       (select id from public.contacts where email = 'camino1@test.local')
+     ) $$,
+  'P0001',
+  null,
+  'issue_contact_invite: el admin de una organización ajena no puede invitar'
+);
+reset role;
+
+-- Una ficha ya confirmada (vínculo directo, camino 2) nunca necesitó
+-- invitación — no se puede invitar.
+select pg_temp.login_as('00000000-0000-0000-0000-000000000301');
+select throws_ok(
+  $$ select public.issue_contact_invite(
+       (select id from public.contacts where email = 'camino2@test.local')
+     ) $$,
+  'P0001',
+  null,
+  'issue_contact_invite: una ficha ya confirmada no se puede invitar'
+);
+select throws_ok(
+  $$ select public.issue_contact_invite('00000000-0000-0000-0000-000000009999') $$,
+  'P0001',
+  null,
+  'issue_contact_invite: una ficha inexistente lanza error'
+);
+reset role;
+
+-- Reenviar: mismo contacto, token nuevo, el viejo deja de matchear.
+select pg_temp.login_as('00000000-0000-0000-0000-000000000301');
+insert into invite_capture (raw_token, expires_at)
+  select raw_token, expires_at from public.issue_contact_invite(
+    (select id from public.contacts where email = 'camino1@test.local')
+  );
+reset role;
+
+select is(
+  (select count(distinct raw_token)::int from invite_capture),
+  2,
+  'issue_contact_invite: reenviar genera un token distinto del anterior'
+);
+select is(
+  (select count(*)::int from public.contacts where email = 'camino1@test.local'),
+  1,
+  'issue_contact_invite: reenviar no duplica la ficha'
+);
+select is(
+  (
+    select invite_token_hash from public.contacts where email = 'camino1@test.local'
+  ),
+  (
+    select extensions.digest((select raw_token from invite_capture order by seq desc limit 1), 'sha256')
+  ),
+  'issue_contact_invite: el hash guardado corresponde al token nuevo'
+);
+select is(
+  (
+    select count(*)::int from public.contacts
+    where email = 'camino1@test.local'
+      and invite_token_hash = extensions.digest((select raw_token from invite_capture order by seq asc limit 1), 'sha256')
+  ),
+  0,
+  'issue_contact_invite: el token viejo ya no matchea nada tras reenviar'
+);
 
 select * from finish();
 rollback;
