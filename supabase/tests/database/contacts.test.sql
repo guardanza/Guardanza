@@ -4,7 +4,7 @@
 -- (...000301-...000305, ...000311-...000313, ...0000003a1-...0000003b1).
 
 begin;
-select plan(41);
+select plan(50);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -400,6 +400,12 @@ select throws_ok(
 reset role;
 
 -- Reenviar: mismo contacto, token nuevo, el viejo deja de matchear.
+-- now() está congelado durante toda esta transacción de test, así que sin
+-- retroceder invited_at manualmente el cooldown de abajo (60s) rechazaría
+-- este segundo llamado — se prueba el cooldown por separado, con su
+-- propia ficha, más abajo.
+update public.contacts set invited_at = now() - interval '2 minutes' where email = 'camino1@test.local';
+
 select pg_temp.login_as('00000000-0000-0000-0000-000000000301');
 insert into invite_capture (raw_token, expires_at)
   select raw_token, expires_at from public.issue_contact_invite(
@@ -434,6 +440,85 @@ select is(
   ),
   0,
   'issue_contact_invite: el token viejo ya no matchea nada tras reenviar'
+);
+
+-- ---------------------------------------------------------------------
+-- Anti-spam: no se puede reemitir/reenviar más de una vez por minuto.
+-- ---------------------------------------------------------------------
+select pg_temp.login_as('00000000-0000-0000-0000-000000000301'); -- org1 admin
+insert into public.contacts (organization_id, contact_role, full_name, email, created_by) values
+  ('00000000-0000-0000-0000-0000000003a1', 'arrendatario', 'Cooldown Test', 'cooldown@test.local', '00000000-0000-0000-0000-000000000301');
+select lives_ok(
+  $$ select public.issue_contact_invite((select id from public.contacts where email = 'cooldown@test.local')) $$,
+  'issue_contact_invite: la primera emisión no choca con ningún cooldown'
+);
+select throws_ok(
+  $$ select public.issue_contact_invite((select id from public.contacts where email = 'cooldown@test.local')) $$,
+  'P0001',
+  null,
+  'issue_contact_invite: reenviar antes de 60s se rechaza (anti-spam)'
+);
+reset role;
+
+-- ---------------------------------------------------------------------
+-- Reenvío a alguien que se registró mientras tanto ("Opción A"): se
+-- vincula directo si el rol coincide, se rechaza igual que el camino 3
+-- si no coincide — la regla una-cuenta-un-rol no tiene puerta lateral acá.
+-- ---------------------------------------------------------------------
+select pg_temp.login_as('00000000-0000-0000-0000-000000000301'); -- org1 admin
+select is(
+  (select c.status from public.load_contact(
+    '00000000-0000-0000-0000-0000000003a1', 'arrendatario', 'Registrado Mientras Tanto', 'registrado-mientras-tanto@test.local', null, null
+  ) c),
+  'pendiente',
+  'fixture: ficha pendiente para probar el reenvío-con-vínculo-directo'
+);
+
+select is(
+  (
+    select linked from public.issue_contact_invite(
+      (select id from public.contacts where email = 'registrado-mientras-tanto@test.local'),
+      '00000000-0000-0000-0000-000000000311' -- ya tiene rol_declarado = arrendatario, mismo rol pedido
+    )
+  ),
+  true,
+  'issue_contact_invite: reenviar a alguien que ya se registró con el MISMO rol vincula directo'
+);
+select is(
+  (select status from public.contacts where email = 'registrado-mientras-tanto@test.local'),
+  'confirmado',
+  'issue_contact_invite: el vínculo directo por reenvío deja la ficha confirmada'
+);
+select is(
+  (select user_id from public.contacts where email = 'registrado-mientras-tanto@test.local'),
+  '00000000-0000-0000-0000-000000000311'::uuid,
+  'issue_contact_invite: el vínculo directo por reenvío deja el user_id correcto'
+);
+reset role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000301');
+select is(
+  (select c.status from public.load_contact(
+    '00000000-0000-0000-0000-0000000003a1', 'arrendatario', 'Registrado Con Otro Rol', 'registrado-otro-rol@test.local', null, null
+  ) c),
+  'pendiente',
+  'fixture: otra ficha pendiente, esta vez para probar el rechazo por rol distinto'
+);
+select throws_ok(
+  $$ select public.issue_contact_invite(
+       (select id from public.contacts where email = 'registrado-otro-rol@test.local'),
+       '00000000-0000-0000-0000-000000000312' -- corredor real, se pidió arrendatario
+     ) $$,
+  'P0001',
+  null,
+  'issue_contact_invite: reenviar a alguien que se registró con OTRO rol se rechaza, igual que el camino 3'
+);
+reset role;
+
+select is(
+  (select status from public.contacts where email = 'registrado-otro-rol@test.local'),
+  'pendiente',
+  'issue_contact_invite: el rechazo por rol distinto no cambia el estado de la ficha'
 );
 
 select * from finish();

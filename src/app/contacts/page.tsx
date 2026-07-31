@@ -25,9 +25,9 @@ function sanitizePrefix(q: string): string {
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; linked?: string }>;
+  searchParams: Promise<{ q?: string; linked?: string; error?: string }>;
 }) {
-  const { q, linked } = await searchParams;
+  const { q, linked, error: actionError } = await searchParams;
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
@@ -52,6 +52,11 @@ export default async function ContactsPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
+      {actionError && (
+        <Alert variant="destructive">
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      )}
       {linked && (
         <Alert>
           <AlertDescription>

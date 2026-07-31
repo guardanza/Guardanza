@@ -9,27 +9,46 @@ import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
 import { siteOrigin } from "@/lib/actions/auth";
 import { emailProvider } from "@/lib/adapters/email";
 
-// issue_contact_invite() ya hace su propio chequeo de is_org_admin y de
-// que el contacto siga pendiente — acá solo arma el link y llama al
-// adapter. Si el envío en sí fallara, no tumbamos la carga del contacto
-// (que ya quedó guardada): se loguea y la persona igual puede reenviar
-// desde /contacts. El mock nunca falla en la práctica, pero un provider
-// real sí podría.
-async function issueAndSendInvite(
+type InviteOutcome = { linked: true } | { linked: false } | { linked: false; failed: true; message: string };
+
+// issue_contact_invite() hace su propio chequeo de is_org_admin, de que
+// el contacto siga pendiente, y — cuando se le pasa targetUserId (solo en
+// reenvíos, ver resendContactInvite) — la misma regla de rol del camino 3
+// (mismo rol o rechazo, nunca una cuenta con otro rol ni de platform
+// admin). Acá solo se interpreta el resultado: si linked=true, la persona
+// ya se había registrado y quedó vinculada directo, sin correo. Si
+// linked=false, arma el link y llama al adapter — un fallo del ENVÍO en
+// sí (no del RPC) no tumba nada más: se loguea y la persona igual puede
+// reenviar desde /contacts.
+async function issueInviteOrLink(
   supabase: Awaited<ReturnType<typeof createClient>>,
   contactId: string,
   fullName: string,
   email: string,
   organizationName: string,
-  contactRole: RoleBucket
-) {
+  contactRole: RoleBucket,
+  targetUserId: string | null
+): Promise<InviteOutcome> {
   const { data: invite, error } = await supabase
-    .rpc("issue_contact_invite", { p_contact_id: contactId })
-    .single<{ raw_token: string; expires_at: string }>();
+    .rpc("issue_contact_invite", { p_contact_id: contactId, p_target_user_id: targetUserId })
+    .single<{ linked: boolean; raw_token: string | null; expires_at: string | null }>();
+
   if (error || !invite) {
+    if (error?.message.includes("resend_cooldown")) {
+      return { linked: false, failed: true, message: "Espera un momento antes de reenviar de nuevo." };
+    }
+    if (error?.message.includes("contact_role_mismatch")) {
+      return {
+        linked: false,
+        failed: true,
+        message: `Esta persona ya se registró en Guardanza con otro rol — no se puede vincular como ${roleBucketLabel(contactRole)}.`,
+      };
+    }
     console.error(`[contacts] no se pudo emitir la invitación para ${contactId}: ${error?.message}`);
-    return;
+    return { linked: false, failed: true, message: error?.message ?? "No se pudo procesar la invitación." };
   }
+
+  if (invite.linked) return { linked: true };
 
   const origin = await siteOrigin();
   const acceptUrl = `${origin}/invite/${invite.raw_token}`;
@@ -41,11 +60,12 @@ async function issueAndSendInvite(
       organizationName,
       contactRoleLabel: roleBucketLabel(contactRole),
       acceptUrl,
-      expiresAt: new Date(invite.expires_at),
+      expiresAt: new Date(invite.expires_at!),
     });
   } catch (e) {
     console.error(`[contacts] no se pudo enviar el email de invitación para ${contactId}:`, e);
   }
+  return { linked: false };
 }
 
 // Paso 3/4 de Tanda B: los tres caminos viven enteros dentro de
@@ -105,16 +125,24 @@ export async function createContact(formData: FormData) {
   }
 
   if (contact?.status === "pendiente") {
+    // target_user_id ya se resolvió como null más arriba (por eso quedó
+    // pendiente) — la emisión inicial nunca pasa por la rama de vínculo
+    // directo, solo el reenvío la re-chequea.
     const { data: org } = await supabase.from("organizations").select("name").eq("id", organization_id).single();
-    await issueAndSendInvite(supabase, contact.id, full_name, email, org?.name ?? "Guardanza", contact_role);
+    await issueInviteOrLink(supabase, contact.id, full_name, email, org?.name ?? "Guardanza", contact_role, null);
   }
 
   redirect("/contacts");
 }
 
-// Reenviar: misma operación que la invitación inicial — issue_contact_invite
-// pisa el token anterior con uno nuevo (7 días desde ahora), nada se
-// duplica (misma fila de contacts, mismo — ausente — user_id).
+// Reenviar: puede pasar de dos formas. Si el email sigue sin cuenta,
+// issue_contact_invite pisa el token anterior con uno nuevo (7 días desde
+// ahora) y se manda el correo de nuevo — nada se duplica. Pero si la
+// persona se registró por su cuenta desde que se cargó/reenvió la última
+// vez, se re-resuelve el email acá mismo y se vincula directo (mismo
+// criterio de rol que el camino 3: solo si coincide, si no se rechaza) —
+// ya no tiene sentido mandarle otra invitación a alguien que ya está
+// adentro.
 export async function resendContactInvite(formData: FormData) {
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -130,10 +158,26 @@ export async function resendContactInvite(formData: FormData) {
   if (contactError || !contact) redirect(`/contacts?error=${encodeURIComponent("No se encontró el contacto.")}`);
 
   const org = Array.isArray(contact.organizations) ? contact.organizations[0] : contact.organizations;
+  const target_user_id = await findUserIdByEmail(contact.email);
 
-  await issueAndSendInvite(supabase, id, contact.full_name, contact.email, org?.name ?? "Guardanza", contact.contact_role);
+  const outcome = await issueInviteOrLink(
+    supabase,
+    id,
+    contact.full_name,
+    contact.email,
+    org?.name ?? "Guardanza",
+    contact.contact_role,
+    target_user_id
+  );
 
   revalidatePath("/contacts");
+
+  if ("failed" in outcome && outcome.failed) {
+    redirect(`/contacts?error=${encodeURIComponent(outcome.message)}`);
+  }
+  if (outcome.linked) {
+    redirect(`/contacts?linked=${encodeURIComponent(contact.full_name)}`);
+  }
   redirect("/contacts");
 }
 
