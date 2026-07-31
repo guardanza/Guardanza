@@ -42,16 +42,16 @@ export function ApproveRoleRequestDialog({
               {needsOrgFields
                 ? currentOrgLabel
                   ? `El usuario ya administra ${currentOrgLabel}. Si es del tipo correcto, no necesitas llenar nada más.`
-                  : "El usuario no administra ningún contacto todavía — completa los datos para crear uno."
-                : "El usuario dejará de administrar cualquier contacto con propiedades. Ya validamos que ninguno tenga propiedades asociadas."}
+                  : "El usuario no administra ninguna organización todavía — completa los datos para crear una."
+                : "El usuario dejará de administrar cualquier organización con propiedades. Ya validamos que ninguna tenga propiedades asociadas."}
             </DialogDescription>
           </DialogHeader>
 
           {needsOrgFields && (
             <>
               <div className="space-y-1.5">
-                <Label htmlFor="org_name">Nombre del contacto</Label>
-                <Input id="org_name" name="org_name" placeholder="Solo si hay que crear uno nuevo" />
+                <Label htmlFor="org_name">Nombre de la organización</Label>
+                <Input id="org_name" name="org_name" placeholder="Solo si hay que crear una nueva" />
               </div>
               {rolSolicitado === "corredor" && (
                 <>

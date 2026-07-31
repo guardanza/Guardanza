@@ -9,11 +9,11 @@ import type { RoleBucket } from "@/lib/role-bucket";
 
 const WARNINGS: Record<RoleBucket, string> = {
   arrendatario:
-    "Si el usuario administra un contacto sin propiedades asociadas, se lo quita — el contacto en sí no se borra, queda sin nadie a cargo. El rol de arrendatario queda registrado en el perfil de la persona, tenga o no un contrato: su perfil va a mostrar \"Arrendatario(a)\" de inmediato.",
+    "Si el usuario administra una organización sin propiedades asociadas, se la quita — la organización en sí no se borra, queda sin nadie a cargo. El rol de arrendatario queda registrado en el perfil de la persona, tenga o no un contrato: su perfil va a mostrar \"Arrendatario(a)\" de inmediato.",
   arrendador:
-    "Si el usuario ya administra un contacto individual, no hace falta nada más. Si no administra ninguno (o administra uno de otro tipo), completa \"Datos del contacto\" abajo — sin nombre, la operación falla con un error y no cambia nada.",
+    "Si el usuario ya administra una organización individual, no hace falta nada más. Si no administra ninguna (o administra una de otro tipo), completa \"Datos de la organización\" abajo — sin nombre, la operación falla con un error y no cambia nada.",
   corredor:
-    "Si el usuario ya administra una corredora, no hace falta nada más. Si no administra ninguna (o administra un contacto de otro tipo), completa \"Datos del contacto\" abajo (nombre y RUT) — si faltan, la operación falla con un error y no cambia nada.",
+    "Si el usuario ya administra una corredora, no hace falta nada más. Si no administra ninguna (o administra una organización de otro tipo), completa \"Datos de la organización\" abajo (nombre y RUT) — si faltan, la operación falla con un error y no cambia nada.",
 };
 
 export function DirectRoleChangeForm({ action }: { action: (formData: FormData) => void }) {
@@ -49,7 +49,7 @@ export function DirectRoleChangeForm({ action }: { action: (formData: FormData) 
       </div>
       {rolNuevo !== "arrendatario" && (
         <div className="space-y-3 rounded-lg border border-input p-2.5">
-          <p className="text-sm font-medium">Datos del contacto (solo si hay que crear uno nuevo)</p>
+          <p className="text-sm font-medium">Datos de la organización (solo si hay que crear una nueva)</p>
           <div className="space-y-1.5">
             <Label htmlFor="org_name">Nombre</Label>
             <Input id="org_name" name="org_name" />

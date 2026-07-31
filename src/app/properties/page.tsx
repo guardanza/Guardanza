@@ -27,7 +27,7 @@ export default async function PropertiesPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Propiedades</h1>
-          <p className="text-sm text-muted-foreground">Catálogo de propiedades vinculadas a tus contactos.</p>
+          <p className="text-sm text-muted-foreground">Catálogo de propiedades vinculadas a tus organizaciones.</p>
         </div>
         <Link href="/properties/new" className={buttonVariants()}>
           + Nueva propiedad

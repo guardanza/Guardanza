@@ -9,7 +9,7 @@ export default function NewOrganizationPage() {
     <div className="mx-auto max-w-md px-4 py-6 md:px-6 md:py-10">
       <Card>
         <CardHeader>
-          <CardTitle>Nuevo contacto</CardTitle>
+          <CardTitle>Nueva organización</CardTitle>
           <CardDescription>
             Cualquier persona o empresa que administra propiedades — incluso si eres tú solo.
           </CardDescription>

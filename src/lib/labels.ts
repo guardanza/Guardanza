@@ -1,11 +1,11 @@
-// "admin" is scoped per-contacto (whoever created/administers THAT one),
-// not a global platform admin — this label exists so the UI never just
-// prints the bare enum value and lets people assume otherwise. The
-// underlying DB concept is still "organizations" (schema/columns unchanged)
-// — this is purely user-facing copy, chosen because "organización" reads
-// as a company to most users even when it's a single individual landlord.
+// "admin" is scoped per-organización (whoever created/administers THAT
+// one), not a global platform admin — this label exists so the UI never
+// just prints the bare enum value and lets people assume otherwise. The
+// underlying DB concept is still "organizations" (schema/columns
+// unchanged) — this is purely user-facing copy, matching the "Mi negocio"
+// section name it's shown under.
 export function orgRoleLabel(role: string): string {
-  return role === "admin" ? "administrador del contacto" : role;
+  return role === "admin" ? "administrador del negocio" : role;
 }
 
 export function orgTypeLabel(type: string): string {
@@ -13,11 +13,11 @@ export function orgTypeLabel(type: string): string {
 }
 
 // signUpWithRole bakes " (particular)" into an individual landlord's own
-// organization.name at signup time (auth.ts) so the Contactos list can
+// organization.name at signup time (auth.ts) so the Mi negocio list can
 // tell a real company name from "this is just me, personally". That
 // suffix is noise in a "quién es el arrendador de esta propiedad" picker
 // — display-only strip, doesn't touch the stored name anywhere else it's
-// shown on purpose (Contactos still wants it).
+// shown on purpose (Mi negocio still wants it).
 export function stripParticularSuffix(name: string): string {
   return name.replace(/ \(particular\)$/, "");
 }
