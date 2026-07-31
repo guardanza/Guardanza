@@ -15,13 +15,13 @@ const timeline = [
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; confirmed?: string }>;
 }) {
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (userRes.user) redirect("/");
 
-  const { error } = await searchParams;
+  const { error, confirmed } = await searchParams;
 
   return (
     <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
@@ -63,6 +63,11 @@ export default async function LoginPage({
       </div>
 
       <div className="flex flex-col gap-4">
+        {confirmed && (
+          <Alert>
+            <AlertDescription>Tu cuenta quedó vinculada al contacto que te invitó. Inicia sesión para continuar.</AlertDescription>
+          </Alert>
+        )}
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
