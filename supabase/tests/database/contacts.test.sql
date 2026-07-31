@@ -4,7 +4,7 @@
 -- (...000301-...000305, ...000311-...000313, ...0000003a1-...0000003b1).
 
 begin;
-select plan(50);
+select plan(66);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -519,6 +519,205 @@ select is(
   (select status from public.contacts where email = 'registrado-otro-rol@test.local'),
   'pendiente',
   'issue_contact_invite: el rechazo por rol distinto no cambia el estado de la ficha'
+);
+
+-- ---------------------------------------------------------------------
+-- resolve_contact_invite() / confirm_contact_invite() — Paso 5.
+-- ---------------------------------------------------------------------
+create temporary table confirm_invite_capture (label text primary key, raw_token text, expires_at timestamptz);
+grant select, insert on confirm_invite_capture to authenticated, anon, service_role;
+
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-000000000321', 'confirm-target-fresh@test.local'),
+  ('00000000-0000-0000-0000-000000000322', 'confirm-target-samerole@test.local'),
+  ('00000000-0000-0000-0000-000000000323', 'confirm-target-otherrole@test.local');
+update public.profiles set rol_declarado = 'arrendatario' where id = '00000000-0000-0000-0000-000000000322';
+insert into public.organizations (id, type, name, created_by) values
+  ('00000000-0000-0000-0000-0000000003c1', 'broker', 'Confirm Target Broker', '00000000-0000-0000-0000-000000000323');
+insert into public.memberships (user_id, organization_id, role) values
+  ('00000000-0000-0000-0000-000000000323', '00000000-0000-0000-0000-0000000003c1', 'admin');
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000301'); -- org1 admin
+select public.load_contact(
+  '00000000-0000-0000-0000-0000000003a1', 'arrendatario', 'Confirm Fresh', 'confirm-fresh@test.local', null, null
+);
+insert into confirm_invite_capture (label, raw_token, expires_at)
+  select 'fresh', raw_token, expires_at from public.issue_contact_invite(
+    (select id from public.contacts where email = 'confirm-fresh@test.local')
+  );
+
+select public.load_contact(
+  '00000000-0000-0000-0000-0000000003a1', 'arrendatario', 'Confirm Samerole', 'confirm-samerole@test.local', null, null
+);
+insert into confirm_invite_capture (label, raw_token, expires_at)
+  select 'samerole', raw_token, expires_at from public.issue_contact_invite(
+    (select id from public.contacts where email = 'confirm-samerole@test.local')
+  );
+
+select public.load_contact(
+  '00000000-0000-0000-0000-0000000003a1', 'arrendatario', 'Confirm Mismatch', 'confirm-mismatch@test.local', null, null
+);
+insert into confirm_invite_capture (label, raw_token, expires_at)
+  select 'mismatch', raw_token, expires_at from public.issue_contact_invite(
+    (select id from public.contacts where email = 'confirm-mismatch@test.local')
+  );
+
+select public.load_contact(
+  '00000000-0000-0000-0000-0000000003a1', 'arrendador', 'Confirm PlatAdmin', 'confirm-platadmin@test.local', null, null
+);
+insert into confirm_invite_capture (label, raw_token, expires_at)
+  select 'platadmin', raw_token, expires_at from public.issue_contact_invite(
+    (select id from public.contacts where email = 'confirm-platadmin@test.local')
+  );
+reset role;
+
+-- resolve_contact_invite: token inválido no devuelve nada, no revienta.
+select is_empty(
+  $$ select 1 from public.resolve_contact_invite('token-que-no-existe') $$,
+  'resolve_contact_invite: un token inexistente no devuelve filas'
+);
+-- Callable por anon — es lo único que hace posible que /invite/[token]
+-- funcione para alguien sin ninguna sesión de Supabase todavía.
+set local role anon;
+select is(
+  (select full_name from public.resolve_contact_invite((select raw_token from confirm_invite_capture where label = 'fresh'))),
+  'Confirm Fresh',
+  'resolve_contact_invite: invocable por anon con el token correcto'
+);
+reset role;
+
+set local role authenticated;
+select is(
+  (select organization_name from public.resolve_contact_invite((select raw_token from confirm_invite_capture where label = 'fresh'))),
+  'Contacts Org 1',
+  'resolve_contact_invite: devuelve el nombre de la organización que invitó'
+);
+reset role;
+
+-- confirm_contact_invite: caso feliz, cuenta sin rol declarado todavía.
+set local role service_role;
+select is(
+  (
+    select (r.contact).status from public.confirm_contact_invite(
+      (select raw_token from confirm_invite_capture where label = 'fresh'),
+      '00000000-0000-0000-0000-000000000321'
+    ) r
+  ),
+  'confirmado',
+  'confirm_contact_invite: caso feliz deja la ficha confirmada'
+);
+reset role;
+
+select is(
+  (select rol_declarado from public.profiles where id = '00000000-0000-0000-0000-000000000321'),
+  'arrendatario',
+  'confirm_contact_invite: consolida rol_declarado en la cuenta recién creada'
+);
+select is(
+  (select user_id from public.contacts where email = 'confirm-fresh@test.local'),
+  '00000000-0000-0000-0000-000000000321'::uuid,
+  'confirm_contact_invite: deja el user_id vinculado'
+);
+select is(
+  (select invite_token_hash from public.contacts where email = 'confirm-fresh@test.local'),
+  null,
+  'confirm_contact_invite: limpia el hash del token — de un solo uso'
+);
+select is(
+  (select count(*)::int from public.audit_log where action = 'contact.confirmed' and entity_id = (
+    select id from public.contacts where email = 'confirm-fresh@test.local'
+  )),
+  1,
+  'confirm_contact_invite: deja registro en audit_log'
+);
+
+-- Token ya usado: la ficha ya no está pendiente, el mismo token no vuelve
+-- a matchear — de un solo uso, aunque alguien reuse el link. Esto SÍ
+-- sigue lanzando excepción (token inválido/vencido no tiene ninguna fila
+-- de contacts que marcar, a diferencia del rechazo por rol).
+set local role service_role;
+select throws_ok(
+  $$ select public.confirm_contact_invite(
+       (select raw_token from confirm_invite_capture where label = 'fresh'),
+       '00000000-0000-0000-0000-000000000321'
+     ) $$,
+  'P0001',
+  null,
+  'confirm_contact_invite: un token ya usado no vuelve a funcionar'
+);
+select throws_ok(
+  $$ select public.confirm_contact_invite('token-que-no-existe', '00000000-0000-0000-0000-000000000321') $$,
+  'P0001',
+  null,
+  'confirm_contact_invite: un token inexistente lanza error'
+);
+reset role;
+
+-- Cuenta que ya tenía el MISMO rol declarado (se registró de forma
+-- independiente, o ya venía de otra libreta) — se confirma igual.
+set local role service_role;
+select is(
+  (
+    select (r.contact).status from public.confirm_contact_invite(
+      (select raw_token from confirm_invite_capture where label = 'samerole'),
+      '00000000-0000-0000-0000-000000000322'
+    ) r
+  ),
+  'confirmado',
+  'confirm_contact_invite: una cuenta con el mismo rol declarado se confirma igual'
+);
+reset role;
+
+-- Rol distinto: NO lanza excepción (a propósito — ver comentario en la
+-- migración) — devuelve ok = false, y la marca de role_conflict_at
+-- sobrevive porque no hubo ningún raise que la revirtiera.
+set local role service_role;
+select is(
+  (
+    select r.ok from public.confirm_contact_invite(
+      (select raw_token from confirm_invite_capture where label = 'mismatch'),
+      '00000000-0000-0000-0000-000000000323' -- corredor real, se pidió arrendatario
+    ) r
+  ),
+  false,
+  'confirm_contact_invite: rol distinto se rechaza (ok = false), igual que el camino 3'
+);
+reset role;
+
+select is(
+  (select status from public.contacts where email = 'confirm-mismatch@test.local'),
+  'pendiente',
+  'confirm_contact_invite: el rechazo no confirma la ficha'
+);
+select isnt(
+  (select role_conflict_at from public.contacts where email = 'confirm-mismatch@test.local'),
+  null,
+  'confirm_contact_invite: deja role_conflict_at marcado para que /contacts lo muestre'
+);
+
+-- Cuenta de platform admin: nunca confirmable, sea cual sea el rol pedido.
+set local role service_role;
+select is(
+  (
+    select r.ok from public.confirm_contact_invite(
+      (select raw_token from confirm_invite_capture where label = 'platadmin'),
+      '00000000-0000-0000-0000-000000000304'
+    ) r
+  ),
+  false,
+  'confirm_contact_invite: una cuenta de platform admin nunca se puede confirmar (ok = false)'
+);
+reset role;
+
+-- Reenviar limpia role_conflict_at — un intento nuevo parte de cero.
+update public.contacts set invited_at = now() - interval '2 minutes' where email = 'confirm-mismatch@test.local';
+select pg_temp.login_as('00000000-0000-0000-0000-000000000301');
+select public.issue_contact_invite((select id from public.contacts where email = 'confirm-mismatch@test.local'));
+reset role;
+select is(
+  (select role_conflict_at from public.contacts where email = 'confirm-mismatch@test.local'),
+  null,
+  'issue_contact_invite: reenviar limpia role_conflict_at, es un intento fresco'
 );
 
 select * from finish();

@@ -39,7 +39,7 @@ export default async function ContactsPage({
 
   let query = supabase
     .from("contacts")
-    .select("id, contact_role, full_name, email, rut, status, invite_expires_at, organizations(name)")
+    .select("id, contact_role, full_name, email, rut, status, invite_expires_at, role_conflict_at, organizations(name)")
     .order("created_at", { ascending: false });
 
   const prefix = q ? sanitizePrefix(q) : "";
@@ -95,10 +95,16 @@ export default async function ContactsPage({
       <div className="space-y-3">
         {contacts?.map((c) => {
           const org = one(c.organizations);
-          // "Expirada" es un estado derivado, no persistido — la ficha
-          // sigue pendiente en la base (no se borra al vencer), esto solo
-          // cambia cómo se muestra.
-          const expired = c.status === "pendiente" && !!c.invite_expires_at && new Date(c.invite_expires_at) < new Date();
+          // "Expirada" y "rol distinto" son estados derivados, no
+          // persistidos como tales — la ficha sigue pendiente en la base
+          // (no se borra ni al vencer ni al fallar), esto solo cambia
+          // cómo se muestra. role_conflict_at pesa más que expirada: si
+          // el último intento chocó con la regla de rol, reenviar el
+          // token no arregla nada por sí solo, es la primera señal que
+          // el admin necesita ver.
+          const roleConflict = c.status === "pendiente" && !!c.role_conflict_at;
+          const expired = !roleConflict && c.status === "pendiente" && !!c.invite_expires_at && new Date(c.invite_expires_at) < new Date();
+          const displayStatus = roleConflict ? "rol_distinto" : expired ? "expirada" : c.status;
           return (
             <Card key={c.id}>
               <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -109,7 +115,7 @@ export default async function ContactsPage({
                   </p>
                   <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     <Badge variant="outline">{roleBucketLabel(c.contact_role as RoleBucket)}</Badge>
-                    <StatusBadge status={expired ? "expirada" : c.status} />
+                    <StatusBadge status={displayStatus} />
                     {org && <span>· {org.name}</span>}
                   </div>
                 </div>

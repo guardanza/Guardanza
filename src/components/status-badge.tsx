@@ -13,6 +13,7 @@ const STATUS_STYLES: Record<string, string> = {
   pendiente_deposito: "bg-accent text-accent-foreground",
   pagada: "bg-accent text-accent-foreground",
   expirada: "bg-accent text-accent-foreground",
+  rol_distinto: "bg-destructive/10 text-destructive",
   activo: "bg-success/15 text-success",
   en_custodia: "bg-success/15 text-success",
   confirmado: "bg-success/15 text-success",
