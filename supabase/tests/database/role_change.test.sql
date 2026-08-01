@@ -88,11 +88,16 @@ select throws_ok(
 );
 reset role;
 
+-- 20260731170001 reverses this: an account administers at most one
+-- organization. This used to assert the opposite (self-serving an
+-- additional org was allowed) — updated to match the new, deliberate
+-- restriction; see one_admin_org.test.sql for the full coverage of that
+-- migration.
 select pg_temp.login_as('00000000-0000-0000-0000-000000000102'); -- already admins Landlord Freeze Org
-select isnt(
-  (select (public.create_organization('individual', 'Second Org')).id),
-  null,
-  'create_organization still allows an existing org-admin to self-serve an additional organization'
+select throws_ok(
+  $$select public.create_organization('individual', 'Second Org')$$,
+  'P0001', null,
+  'create_organization no longer allows an existing org-admin to self-serve an additional organization'
 );
 reset role;
 
