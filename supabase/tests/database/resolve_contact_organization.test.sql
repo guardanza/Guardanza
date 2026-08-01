@@ -2,6 +2,13 @@
 -- persona→organización bridge behind the unified contacts view. Same
 -- impersonation pattern as the other suites, own UUID range
 -- (...000401-...000409, ...0000004a1-...0000004a4).
+--
+-- El desempate "toma la organización más antigua" que documenta la
+-- función (para una cuenta admin de más de una organización) ya no es
+-- construible como fixture desde 20260731170001 (Restricción B: como
+-- mucho una organización admin por cuenta, índice único parcial en
+-- memberships) — ese mismo índice es lo que se prueba acá en su lugar,
+-- como demostración de que ambas migraciones son consistentes entre sí.
 
 begin;
 select plan(12);
@@ -25,8 +32,7 @@ insert into public.organizations (id, type, name, created_by) values
   ('00000000-0000-0000-0000-0000000004a2', 'individual', 'Org Arrendador Resuelto', '00000000-0000-0000-0000-000000000403'),
   ('00000000-0000-0000-0000-0000000004a3', 'broker', 'Org Corredor Resuelto', '00000000-0000-0000-0000-000000000404'),
   ('00000000-0000-0000-0000-0000000004a4', 'individual', 'Org Ajena', '00000000-0000-0000-0000-000000000408'),
-  ('00000000-0000-0000-0000-0000000004a5', 'individual', 'Org Multi 1 (más antigua)', '00000000-0000-0000-0000-000000000407'),
-  ('00000000-0000-0000-0000-0000000004a6', 'individual', 'Org Multi 2 (más nueva)', '00000000-0000-0000-0000-000000000407'),
+  ('00000000-0000-0000-0000-0000000004a5', 'individual', 'Org De Multi Org', '00000000-0000-0000-0000-000000000407'),
   ('00000000-0000-0000-0000-0000000004a7', 'broker', 'Org Agente Only', '00000000-0000-0000-0000-000000000401');
 
 insert into public.memberships (user_id, organization_id, role, created_at) values
@@ -35,8 +41,7 @@ insert into public.memberships (user_id, organization_id, role, created_at) valu
   ('00000000-0000-0000-0000-000000000403', '00000000-0000-0000-0000-0000000004a2', 'admin', now()),
   ('00000000-0000-0000-0000-000000000404', '00000000-0000-0000-0000-0000000004a3', 'admin', now()),
   ('00000000-0000-0000-0000-000000000408', '00000000-0000-0000-0000-0000000004a4', 'admin', now()),
-  ('00000000-0000-0000-0000-000000000407', '00000000-0000-0000-0000-0000000004a5', 'admin', now() - interval '2 days'),
-  ('00000000-0000-0000-0000-000000000407', '00000000-0000-0000-0000-0000000004a6', 'admin', now()),
+  ('00000000-0000-0000-0000-000000000407', '00000000-0000-0000-0000-0000000004a5', 'admin', now()),
   ('00000000-0000-0000-0000-000000000409', '00000000-0000-0000-0000-0000000004a7', 'agente', now());
 
 -- Org A's libreta: everyone loaded and confirmed except 'resolve-pendiente'.
@@ -144,20 +149,27 @@ select is(
 reset role;
 
 -- ---------------------------------------------------------------------
--- Cuenta con más de una organización: toma la más antigua, determinista
+-- Resuelve normal a su única organización, y esa cuenta no puede tener
+-- una segunda — Restricción B (20260731170001) lo impide a nivel de
+-- índice, no solo por convención. El desempate "más antigua" que sigue
+-- documentado en la función queda como defensa en profundidad para datos
+-- legados, no como algo que un fixture nuevo pueda construir.
 -- ---------------------------------------------------------------------
 select pg_temp.login_as('00000000-0000-0000-0000-000000000401');
 select is(
-  (select count(*)::int from public.resolve_contact_organization('00000000-0000-0000-0000-0000000004b5')),
-  1,
-  'una cuenta admin de dos organizaciones igual resuelve a exactamente una fila'
-);
-select is(
   (select o.id from public.resolve_contact_organization('00000000-0000-0000-0000-0000000004b5') o),
   '00000000-0000-0000-0000-0000000004a5'::uuid,
-  'entre varias organizaciones posibles, se resuelve la más antigua (desempate determinista)'
+  'un contacto arrendador confirmado resuelve a su (única) organización'
 );
 reset role;
+
+select throws_ok(
+  $$ insert into public.memberships (user_id, organization_id, role) values
+     ('00000000-0000-0000-0000-000000000407', '00000000-0000-0000-0000-0000000004a7', 'admin') $$,
+  '23505',
+  null,
+  'Restricción B impide que esa cuenta llegue a administrar una segunda organización'
+);
 
 -- ---------------------------------------------------------------------
 -- Una membership no-admin no cuenta como "organización propia"
