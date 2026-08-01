@@ -6,8 +6,14 @@ import { orgRoleLabel, orgTypeLabel } from "@/lib/labels";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default async function OrganizationsPage() {
+export default async function OrganizationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: actionError } = await searchParams;
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
@@ -18,19 +24,28 @@ export default async function OrganizationsPage() {
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
 
-  // Creating an *additional* organization is still self-service — but a
-  // first one is a role change, and create_organization() now rejects that
-  // from anyone with zero existing memberships (see Fase 0 migration).
+  // Una cuenta administra como mucho una organización (índice único
+  // parcial en memberships, 20260731170001) — "+ Nueva organización" solo
+  // tiene sentido para quien todavía no administra ninguna. Sin
+  // membership admin (sea porque no tiene ninguna membership, o solo
+  // tiene una no-admin — 'agente', sin uso todavía) sigue siendo un
+  // cambio de rol legítimo, no un intento de duplicar.
+  const hasAdminOrg = (memberships ?? []).some((m) => m.role === "admin");
   const hasAnyMembership = (memberships?.length ?? 0) > 0;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
+      {actionError && (
+        <Alert variant="destructive">
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Mi negocio</h1>
           <p className="text-sm text-muted-foreground">Arrendadores y corredoras que administras.</p>
         </div>
-        {hasAnyMembership ? (
+        {hasAdminOrg ? null : hasAnyMembership ? (
           <Link href="/organizations/new" className={buttonVariants()}>
             + Nueva organización
           </Link>
