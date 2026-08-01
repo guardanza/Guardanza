@@ -1,23 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Users, Handshake, PenLine, ClipboardCheck, History, User, Bell, ShieldCheck, ChevronRight } from "lucide-react";
+import { Handshake, PenLine, ClipboardCheck, History, User, Bell, ShieldCheck, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getProfileTypeLabel } from "@/lib/profile-label";
 import { signOut } from "@/lib/actions/auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-// Same grouping as the desktop sidebar's OPERACIÓN/CUENTA — most CARTERA
-// items (Propiedades/Mi negocio/Contratos) live on the bottom tab bar
-// instead, same order, just a different layout for a 5-icon budget.
-// Contactos (the libreta) is the exception: CARTERA grew to four items in
-// the desktop sidebar, one more than the tab bar has room for, so it's
-// listed here instead.
+// Same grouping as the desktop sidebar's OPERACIÓN/CUENTA — todos los
+// items de CARTERA (Propiedades/Mis contactos/Contratos) viven en el tab
+// bar inferior, mismo orden, solo un layout distinto para el presupuesto
+// de 5 íconos. Ya no hace falta un grupo Cartera acá (existió mientras
+// "Mi negocio" ocupaba un slot del tab bar y Contactos no entraba).
 const GROUPS: { label: string; items: { href: string; label: string; icon: typeof Handshake }[] }[] = [
-  {
-    label: "Cartera",
-    items: [{ href: "/contacts", label: "Contactos", icon: Users }],
-  },
   {
     label: "Operación",
     items: [
