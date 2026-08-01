@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RegionCommuneSelect } from "@/components/region-commune-select";
 import { PropertyPhotoField } from "@/components/property-photo-field";
 import { MoneyAmountInput } from "@/components/money-amount-input";
+import { BrokerSearchField } from "@/components/broker-search-field";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -97,8 +98,9 @@ export default async function EditPropertyPage({
                 ))}
               </select>
             </div>
+            <BrokerSearchField />
             <div className="space-y-1.5">
-              <Label htmlFor="broker_org_code">Código de corredora (opcional, deja vacío para no cambiar)</Label>
+              <Label htmlFor="broker_org_code">O por código de corredora (opcional, deja vacío para no cambiar)</Label>
               <Input id="broker_org_code" name="broker_org_code" placeholder="Ej: 384021" />
             </div>
 
