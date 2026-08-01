@@ -114,8 +114,8 @@ export default async function ContactsPage({
           return (
             <Card key={r.key}>
               <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0 space-y-1">
-                  <p className="truncate font-medium">{r.fullName}</p>
+                <Link href={`/contacts/${activeTab}/${encodeURIComponent(r.key)}`} className="min-w-0 flex-1 space-y-1">
+                  <p className="truncate font-medium hover:underline">{r.fullName}</p>
                   {(r.email || r.rut) && (
                     <p className="truncate text-xs text-muted-foreground">{[r.email, r.rut].filter(Boolean).join(" · ")}</p>
                   )}
@@ -123,7 +123,7 @@ export default async function ContactsPage({
                     <Badge variant="outline">{roleBucketLabel(activeTab)}</Badge>
                     {displayStatus ? <StatusBadge status={displayStatus} /> : <Badge variant="outline">Sin ficha en tu libreta</Badge>}
                   </div>
-                </div>
+                </Link>
                 {r.contactId && (
                   <div className="flex w-full gap-2 sm:w-auto">
                     {r.status === "pendiente" && (

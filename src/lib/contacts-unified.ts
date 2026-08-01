@@ -3,6 +3,7 @@ import type { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { stripParticularSuffix } from "@/lib/labels";
 import type { RoleBucket } from "@/lib/role-bucket";
+import type { MoneyCurrency } from "@/lib/money";
 
 type Supa = Awaited<ReturnType<typeof createClient>>;
 
@@ -177,4 +178,112 @@ async function getOrgBackedRole(supabase: Supa, role: "arrendador" | "corredor",
   }
 
   return [...byOrgId.values(), ...byContactId.values()];
+}
+
+export type PersonProperty = { id: string; address: string };
+export type PersonContract = { id: string; status: string; rentAmount: number; rentCurrency: MoneyCurrency; propertyAddress: string };
+export type PersonDetail = { row: UnifiedContactRow; properties: PersonProperty[]; contracts: PersonContract[] };
+
+const PENDING_KEY_PREFIX = "contact:";
+
+// Paso 6.3: propiedades y contratos asociados a una persona de "Mis
+// contactos", según su rol. Reusa getUnifiedContacts para encontrar la
+// fila (misma clave de de-dup) en vez de duplicar esa lógica — el costo
+// extra de recalcular la lista completa es aceptable al tamaño de libreta
+// de esta etapa. Pendientes (key con prefijo PENDING_KEY_PREFIX) no
+// tienen organización/cuenta resuelta todavía, así que no hay nada que
+// buscar — vuelven con listas vacías, no es un error.
+//
+// Ni esto ni los dos helpers de abajo agregan ninguna consulta con
+// privilegios especiales: todo corre con la RLS normal del usuario
+// autenticado, que ya acota exactamente a "lo que compartís con esta
+// persona" (properties_select_member exige ser miembro de la organización
+// dueña o de la corredora delegada — nunca el portfolio completo de un
+// tercero solo por haberlo cargado en tu libreta).
+export async function getPersonDetail(supabase: Supa, role: RoleBucket, key: string, myUserId: string): Promise<PersonDetail | null> {
+  const rows = await getUnifiedContacts(supabase, role, myUserId);
+  const row = rows.find((r) => r.key === key);
+  if (!row) return null;
+
+  if (key.startsWith(PENDING_KEY_PREFIX)) {
+    return { row, properties: [], contracts: [] };
+  }
+
+  const { properties, contracts } =
+    role === "arrendatario" ? await getArrendatarioAssets(supabase, key) : await getOrgAssets(supabase, role, key);
+  return { row, properties, contracts };
+}
+
+async function getArrendatarioAssets(supabase: Supa, userId: string): Promise<{ properties: PersonProperty[]; contracts: PersonContract[] }> {
+  const [{ data: tenantRows }, { data: partyRows }] = await Promise.all([
+    supabase.from("property_tenants").select("properties(id, address)").eq("user_id", userId),
+    supabase
+      .from("contract_parties")
+      .select("contracts(id, status, rent_amount, rent_currency, properties(address))")
+      .eq("user_id", userId)
+      .eq("role", "arrendatario"),
+  ]);
+
+  const propertyById = new Map<string, PersonProperty>();
+  for (const t of tenantRows ?? []) {
+    const p = one(t.properties);
+    if (p) propertyById.set(p.id, p);
+  }
+
+  const contracts: PersonContract[] = [];
+  for (const pt of partyRows ?? []) {
+    const contract = one(pt.contracts);
+    if (!contract) continue;
+    const property = one(contract.properties);
+    contracts.push({
+      id: contract.id,
+      status: contract.status,
+      rentAmount: contract.rent_amount,
+      rentCurrency: contract.rent_currency,
+      propertyAddress: property?.address ?? "—",
+    });
+  }
+
+  return { properties: [...propertyById.values()], contracts };
+}
+
+async function getOrgAssets(
+  supabase: Supa,
+  role: "arrendador" | "corredor",
+  orgId: string
+): Promise<{ properties: PersonProperty[]; contracts: PersonContract[] }> {
+  const propertyById = new Map<string, PersonProperty>();
+
+  if (role === "corredor") {
+    const { data } = await supabase.from("properties").select("id, address").eq("broker_organization_id", orgId);
+    for (const p of data ?? []) propertyById.set(p.id, p);
+  } else {
+    const [{ data: owned }, { data: landlordRows }] = await Promise.all([
+      supabase.from("properties").select("id, address").eq("organization_id", orgId),
+      supabase.from("property_landlords").select("properties(id, address)").eq("organization_id", orgId),
+    ]);
+    for (const p of owned ?? []) propertyById.set(p.id, p);
+    for (const l of landlordRows ?? []) {
+      const p = one(l.properties);
+      if (p) propertyById.set(p.id, p);
+    }
+  }
+
+  const propertyIds = [...propertyById.keys()];
+  if (propertyIds.length === 0) return { properties: [], contracts: [] };
+
+  const { data: contractRows } = await supabase
+    .from("contracts")
+    .select("id, status, rent_amount, rent_currency, property_id")
+    .in("property_id", propertyIds);
+
+  const contracts: PersonContract[] = (contractRows ?? []).map((c) => ({
+    id: c.id,
+    status: c.status,
+    rentAmount: c.rent_amount,
+    rentCurrency: c.rent_currency,
+    propertyAddress: propertyById.get(c.property_id)?.address ?? "—",
+  }));
+
+  return { properties: [...propertyById.values()], contracts };
 }
