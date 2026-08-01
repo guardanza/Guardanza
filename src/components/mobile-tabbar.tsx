@@ -2,22 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Building2, Briefcase, FileText, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, Building2, Users, FileText, MoreHorizontal } from "lucide-react";
 
 // Bottom tab bar only has room for ~5 items on a phone; the rest live on
 // /more (a plain page, not a popover — overlay menus have been unreliable
 // in this app's testing, and "more" is a well-understood mobile pattern).
-// These 5 are Dashboard + two of the three CARTERA items, in the same
-// order as the CARTERA group in the desktop sidebar — Contactos (the
-// libreta) doesn't fit the 5-icon budget now that CARTERA has four items,
-// so it lives on /more instead (see the Cartera group added there).
+// These 5 are Dashboard + the three CARTERA items, same order as the
+// desktop sidebar — CARTERA fits the 5-icon budget now that "Mi negocio"
+// is gone (Paso 6 de Tanda B: se unificó en "Mis contactos").
 // Defined here rather than passed as a prop for the same reason as
 // SidebarNav: Lucide icon components can't cross the server/client prop
 // boundary.
 const links = [
   { href: "/", label: "Inicio", icon: LayoutDashboard },
   { href: "/properties", label: "Propiedades", icon: Building2 },
-  { href: "/organizations", label: "Mi negocio", icon: Briefcase },
+  { href: "/contacts", label: "Mis contactos", icon: Users },
   { href: "/contracts", label: "Contratos", icon: FileText },
   { href: "/more", label: "Más", icon: MoreHorizontal },
 ];
