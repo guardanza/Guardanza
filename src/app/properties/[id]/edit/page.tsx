@@ -20,6 +20,7 @@ import { RegionCommuneSelect } from "@/components/region-commune-select";
 import { PropertyPhotoField } from "@/components/property-photo-field";
 import { MoneyAmountInput } from "@/components/money-amount-input";
 import { BrokerSearchField } from "@/components/broker-search-field";
+import { LandlordSearchField } from "@/components/landlord-search-field";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -62,9 +63,10 @@ export default async function EditPropertyPage({
   const excludedOrgIds = new Set(
     [property.organization_id, ...(landlords ?? []).map((l) => one(l.organizations)?.id)].filter(Boolean)
   );
-  // Buscador por nombre/email/RUT es la próxima tanda — por ahora, agregar
-  // un copropietario es elegir entre tus propias membresías admin, mismo
-  // límite que ya tiene el select de "Arrendador" arriba.
+  // El buscador (LandlordSearchField, Paso 6.7) convive con este select
+  // viejo hasta el Paso 6.8 — elegir entre tus propias membresías admin
+  // sigue siendo válido (ej. administrás dos organizaciones individuales),
+  // el buscador lo complementa, no lo reemplaza todavía.
   const landlordCandidateOptions = orgOptions.filter((o) => !excludedOrgIds.has(o.id));
 
   return (
@@ -175,12 +177,19 @@ export default async function EditPropertyPage({
           ) : (
             <p className="text-sm text-muted-foreground">Sin copropietarios todavía.</p>
           )}
+          <form action={addPropertyLandlord} className="space-y-2">
+            <input type="hidden" name="property_id" value={id} />
+            <LandlordSearchField />
+            <Button type="submit" variant="outline" size="sm" className="w-full">
+              Agregar
+            </Button>
+          </form>
           {landlordCandidateOptions.length > 0 && (
             <form action={addPropertyLandlord} className="flex gap-2">
               <input type="hidden" name="property_id" value={id} />
               <select name="organization_id" required className={`${selectClass} flex-1`} defaultValue="">
                 <option value="" disabled>
-                  Selecciona una organización
+                  O elegí entre tus propias organizaciones
                 </option>
                 {landlordCandidateOptions.map((o) => (
                   <option key={o.id} value={o.id}>
