@@ -15,7 +15,12 @@ export async function createOrganization(formData: FormData) {
     .rpc("create_organization", { p_type: type, p_name: name })
     .single<{ id: string }>();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.message.includes("already_has_organization")) {
+      redirect(`/organizations?error=${encodeURIComponent("Ya administras una organización — una cuenta administra una sola organización.")}`);
+    }
+    throw new Error(error.message);
+  }
 
   redirect(`/properties/new?organization_id=${org.id}`);
 }
