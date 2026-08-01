@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfileTypeLabel } from "@/lib/profile-label";
@@ -9,12 +10,13 @@ import { updateSystemConfig } from "@/lib/actions/system-config";
 import { requestRoleChange } from "@/lib/actions/role-change";
 import { labelToRoleBucket } from "@/lib/role-bucket";
 import { one } from "@/lib/supabase/one";
+import { orgTypeLabel, stripParticularSuffix } from "@/lib/labels";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ProfileForm } from "@/components/profile-form";
 import { SavedIndicator } from "@/components/saved-indicator";
 import { AvatarPicker } from "@/components/avatar-picker";
@@ -54,6 +56,15 @@ export default async function ProfilePage({
         supabase.from("contract_parties").select("contracts(status)").eq("user_id", userRes.user.id),
       ]);
   const activeContractsCount = (misPartidas ?? []).filter((p) => one(p.contracts)?.status !== "finalizado").length;
+
+  // Paso 6.6: org_code y "+ Nueva organización" se mudan acá desde "Mi
+  // Negocio" (que va camino a desaparecer, Paso 6.8). Con la Restricción B
+  // (20260731170001) una cuenta administra como mucho una organización,
+  // así que esto ya no es una lista — es, a lo sumo, una sola fila.
+  const { data: memberships } = await supabase.from("memberships").select("role, organizations(id, name, type, org_code)");
+  const hasAnyMembership = (memberships ?? []).length > 0;
+  const myOrgMembership = (memberships ?? []).find((m) => m.role === "admin");
+  const myOrg = myOrgMembership ? one(myOrgMembership.organizations) : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -137,6 +148,40 @@ export default async function ProfilePage({
           />
         </CardContent>
       </Card>
+
+      {hasAnyMembership && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Tu organización</CardTitle>
+            {myOrg && (
+              <CardDescription>
+                Código para compartir (para que otra organización te delegue propiedades como corredora):{" "}
+                <span className="font-mono font-medium text-foreground">{myOrg.org_code}</span>
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent>
+            {myOrg ? (
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Link href={`/organizations/${myOrg.id}`} className="font-medium underline-offset-4 hover:underline">
+                    {stripParticularSuffix(myOrg.name)}
+                  </Link>
+                  <p className="text-xs text-muted-foreground">{orgTypeLabel(myOrg.type)}</p>
+                </div>
+              </div>
+            ) : (
+              // Camino sin uso hoy: solo alcanzable con una membership
+              // no-admin (role='agente'), un rol que ningún flujo del
+              // producto asigna todavía — se deja andando por si el
+              // roadmap futuro de "agentes de corredora" lo activa.
+              <Link href="/organizations/new" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                + Nueva organización
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {provider === "google" ? (
         <Card>
