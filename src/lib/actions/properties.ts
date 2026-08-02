@@ -86,16 +86,16 @@ export async function updateProperty(formData: FormData) {
   const address = String(formData.get("address"));
   const commune_id = String(formData.get("commune_id") || "") || null;
   const organization_id = String(formData.get("organization_id") || "") || null;
-  const broker_org_code = String(formData.get("broker_org_code") || "").trim() || null;
   const broker_org_search_id = String(formData.get("broker_organization_id") || "").trim() || null;
   const listing_url_raw = String(formData.get("listing_url") || "").trim() || null;
 
   const fail = (message: string): never =>
     redirect(`/properties/${id}/edit?error=${encodeURIComponent(message)}`);
 
-  // Unlike broker_org_code/photo below (blank = leave as-is), listing_url
-  // and the expected_* fields are regular value fields pre-filled from the
-  // current row — blank here means the user actually cleared it.
+  // Unlike broker_organization_id/photo below (blank = leave as-is),
+  // listing_url and the expected_* fields are regular value fields
+  // pre-filled from the current row — blank here means the user
+  // actually cleared it.
   let listing_url: string | null = null;
   if (listing_url_raw) {
     try {
@@ -105,22 +105,20 @@ export async function updateProperty(formData: FormData) {
     }
   }
 
-  // Only touch broker_organization_id when a code or a search selection
-  // was actually submitted — the edit form leaves these blank when
-  // there's nothing to change, and blank must mean "leave as-is", not
-  // "unlink the broker". El buscador (Paso 6.5) convive con el código de
-  // 6 dígitos hasta que el 6.8 retire este último; si llegan los dos a la
-  // vez, gana la selección del buscador (más intencional que un campo de
-  // texto que pudo quedar con un valor viejo).
+  // Only touch broker_organization_id when a search selection was
+  // actually submitted — the edit form leaves this blank when there's
+  // nothing to change, and blank must mean "leave as-is", not "unlink
+  // the broker". El código de 6 dígitos (lookup_organization_by_code) se
+  // retiró en el Paso 6.8 — el buscador (Paso 6.5) es ahora el único
+  // camino.
   let broker_organization_id: string | undefined;
   if (broker_org_search_id) {
     // El id viene de un campo oculto que el cliente controla — se valida
     // server-side que sea de verdad una organización type='broker' antes
-    // de confiar en él, mismo criterio que ya aplicaba
-    // lookup_organization_by_code. RLS normal no alcanza acá (todavía no
-    // compartís ninguna propiedad con esa corredora, es precisamente lo
-    // que se está por crear), así que se valida con el cliente de
-    // service-role, sin exponer nada más que ese chequeo booleano.
+    // de confiar en él. RLS normal no alcanza acá (todavía no compartís
+    // ninguna propiedad con esa corredora, es precisamente lo que se
+    // está por crear), así que se valida con el cliente de service-role,
+    // sin exponer nada más que ese chequeo booleano.
     const admin = createServiceRoleClient();
     const { data: broker, error: lookupError } = await admin
       .from("organizations")
@@ -130,13 +128,6 @@ export async function updateProperty(formData: FormData) {
       .maybeSingle();
     if (lookupError) return fail(lookupError.message);
     if (!broker) return fail("La corredora seleccionada ya no es válida — probá buscarla de nuevo.");
-    broker_organization_id = broker.id;
-  } else if (broker_org_code) {
-    const { data: broker, error: lookupError } = await supabase
-      .rpc("lookup_organization_by_code", { p_code: broker_org_code })
-      .maybeSingle<{ id: string; name: string; type: string }>();
-    if (lookupError) return fail(lookupError.message);
-    if (!broker) return fail(`No existe ninguna corredora con el código ${broker_org_code}.`);
     broker_organization_id = broker.id;
   }
 

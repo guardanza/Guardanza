@@ -3,10 +3,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function NewOrganizationPage() {
+export default async function NewOrganizationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   return (
-    <div className="mx-auto max-w-md px-4 py-6 md:px-6 md:py-10">
+    <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>Nueva organización</CardTitle>
