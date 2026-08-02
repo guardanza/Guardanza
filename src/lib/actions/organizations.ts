@@ -17,7 +17,7 @@ export async function createOrganization(formData: FormData) {
 
   if (error) {
     if (error.message.includes("already_has_organization")) {
-      redirect(`/organizations?error=${encodeURIComponent("Ya administras una organización — una cuenta administra una sola organización.")}`);
+      redirect(`/organizations/new?error=${encodeURIComponent("Ya administras una organización — una cuenta administra una sola organización.")}`);
     }
     throw new Error(error.message);
   }

@@ -55,19 +55,6 @@ export default async function EditPropertyPage({
     .from("property_landlords")
     .select("id, organizations(id, name)")
     .eq("property_id", id);
-  // Exclude both whatever's already in property_landlords AND
-  // property.organization_id explicitly — belt-and-suspenders so the
-  // current owner can never be offered to themselves as a "new"
-  // copropietario, even if organization_id was just changed above (in the
-  // same page, before property_landlords catches up) or a row is missing.
-  const excludedOrgIds = new Set(
-    [property.organization_id, ...(landlords ?? []).map((l) => one(l.organizations)?.id)].filter(Boolean)
-  );
-  // El buscador (LandlordSearchField, Paso 6.7) convive con este select
-  // viejo hasta el Paso 6.8 — elegir entre tus propias membresías admin
-  // sigue siendo válido (ej. administrás dos organizaciones individuales),
-  // el buscador lo complementa, no lo reemplaza todavía.
-  const landlordCandidateOptions = orgOptions.filter((o) => !excludedOrgIds.has(o.id));
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -101,10 +88,6 @@ export default async function EditPropertyPage({
               </select>
             </div>
             <BrokerSearchField />
-            <div className="space-y-1.5">
-              <Label htmlFor="broker_org_code">O por código de corredora (opcional, deja vacío para no cambiar)</Label>
-              <Input id="broker_org_code" name="broker_org_code" placeholder="Ej: 384021" />
-            </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="listing_url">Link externo (opcional)</Label>
@@ -184,24 +167,6 @@ export default async function EditPropertyPage({
               Agregar
             </Button>
           </form>
-          {landlordCandidateOptions.length > 0 && (
-            <form action={addPropertyLandlord} className="flex gap-2">
-              <input type="hidden" name="property_id" value={id} />
-              <select name="organization_id" required className={`${selectClass} flex-1`} defaultValue="">
-                <option value="" disabled>
-                  O elegí entre tus propias organizaciones
-                </option>
-                {landlordCandidateOptions.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {stripParticularSuffix(o.name)}
-                  </option>
-                ))}
-              </select>
-              <Button type="submit" variant="outline" size="sm">
-                Agregar
-              </Button>
-            </form>
-          )}
         </CardContent>
       </Card>
 
