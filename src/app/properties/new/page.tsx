@@ -44,7 +44,7 @@ export default async function NewPropertyPage({
         <CardHeader>
           <CardTitle>Nueva propiedad</CardTitle>
           <CardDescription>
-            Guardá lo básico ahora — foto, arriendo, garantía y copropietarios se completan después, sin perder nada.
+            Guarda lo básico ahora — foto, arriendo, garantía y copropietarios se completan después, sin perder nada.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -101,7 +101,7 @@ export async function updateProperty(formData: FormData) {
     try {
       listing_url = normalizeListingUrl(listing_url_raw);
     } catch {
-      return fail("El link externo no es válido — revisá que el dominio esté bien escrito.");
+      return fail("El link externo no es válido — revisa que el dominio esté bien escrito.");
     }
   }
 
@@ -115,7 +115,7 @@ export async function updateProperty(formData: FormData) {
   if (broker_org_search_id) {
     // El id viene de un campo oculto que el cliente controla — se valida
     // server-side que sea de verdad una organización type='broker' antes
-    // de confiar en él. RLS normal no alcanza acá (todavía no compartís
+    // de confiar en él. RLS normal no alcanza acá (todavía no compartes
     // ninguna propiedad con esa corredora, es precisamente lo que se
     // está por crear), así que se valida con el cliente de service-role,
     // sin exponer nada más que ese chequeo booleano.
@@ -127,7 +127,7 @@ export async function updateProperty(formData: FormData) {
       .eq("type", "broker")
       .maybeSingle();
     if (lookupError) return fail(lookupError.message);
-    if (!broker) return fail("La corredora seleccionada ya no es válida — probá buscarla de nuevo.");
+    if (!broker) return fail("La corredora seleccionada ya no es válida — prueba buscarla de nuevo.");
     broker_organization_id = broker.id;
   }
 
@@ -176,7 +176,7 @@ export async function addPropertyLandlord(formData: FormData) {
 
   const fail = (message: string): never =>
     redirect(`/properties/${property_id}/edit?error=${encodeURIComponent(message)}`);
-  if (!organization_id) return fail("Selecciona una organización o buscá a la persona por nombre.");
+  if (!organization_id) return fail("Selecciona una organización o busca a la persona por nombre.");
 
   const { error } = await supabase.from("property_landlords").insert({ property_id, organization_id });
   if (error) {

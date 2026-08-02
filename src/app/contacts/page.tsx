@@ -70,7 +70,7 @@ export default async function ContactsPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Mis contactos</h1>
-          <p className="text-sm text-muted-foreground">Arrendadores, arrendatarios y corredoras con los que trabajás.</p>
+          <p className="text-sm text-muted-foreground">Arrendadores, arrendatarios y corredoras con los que trabajas.</p>
         </div>
         {orgCount ? (
           <Link href={`/contacts/new?role=${activeTab}`} className={buttonVariants()}>
@@ -165,7 +165,7 @@ export default async function ContactsPage({
                   ) : null}
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">Todavía no tenés a nadie acá.</p>
+                <p className="text-sm text-muted-foreground">Todavía no tienes a nadie acá.</p>
               )}
             </CardContent>
           </Card>

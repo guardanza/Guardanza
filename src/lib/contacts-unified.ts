@@ -68,7 +68,7 @@ async function getArrendatarios(supabase: Supa, myUserId: string): Promise<Unifi
 
   // Layer 1: property_tenants/contract_parties ya tienen user_id directo,
   // sin ningún puente que resolver — pero el nombre puede no ser legible
-  // (profiles solo es visible si compartís contrato u organización, ver
+  // (profiles solo es visible si compartes contrato u organización, ver
   // profiles_select_self_or_shared; un interesado precontractual cargado
   // directo, sin pasar por la libreta, puede no tener nombre visible
   // todavía). Se agrega igual, con el nombre que haya disponible.
@@ -196,7 +196,7 @@ const PENDING_KEY_PREFIX = "contact:";
 //
 // Ni esto ni los dos helpers de abajo agregan ninguna consulta con
 // privilegios especiales: todo corre con la RLS normal del usuario
-// autenticado, que ya acota exactamente a "lo que compartís con esta
+// autenticado, que ya acota exactamente a "lo que compartes con esta
 // persona" (properties_select_member exige ser miembro de la organización
 // dueña o de la corredora delegada — nunca el portfolio completo de un
 // tercero solo por haberlo cargado en tu libreta).

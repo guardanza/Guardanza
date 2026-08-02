@@ -29,7 +29,7 @@ export async function linkExistingAccountInvite(formData: FormData) {
 
   if (error) return inviteFail(token, "Esta invitación ya no es válida — pedile a quien te invitó que la reenvíe.");
   if (!data.ok) {
-    return inviteFail(token, "Ya tenés una cuenta de Guardanza con otro rol — no te podemos vincular a esta invitación.");
+    return inviteFail(token, "Ya tienes una cuenta de Guardanza con otro rol — no te podemos vincular a esta invitación.");
   }
 
   redirect("/login?confirmed=1");
@@ -82,7 +82,7 @@ export async function acceptContactInvite(formData: FormData) {
   // ficha.
   if (confirmError) return inviteFail(token, "Esta invitación ya no es válida — pedile a quien te invitó que la reenvíe.");
   if (!data.ok) {
-    return inviteFail(token, "Ya tenés una cuenta de Guardanza con otro rol — no te podemos vincular a esta invitación.");
+    return inviteFail(token, "Ya tienes una cuenta de Guardanza con otro rol — no te podemos vincular a esta invitación.");
   }
 
   redirect("/");

@@ -59,7 +59,7 @@ export function LandlordSearchField({ inputName = "organization_id" }: { inputNa
     const { data, error } = await supabase.rpc("resolve_contact_organization", { p_contact_id: c.id }).maybeSingle<{ id: string }>();
     setResolving(null);
     if (error || !data) {
-      setResolveError("No se pudo vincular a esta persona — probá buscarla de nuevo.");
+      setResolveError("No se pudo vincular a esta persona — prueba buscarla de nuevo.");
       return;
     }
     setSelected({ organizationId: data.id, fullName: c.full_name });
