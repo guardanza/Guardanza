@@ -170,12 +170,14 @@ export async function updateProperty(formData: FormData) {
   redirect(`/properties/${id}`);
 }
 
-// Copropietarios: mismo patrón simple que addPropertyTenant/
-// removePropertyTenant (select entre tus propias membresías admin, no el
-// buscador por nombre/email/RUT — eso es la próxima tanda). Solo el admin
-// de la org dueña original puede llamar estas acciones (RLS de
-// property_landlords, 20260731100001) — los copropietarios agregados no
-// ganan, por estar en la lista, la capacidad de gestionarla ellos mismos.
+// Copropietarios: recibe un organization_id ya resuelto, sea del
+// buscador (LandlordSearchField — resuelve un contacto de la libreta a
+// su organización vía resolve_contact_organization, Paso 6.7) o del
+// select viejo (tus propias membresías admin, conviven hasta el Paso
+// 6.8). A esta acción le da igual de dónde salió el id. Solo el admin
+// de la org dueña original puede llamarla (RLS de property_landlords,
+// 20260731100001) — los copropietarios agregados no ganan, por estar en
+// la lista, la capacidad de gestionarla ellos mismos.
 export async function addPropertyLandlord(formData: FormData) {
   const supabase = await createClient();
   const property_id = String(formData.get("property_id"));
@@ -183,11 +185,11 @@ export async function addPropertyLandlord(formData: FormData) {
 
   const fail = (message: string): never =>
     redirect(`/properties/${property_id}/edit?error=${encodeURIComponent(message)}`);
-  if (!organization_id) return fail("Selecciona una organización.");
+  if (!organization_id) return fail("Selecciona una organización o buscá a la persona por nombre.");
 
   const { error } = await supabase.from("property_landlords").insert({ property_id, organization_id });
   if (error) {
-    if (error.code === "23505") return fail("Esa organización ya es copropietaria de esta propiedad.");
+    if (error.code === "23505") return fail("Esa persona ya es copropietaria de esta propiedad.");
     return fail(error.message);
   }
 
