@@ -37,13 +37,15 @@ export function MoneyAmountInput({
   return (
     <div className="flex gap-2">
       <div className="relative flex-1">
-        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+        {currency === "CLP" && (
+          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+        )}
         <Input
           type="text"
           inputMode="decimal"
           value={formatMoneyInputDisplay(raw, allowDecimals)}
           onChange={(e) => setRaw(digitsOnly(e.target.value, allowDecimals))}
-          className="pl-6"
+          className={currency === "CLP" ? "pl-6" : undefined}
         />
         <input type="hidden" name={amountName} value={raw} />
       </div>
