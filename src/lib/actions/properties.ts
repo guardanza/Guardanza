@@ -180,7 +180,7 @@ export async function addPropertyLandlord(formData: FormData) {
 
   const { error } = await supabase.from("property_landlords").insert({ property_id, organization_id });
   if (error) {
-    if (error.code === "23505") return fail("Esa persona ya es copropietaria de esta propiedad.");
+    if (error.code === "23505") return fail("Esa persona ya es arrendadora de esta propiedad.");
     return fail(error.message);
   }
 

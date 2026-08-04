@@ -1,13 +1,7 @@
 import { notFound } from "next/navigation";
 import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import {
-  updateProperty,
-  addPropertyTenant,
-  removePropertyTenant,
-  addPropertyLandlord,
-  removePropertyLandlord,
-} from "@/lib/actions/properties";
+import { updateProperty, addPropertyLandlord, removePropertyLandlord } from "@/lib/actions/properties";
 import { one } from "@/lib/supabase/one";
 import { stripParticularSuffix } from "@/lib/labels";
 import { getRegionsWithCommunes } from "@/lib/supabase/regions";
@@ -46,15 +40,15 @@ export default async function EditPropertyPage({
     .map((m) => (Array.isArray(m.organizations) ? m.organizations[0] : m.organizations))
     .filter((o): o is { id: string; name: string } => !!o);
 
-  const { data: tenants } = await supabase
-    .from("property_tenants")
-    .select("id, profiles(full_name)")
-    .eq("property_id", id);
-
-  const { data: landlords } = await supabase
+  const { data: allLandlords } = await supabase
     .from("property_landlords")
     .select("id, organizations(id, name)")
     .eq("property_id", id);
+  // La organización dueña original siempre tiene su propia fila acá
+  // (eco del backfill de Tanda A) — ya se muestra aparte en la
+  // descripción de la sección, así que no tiene sentido listarse a sí
+  // misma como si fuera un arrendador más agregado después.
+  const landlords = (allLandlords ?? []).filter((l) => one(l.organizations)?.id !== property.organization_id);
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -103,7 +97,7 @@ export default async function EditPropertyPage({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="expected_term_months">Plazo de arriendo esperado (meses, opcional)</Label>
+              <Label htmlFor="expected_term_months">Plazo de arriendo (meses)</Label>
               <Input
                 id="expected_term_months"
                 name="expected_term_months"
@@ -114,7 +108,7 @@ export default async function EditPropertyPage({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Garantía esperada (opcional)</Label>
+              <Label>Monto garantía de arriendo</Label>
               <MoneyAmountInput
                 amountName="expected_guarantee_amount"
                 currencyName="expected_guarantee_currency"
@@ -132,14 +126,14 @@ export default async function EditPropertyPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Copropietarios</CardTitle>
+          <CardTitle>Arrendadores</CardTitle>
           <CardDescription>
             La organización original ({stripParticularSuffix(orgOptions.find((o) => o.id === property.organization_id)?.name ?? "—")}) sigue
-            siendo quien administra la propiedad. Los demás copropietarios solo figuran acá.
+            siendo quien administra la propiedad. Los demás arrendadores solo figuran acá.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {landlords && landlords.length > 0 ? (
+          {landlords.length > 0 ? (
             <ul className="space-y-1.5">
               {landlords.map((l) => {
                 const org = one(l.organizations);
@@ -158,50 +152,13 @@ export default async function EditPropertyPage({
               })}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">Sin copropietarios todavía.</p>
+            <p className="text-sm text-muted-foreground">Sin arrendadores adicionales todavía.</p>
           )}
           <form action={addPropertyLandlord} className="space-y-2">
             <input type="hidden" name="property_id" value={id} />
             <LandlordSearchField />
             <Button type="submit" variant="outline" size="sm" className="w-full">
               Agregar
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Arrendatarios vinculados</CardTitle>
-          <CardDescription>Interesados en esta propiedad, con o sin contrato todavía.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {tenants && tenants.length > 0 ? (
-            <ul className="space-y-1.5">
-              {tenants.map((t) => {
-                const profile = Array.isArray(t.profiles) ? t.profiles[0] : t.profiles;
-                return (
-                  <li key={t.id} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm">
-                    <span>{profile?.full_name ?? "—"}</span>
-                    <form action={removePropertyTenant}>
-                      <input type="hidden" name="id" value={t.id} />
-                      <input type="hidden" name="property_id" value={id} />
-                      <button type="submit" className="text-muted-foreground hover:text-destructive">
-                        <X className="size-4" />
-                      </button>
-                    </form>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin arrendatarios vinculados todavía.</p>
-          )}
-          <form action={addPropertyTenant} className="flex gap-2">
-            <input type="hidden" name="property_id" value={id} />
-            <Input name="tenant_email" type="email" placeholder="email@ejemplo.cl" required className="flex-1" />
-            <Button type="submit" variant="outline" size="sm">
-              Vincular
             </Button>
           </form>
         </CardContent>

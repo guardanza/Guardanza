@@ -68,7 +68,7 @@ export function LandlordSearchField({ inputName = "organization_id" }: { inputNa
 
   return (
     <div className="space-y-1.5">
-      <Label htmlFor="landlord_search">Agregar copropietario por nombre, email o RUT</Label>
+      <Label htmlFor="landlord_search">Agregar arrendador por nombre, email o RUT</Label>
       <input type="hidden" name={inputName} value={selected?.organizationId ?? ""} />
       {resolveError && <p className="text-xs text-destructive">{resolveError}</p>}
       {selected ? (
