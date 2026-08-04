@@ -86,16 +86,14 @@ export async function updateProperty(formData: FormData) {
   const address = String(formData.get("address"));
   const commune_id = String(formData.get("commune_id") || "") || null;
   const organization_id = String(formData.get("organization_id") || "") || null;
-  const broker_org_search_id = String(formData.get("broker_organization_id") || "").trim() || null;
   const listing_url_raw = String(formData.get("listing_url") || "").trim() || null;
 
   const fail = (message: string): never =>
     redirect(`/properties/${id}/edit?error=${encodeURIComponent(message)}`);
 
-  // Unlike broker_organization_id/photo below (blank = leave as-is),
-  // listing_url and the expected_* fields are regular value fields
-  // pre-filled from the current row — blank here means the user
-  // actually cleared it.
+  // Unlike photo_url below (blank = leave as-is), listing_url and the
+  // expected_* fields are regular value fields pre-filled from the
+  // current row — blank here means the user actually cleared it.
   let listing_url: string | null = null;
   if (listing_url_raw) {
     try {
@@ -103,32 +101,6 @@ export async function updateProperty(formData: FormData) {
     } catch {
       return fail("El link externo no es válido — revisa que el dominio esté bien escrito.");
     }
-  }
-
-  // Only touch broker_organization_id when a search selection was
-  // actually submitted — the edit form leaves this blank when there's
-  // nothing to change, and blank must mean "leave as-is", not "unlink
-  // the broker". El código de 6 dígitos (lookup_organization_by_code) se
-  // retiró en el Paso 6.8 — el buscador (Paso 6.5) es ahora el único
-  // camino.
-  let broker_organization_id: string | undefined;
-  if (broker_org_search_id) {
-    // El id viene de un campo oculto que el cliente controla — se valida
-    // server-side que sea de verdad una organización type='broker' antes
-    // de confiar en él. RLS normal no alcanza acá (todavía no compartes
-    // ninguna propiedad con esa corredora, es precisamente lo que se
-    // está por crear), así que se valida con el cliente de service-role,
-    // sin exponer nada más que ese chequeo booleano.
-    const admin = createServiceRoleClient();
-    const { data: broker, error: lookupError } = await admin
-      .from("organizations")
-      .select("id")
-      .eq("id", broker_org_search_id)
-      .eq("type", "broker")
-      .maybeSingle();
-    if (lookupError) return fail(lookupError.message);
-    if (!broker) return fail("La corredora seleccionada ya no es válida — prueba buscarla de nuevo.");
-    broker_organization_id = broker.id;
   }
 
   let photo_url: string | undefined;
@@ -145,7 +117,6 @@ export async function updateProperty(formData: FormData) {
       address,
       commune_id,
       ...(organization_id ? { organization_id } : {}),
-      ...(broker_organization_id ? { broker_organization_id } : {}),
       ...(photo_url ? { photo_url } : {}),
       listing_url,
       expected_rent_amount: parseOptionalNumber(formData, "expected_rent_amount"),
@@ -161,14 +132,14 @@ export async function updateProperty(formData: FormData) {
   redirect(`/properties/${id}`);
 }
 
-// Copropietarios: recibe un organization_id ya resuelto, sea del
-// buscador (LandlordSearchField — resuelve un contacto de la libreta a
-// su organización vía resolve_contact_organization, Paso 6.7) o del
-// select viejo (tus propias membresías admin, conviven hasta el Paso
-// 6.8). A esta acción le da igual de dónde salió el id. Solo el admin
-// de la org dueña original puede llamarla (RLS de property_landlords,
-// 20260731100001) — los copropietarios agregados no ganan, por estar en
-// la lista, la capacidad de gestionarla ellos mismos.
+// Arrendadores adicionales: recibe un organization_id ya resuelto por
+// LandlordSearchField (resuelve un contacto de la libreta a su
+// organización vía resolve_contact_organization, Paso 6.7). Solo el
+// admin de la org dueña original puede llamarla (RLS de
+// property_landlords, 20260731100001) — los arrendadores agregados no
+// ganan, por estar en la lista, la capacidad de gestionarla ellos
+// mismos. Se envía sola al elegir un resultado del buscador (Sección 2
+// del formulario) — sin botón "Agregar" aparte.
 export async function addPropertyLandlord(formData: FormData) {
   const supabase = await createClient();
   const property_id = String(formData.get("property_id"));
@@ -195,6 +166,45 @@ export async function removePropertyLandlord(formData: FormData) {
 
   const { error } = await supabase.from("property_landlords").delete().eq("id", id);
   if (error) redirect(`/properties/${property_id}/edit?error=${encodeURIComponent(error.message)}`);
+
+  revalidatePath(`/properties/${property_id}/edit`);
+  redirect(`/properties/${property_id}/edit`);
+}
+
+// Corredor asociado: acción propia (Sección 3 del formulario), separada
+// de updateProperty, para que elegir un resultado del buscador
+// (BrokerSearchField, Paso 6.5) lo persista de inmediato sin depender de
+// que se haya guardado el resto de la Sección 1. El modelo hoy solo
+// admite un corredor por propiedad — broker_organization_id es una
+// columna escalar en properties, no una tabla puente — así que esta
+// acción reemplaza al que hubiera, nunca agrega uno segundo.
+export async function setPropertyBroker(formData: FormData) {
+  const supabase = await createClient();
+  const property_id = String(formData.get("property_id"));
+  const broker_org_search_id = String(formData.get("broker_organization_id") || "").trim();
+
+  const fail = (message: string): never =>
+    redirect(`/properties/${property_id}/edit?error=${encodeURIComponent(message)}`);
+  if (!broker_org_search_id) return fail("Busca una corredora por nombre o RUT.");
+
+  // El id viene de un campo oculto que el cliente controla — se valida
+  // server-side que sea de verdad una organización type='broker' antes
+  // de confiar en él. RLS normal no alcanza acá (todavía no compartes
+  // ninguna propiedad con esa corredora, es precisamente lo que se está
+  // por crear), así que se valida con el cliente de service-role, sin
+  // exponer nada más que ese chequeo booleano.
+  const admin = createServiceRoleClient();
+  const { data: broker, error: lookupError } = await admin
+    .from("organizations")
+    .select("id")
+    .eq("id", broker_org_search_id)
+    .eq("type", "broker")
+    .maybeSingle();
+  if (lookupError) return fail(lookupError.message);
+  if (!broker) return fail("La corredora seleccionada ya no es válida — prueba buscarla de nuevo.");
+
+  const { error } = await supabase.from("properties").update({ broker_organization_id: broker.id }).eq("id", property_id);
+  if (error) return fail(error.message);
 
   revalidatePath(`/properties/${property_id}/edit`);
   redirect(`/properties/${property_id}/edit`);

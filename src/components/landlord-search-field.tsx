@@ -21,7 +21,9 @@ type Selected = { organizationId: string; fullName: string };
 // Sin <form> propio a propósito — vive dentro del <form action=
 // {addPropertyLandlord}> de la página, mismo lugar que ocupaba el
 // <select> viejo; solo aporta el input oculto name="organization_id" que
-// esa acción ya sabe leer.
+// esa acción ya sabe leer. Al resolverse la selección, se envía el
+// formulario contenedor solo — sin botón "Agregar" aparte, elegir un
+// resultado ya alcanza.
 export function LandlordSearchField({ inputName = "organization_id" }: { inputName?: string }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ContactResult[]>([]);
@@ -29,6 +31,7 @@ export function LandlordSearchField({ inputName = "organization_id" }: { inputNa
   const [resolving, setResolving] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -52,6 +55,13 @@ export function LandlordSearchField({ inputName = "organization_id" }: { inputNa
 
   const visibleResults = selected || query.trim().length < 2 ? [] : results;
 
+  // El input oculto recién refleja el valor resuelto después de este
+  // commit — disparar el submit en un efecto (no justo después del
+  // setSelected) evita mandar el formulario con el valor todavía vacío.
+  useEffect(() => {
+    if (selected) hiddenInputRef.current?.form?.requestSubmit();
+  }, [selected]);
+
   async function selectContact(c: ContactResult) {
     setResolveError(null);
     setResolving(c.id);
@@ -69,7 +79,7 @@ export function LandlordSearchField({ inputName = "organization_id" }: { inputNa
   return (
     <div className="space-y-1.5">
       <Label htmlFor="landlord_search">Agregar arrendador por nombre, email o RUT</Label>
-      <input type="hidden" name={inputName} value={selected?.organizationId ?? ""} />
+      <input ref={hiddenInputRef} type="hidden" name={inputName} value={selected?.organizationId ?? ""} />
       {resolveError && <p className="text-xs text-destructive">{resolveError}</p>}
       {selected ? (
         <div className="flex items-center gap-2">
@@ -100,7 +110,11 @@ export function LandlordSearchField({ inputName = "organization_id" }: { inputNa
             autoComplete="off"
           />
           {visibleResults.length > 0 && (
-            <ul className="absolute z-10 mt-1 w-full rounded-lg border bg-card py-1 shadow-md">
+            // Sin position:absolute a propósito — dentro de una Card
+            // (overflow-hidden), un dropdown flotante se corta contra el
+            // borde en vez de superponerse; en flujo normal la Card
+            // simplemente crece mientras hay resultados.
+            <ul className="relative z-10 mt-1 w-full rounded-lg border bg-card py-1 shadow-md">
               {visibleResults.map((c) => (
                 <li key={c.id}>
                   {c.status === "confirmado" ? (
