@@ -55,6 +55,13 @@ export default async function EditPropertyPage({
   // misma como si fuera un arrendador más agregado después.
   const landlords = (allLandlords ?? []).filter((l) => one(l.organizations)?.id !== property.organization_id);
   const broker = one(property.broker);
+  // Sin columna nueva para esto: created_at y updated_at nacen iguales en
+  // el insert mínimo de /properties/new (mismo now() de esa transacción),
+  // y updated_at recién se mueve la primera vez que se guarda la Sección 1
+  // desde acá (trigger set_updated_at). Esa divergencia es la señal de
+  // "ya completó la Sección 1 al menos una vez" — revelado progresivo sin
+  // tocar esquema.
+  const detailsSaved = new Date(property.updated_at).getTime() !== new Date(property.created_at).getTime();
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -66,9 +73,10 @@ export default async function EditPropertyPage({
 
       {/* Sección 1 — Datos de la propiedad: lo imprescindible para que la
           propiedad exista ya se guardó en /properties/new (guardado
-          incremental); esta sección completa el resto. Las Secciones 2 y
-          3 quedan reveladas debajo, en la misma pantalla con scroll —
-          opcionales, se completan acá o después entrando al detalle. */}
+          incremental); esta sección completa el resto. Revelado
+          progresivo: las Secciones 2 y 3 recién aparecen debajo, en la
+          misma pantalla con scroll, después de guardar acá por primera
+          vez — no las tres de entrada. */}
       <Card>
         <CardHeader>
           <CardTitle>Datos de la propiedad</CardTitle>
@@ -134,67 +142,73 @@ export default async function EditPropertyPage({
         </CardContent>
       </Card>
 
-      {/* Sección 2 — Arrendadores: buscador con auto-agregado al elegir
-          un resultado, sin botón "Agregar" aparte. */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Arrendadores</CardTitle>
-          <CardDescription>
-            La organización original ({stripParticularSuffix(orgOptions.find((o) => o.id === property.organization_id)?.name ?? "—")}) sigue
-            siendo quien administra la propiedad. Los demás arrendadores solo figuran acá.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {landlords.length > 0 ? (
-            <ul className="space-y-1.5">
-              {landlords.map((l) => {
-                const org = one(l.organizations);
-                return (
-                  <li key={l.id} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm">
-                    <span>{org ? stripParticularSuffix(org.name) : "—"}</span>
-                    <form action={removePropertyLandlord}>
-                      <input type="hidden" name="id" value={l.id} />
-                      <input type="hidden" name="property_id" value={id} />
-                      <button type="submit" className="text-muted-foreground hover:text-destructive">
-                        <X className="size-4" />
-                      </button>
-                    </form>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin arrendadores adicionales todavía.</p>
-          )}
-          <form action={addPropertyLandlord}>
-            <input type="hidden" name="property_id" value={id} />
-            <LandlordSearchField />
-          </form>
-        </CardContent>
-      </Card>
+      {detailsSaved && (
+        <>
+          {/* Sección 2 — Arrendadores: buscador con auto-agregado al
+              elegir un resultado, sin botón "Agregar" aparte. Revelada
+              junto con la Sección 3 apenas se guarda la Sección 1 por
+              primera vez. */}
+          <Card className="animate-in fade-in-0 slide-in-from-top-1 duration-300">
+            <CardHeader>
+              <CardTitle>Arrendadores</CardTitle>
+              <CardDescription>
+                La organización original ({stripParticularSuffix(orgOptions.find((o) => o.id === property.organization_id)?.name ?? "—")}) sigue
+                siendo quien administra la propiedad. Los demás arrendadores solo figuran acá.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {landlords.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {landlords.map((l) => {
+                    const org = one(l.organizations);
+                    return (
+                      <li key={l.id} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm">
+                        <span>{org ? stripParticularSuffix(org.name) : "—"}</span>
+                        <form action={removePropertyLandlord}>
+                          <input type="hidden" name="id" value={l.id} />
+                          <input type="hidden" name="property_id" value={id} />
+                          <button type="submit" className="text-muted-foreground hover:text-destructive">
+                            <X className="size-4" />
+                          </button>
+                        </form>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin arrendadores adicionales todavía.</p>
+              )}
+              <form action={addPropertyLandlord}>
+                <input type="hidden" name="property_id" value={id} />
+                <LandlordSearchField />
+              </form>
+            </CardContent>
+          </Card>
 
-      {/* Sección 3 — Corredor asociado: mismo patrón de auto-agregado.
-          Un solo corredor por propiedad (broker_organization_id es una
-          columna escalar en properties, no una tabla puente). */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Corredor asociado</CardTitle>
-          <CardDescription>El corredor que te ayuda a gestionar esta propiedad, si tienes uno.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {broker ? (
-            <div className="rounded-lg border px-3 py-1.5 text-sm">
-              <span className="truncate">{broker.name}</span>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin corredor asociado todavía.</p>
-          )}
-          <form action={setPropertyBroker}>
-            <input type="hidden" name="property_id" value={id} />
-            <BrokerSearchField />
-          </form>
-        </CardContent>
-      </Card>
+          {/* Sección 3 — Corredor asociado: mismo patrón de auto-agregado.
+              Un solo corredor por propiedad (broker_organization_id es
+              una columna escalar en properties, no una tabla puente). */}
+          <Card className="animate-in fade-in-0 slide-in-from-top-1 duration-300">
+            <CardHeader>
+              <CardTitle>Corredor asociado</CardTitle>
+              <CardDescription>El corredor que te ayuda a gestionar esta propiedad, si tienes uno.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {broker ? (
+                <div className="rounded-lg border px-3 py-1.5 text-sm">
+                  <span className="truncate">{broker.name}</span>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin corredor asociado todavía.</p>
+              )}
+              <form action={setPropertyBroker}>
+                <input type="hidden" name="property_id" value={id} />
+                <BrokerSearchField />
+              </form>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
