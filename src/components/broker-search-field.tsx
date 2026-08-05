@@ -14,12 +14,15 @@ type BrokerResult = { id: string; name: string; rut: string | null; org_code: st
 // nombre/RUT/código, nunca datos de las personas de esa corredora). Client
 // component porque necesita debounce + estado de selección; llama al RPC
 // directo desde el navegador (grant a authenticated), mismo patrón que el
-// browser client ya establecido en el proyecto.
+// browser client ya establecido en el proyecto. Al resolverse la
+// selección, se envía el formulario contenedor solo — sin botón "Agregar"
+// aparte.
 export function BrokerSearchField({ inputName = "broker_organization_id" }: { inputName?: string }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<BrokerResult[]>([]);
   const [selected, setSelected] = useState<BrokerResult | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -39,10 +42,17 @@ export function BrokerSearchField({ inputName = "broker_organization_id" }: { in
   // sin necesidad de un setState síncrono dentro del efecto.
   const visibleResults = selected || query.trim().length < 2 ? [] : results;
 
+  // Mismo motivo que en LandlordSearchField: el efecto corre después de
+  // que el input oculto ya refleja el valor resuelto, evitando enviar el
+  // formulario vacío.
+  useEffect(() => {
+    if (selected) hiddenInputRef.current?.form?.requestSubmit();
+  }, [selected]);
+
   return (
     <div className="space-y-1.5">
-      <Label htmlFor="broker_search">Buscar corredora por nombre o RUT (alternativa al código)</Label>
-      <input type="hidden" name={inputName} value={selected?.id ?? ""} />
+      <Label htmlFor="broker_search">Buscar corredora por nombre o RUT</Label>
+      <input ref={hiddenInputRef} type="hidden" name={inputName} value={selected?.id ?? ""} />
       {selected ? (
         <div className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm">
           <span className="truncate">
@@ -73,7 +83,11 @@ export function BrokerSearchField({ inputName = "broker_organization_id" }: { in
             autoComplete="off"
           />
           {visibleResults.length > 0 && (
-            <ul className="absolute z-10 mt-1 w-full rounded-lg border bg-card py-1 shadow-md">
+            // Sin position:absolute a propósito — dentro de una Card
+            // (overflow-hidden), un dropdown flotante se corta contra el
+            // borde en vez de superponerse; en flujo normal la Card
+            // simplemente crece mientras hay resultados.
+            <ul className="relative z-10 mt-1 w-full rounded-lg border bg-card py-1 shadow-md">
               {visibleResults.map((r) => (
                 <li key={r.id}>
                   <button

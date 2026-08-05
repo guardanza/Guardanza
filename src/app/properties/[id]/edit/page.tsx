@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { updateProperty, addPropertyLandlord, removePropertyLandlord } from "@/lib/actions/properties";
+import { updateProperty, addPropertyLandlord, removePropertyLandlord, setPropertyBroker } from "@/lib/actions/properties";
 import { one } from "@/lib/supabase/one";
 import { stripParticularSuffix } from "@/lib/labels";
 import { getRegionsWithCommunes } from "@/lib/supabase/regions";
@@ -15,6 +15,7 @@ import { PropertyPhotoField } from "@/components/property-photo-field";
 import { MoneyAmountInput } from "@/components/money-amount-input";
 import { BrokerSearchField } from "@/components/broker-search-field";
 import { LandlordSearchField } from "@/components/landlord-search-field";
+import { PropertyDetailsForm } from "@/components/property-details-form";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -30,7 +31,11 @@ export default async function EditPropertyPage({
   const { error } = await searchParams;
   const supabase = await createClient();
 
-  const { data: property, error: fetchError } = await supabase.from("properties").select("*").eq("id", id).single();
+  const { data: property, error: fetchError } = await supabase
+    .from("properties")
+    .select("*, broker:organizations!properties_broker_organization_id_fkey(id, name)")
+    .eq("id", id)
+    .single();
   if (fetchError || !property) notFound();
 
   const regions = await getRegionsWithCommunes(supabase);
@@ -49,6 +54,14 @@ export default async function EditPropertyPage({
   // descripción de la sección, así que no tiene sentido listarse a sí
   // misma como si fuera un arrendador más agregado después.
   const landlords = (allLandlords ?? []).filter((l) => one(l.organizations)?.id !== property.organization_id);
+  const broker = one(property.broker);
+  // Sin columna nueva para esto: created_at y updated_at nacen iguales en
+  // el insert mínimo de /properties/new (mismo now() de esa transacción),
+  // y updated_at recién se mueve la primera vez que se guarda la Sección 1
+  // desde acá (trigger set_updated_at). Esa divergencia es la señal de
+  // "ya completó la Sección 1 al menos una vez" — revelado progresivo sin
+  // tocar esquema.
+  const detailsSaved = new Date(property.updated_at).getTime() !== new Date(property.created_at).getTime();
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -57,13 +70,20 @@ export default async function EditPropertyPage({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+
+      {/* Sección 1 — Datos de la propiedad: lo imprescindible para que la
+          propiedad exista ya se guardó en /properties/new (guardado
+          incremental); esta sección completa el resto. Revelado
+          progresivo: las Secciones 2 y 3 recién aparecen debajo, en la
+          misma pantalla con scroll, después de guardar acá por primera
+          vez — no las tres de entrada. */}
       <Card>
         <CardHeader>
-          <CardTitle>Editar propiedad</CardTitle>
+          <CardTitle>Datos de la propiedad</CardTitle>
           <CardDescription>{property.address}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={updateProperty} className="space-y-3">
+          <PropertyDetailsForm action={updateProperty}>
             <input type="hidden" name="id" value={id} />
             <PropertyPhotoField photoUrl={property.photo_url} />
             <div className="space-y-1.5">
@@ -81,8 +101,6 @@ export default async function EditPropertyPage({
                 ))}
               </select>
             </div>
-            <BrokerSearchField />
-
             <div className="space-y-1.5">
               <Label htmlFor="listing_url">Link externo (opcional)</Label>
               <Input id="listing_url" name="listing_url" type="text" placeholder="portalinmobiliario.cl/..." defaultValue={property.listing_url ?? ""} />
@@ -120,49 +138,77 @@ export default async function EditPropertyPage({
             <Button type="submit" className="w-full">
               Guardar cambios
             </Button>
-          </form>
+          </PropertyDetailsForm>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Arrendadores</CardTitle>
-          <CardDescription>
-            La organización original ({stripParticularSuffix(orgOptions.find((o) => o.id === property.organization_id)?.name ?? "—")}) sigue
-            siendo quien administra la propiedad. Los demás arrendadores solo figuran acá.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {landlords.length > 0 ? (
-            <ul className="space-y-1.5">
-              {landlords.map((l) => {
-                const org = one(l.organizations);
-                return (
-                  <li key={l.id} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm">
-                    <span>{org ? stripParticularSuffix(org.name) : "—"}</span>
-                    <form action={removePropertyLandlord}>
-                      <input type="hidden" name="id" value={l.id} />
-                      <input type="hidden" name="property_id" value={id} />
-                      <button type="submit" className="text-muted-foreground hover:text-destructive">
-                        <X className="size-4" />
-                      </button>
-                    </form>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin arrendadores adicionales todavía.</p>
-          )}
-          <form action={addPropertyLandlord} className="space-y-2">
-            <input type="hidden" name="property_id" value={id} />
-            <LandlordSearchField />
-            <Button type="submit" variant="outline" size="sm" className="w-full">
-              Agregar
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {detailsSaved && (
+        <>
+          {/* Sección 2 — Arrendadores: buscador con auto-agregado al
+              elegir un resultado, sin botón "Agregar" aparte. Revelada
+              junto con la Sección 3 apenas se guarda la Sección 1 por
+              primera vez. */}
+          <Card className="animate-in fade-in-0 slide-in-from-top-1 duration-300">
+            <CardHeader>
+              <CardTitle>Arrendadores</CardTitle>
+              <CardDescription>
+                La organización original ({stripParticularSuffix(orgOptions.find((o) => o.id === property.organization_id)?.name ?? "—")}) sigue
+                siendo quien administra la propiedad. Los demás arrendadores solo figuran acá.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {landlords.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {landlords.map((l) => {
+                    const org = one(l.organizations);
+                    return (
+                      <li key={l.id} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm">
+                        <span>{org ? stripParticularSuffix(org.name) : "—"}</span>
+                        <form action={removePropertyLandlord}>
+                          <input type="hidden" name="id" value={l.id} />
+                          <input type="hidden" name="property_id" value={id} />
+                          <button type="submit" className="text-muted-foreground hover:text-destructive">
+                            <X className="size-4" />
+                          </button>
+                        </form>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin arrendadores adicionales todavía.</p>
+              )}
+              <form action={addPropertyLandlord}>
+                <input type="hidden" name="property_id" value={id} />
+                <LandlordSearchField />
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Sección 3 — Corredor asociado: mismo patrón de auto-agregado.
+              Un solo corredor por propiedad (broker_organization_id es
+              una columna escalar en properties, no una tabla puente). */}
+          <Card className="animate-in fade-in-0 slide-in-from-top-1 duration-300">
+            <CardHeader>
+              <CardTitle>Corredor asociado</CardTitle>
+              <CardDescription>El corredor que te ayuda a gestionar esta propiedad, si tienes uno.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {broker ? (
+                <div className="rounded-lg border px-3 py-1.5 text-sm">
+                  <span className="truncate">{broker.name}</span>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin corredor asociado todavía.</p>
+              )}
+              <form action={setPropertyBroker}>
+                <input type="hidden" name="property_id" value={id} />
+                <BrokerSearchField />
+              </form>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
