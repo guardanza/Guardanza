@@ -4,14 +4,16 @@ import { Pencil, Trash2, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { deleteProperty } from "@/lib/actions/properties";
+import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate } from "@/lib/actions/candidates";
 import { stripParticularSuffix } from "@/lib/labels";
 import { formatMoney, type MoneyCurrency } from "@/lib/money";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { PropertyThumb } from "@/components/property-thumb";
+import { CandidateSearchField } from "@/components/candidate-search-field";
 
 export default async function PropertyDetailPage({
   params,
@@ -47,6 +49,20 @@ export default async function PropertyDetailPage({
     .select("id, status, start_date, guarantee_amount, guarantee_currency")
     .eq("property_id", id)
     .order("created_at", { ascending: false });
+
+  // "Ocupada" = tiene un contrato que no terminó — mismo criterio que el
+  // trigger property_candidates_block_if_occupied en la base, para que la
+  // UI nunca muestre un buscador que la base va a rechazar igual.
+  const isOccupied = (contracts ?? []).some((c) => c.status !== "finalizado" && c.status !== "cancelado");
+
+  const { data: candidateRows } = await supabase
+    .from("property_candidates")
+    .select("id, status, contacts(full_name, email, status)")
+    .eq("property_id", id)
+    .order("created_at", { ascending: false });
+  const candidates = (candidateRows ?? [])
+    .map((c) => ({ id: c.id, status: c.status, contact: one(c.contacts) }))
+    .filter((c): c is { id: string; status: string; contact: { full_name: string; email: string; status: string } } => !!c.contact);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:px-6 md:py-10">
@@ -124,6 +140,64 @@ export default async function PropertyDetailPage({
                 </span>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Candidatos (Tanda D Fase 1): no se muestra si la propiedad ya
+          tiene un contrato en curso — está ocupada, no admite candidatos
+          nuevos (mismo criterio que el trigger en la base). Elegir
+          ganador todavía no existe acá — es el paso sensible siguiente,
+          que crea el contrato. */}
+      {!isOccupied && (
+        <Card className="p-0">
+          <div className="border-b px-4 py-3">
+            <h2 className="text-sm font-medium">Candidatos</h2>
+            <p className="text-xs text-muted-foreground">Personas de tu libreta en evaluación para ser el arrendatario de esta propiedad.</p>
+          </div>
+          <CardContent className="space-y-3 py-4">
+            {candidates.length > 0 ? (
+              <ul className="space-y-1.5">
+                {candidates.map((c) => (
+                  <li key={c.id} className="flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{c.contact.full_name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {c.contact.email}
+                        {c.contact.status === "pendiente" && " · pendiente de confirmar"}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <StatusBadge status={c.status} />
+                      {c.status === "en_evaluacion" && (
+                        <form action={markCandidateNotSelected}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <input type="hidden" name="property_id" value={id} />
+                          <Button type="submit" variant="outline" size="sm">
+                            No seleccionado
+                          </Button>
+                        </form>
+                      )}
+                      {c.status === "no_seleccionado" && (
+                        <form action={reactivateCandidate}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <input type="hidden" name="property_id" value={id} />
+                          <Button type="submit" variant="outline" size="sm">
+                            Reactivar
+                          </Button>
+                        </form>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sin candidatos todavía.</p>
+            )}
+            <form action={addPropertyCandidate}>
+              <input type="hidden" name="property_id" value={id} />
+              <CandidateSearchField />
+            </form>
           </CardContent>
         </Card>
       )}

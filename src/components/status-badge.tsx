@@ -29,6 +29,9 @@ const STATUS_STYLES: Record<string, string> = {
   finalizado: "bg-success/15 text-success",
   aceptada: "bg-success/15 text-success",
   cancelado: "bg-muted text-muted-foreground",
+  en_evaluacion: "bg-accent text-accent-foreground",
+  seleccionado: "bg-success/15 text-success",
+  no_seleccionado: "bg-muted text-muted-foreground",
 };
 
 // Only genuinely urgent states pulse — an infinite animation is reserved
