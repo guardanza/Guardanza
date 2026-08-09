@@ -95,6 +95,13 @@ export default async function ContactsPage({
     existingAccountRole = await findAccountRoleByEmail(trimmedQuery);
   }
   const resolvedExistingEmail = existingAccountRole ? (existingAccountEmail ?? trimmedQuery) : null;
+  // Que la cuenta ya exista no siempre es un conflicto: si el rol
+  // coincide con la pestaña activa, no hay nada que impida agregarla —
+  // load_contact() la vincula directo (camino 2), sin invitación. El
+  // aviso "un solo rol" solo aplica cuando el rol es distinto al que
+  // se está por cargar.
+  const roleConflictsWithTab = !!existingAccountRole && existingAccountRole !== activeTab;
+  const sameRoleAsTab = !!existingAccountRole && existingAccountRole === activeTab;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
@@ -201,17 +208,19 @@ export default async function ContactsPage({
 
         {/* Una persona tiene un solo rol en la plataforma — si la
             búsqueda (global, las 3 pestañas) no encontró a nadie en TU
-            libreta pero el email ya tiene cuenta con otro rol, esto se
-            muestra en vez del CTA de invitar. Es información, no un
-            error: mismo trato visual amable que el aviso de invitar. */}
-        {filtered.length === 0 && prefix && resolvedExistingEmail && existingAccountRole && (
+            libreta y el email ya tiene cuenta con OTRO rol (distinto al
+            de la pestaña activa), esto se muestra en vez del CTA de
+            invitar/agregar: no hay nada que ofrecer, es un conflicto
+            real. Es información, no un error: mismo trato visual
+            amable que el aviso de agregar/invitar. */}
+        {filtered.length === 0 && prefix && roleConflictsWithTab && resolvedExistingEmail && (
           <Card className="border-brand-gold/40 bg-brand-gold/5">
             <CardContent className="flex items-start gap-3">
               <Mail className="mt-0.5 size-5 shrink-0 text-brand-gold" strokeWidth={2} />
               <div className="flex-1 space-y-1">
                 <p className="text-sm font-medium text-primary">
                   <span className="break-all">{resolvedExistingEmail}</span> ya está en Guardanza como{" "}
-                  {roleBucketLabel(existingAccountRole)}.
+                  {roleBucketLabel(existingAccountRole!)}.
                 </p>
                 <p className="text-xs text-muted-foreground">Una persona tiene un solo rol en la plataforma.</p>
               </div>
@@ -220,16 +229,34 @@ export default async function ContactsPage({
         )}
 
         {/* Sin resultados de búsqueda (y sin conflicto de rol): un solo
-            camino claro hacia invitar, no un botón genérico — si lo
-            buscado ya es un email se lo ofrece directo (sin retipear),
-            si no, se pide el email. Ambos caminos disparan la misma
-            invitación real de siempre (quickInviteContact reusa
+            camino claro hacia sumar a la persona, no un botón genérico.
+            Si el email ya tiene cuenta con el MISMO rol de la pestaña
+            activa, load_contact() la vincula directo al confirmar (sin
+            invitación) — se ofrece "Agregar", no "Invitar". Si el email
+            es nuevo se ofrece invitarla (sin retipear); si se buscó por
+            nombre/RUT, se pide el email. Los tres caminos disparan la
+            misma acción real de siempre (quickInviteContact reusa
             load_contact/issue_contact_invite). */}
-        {filtered.length === 0 && prefix && !existingAccountRole && orgCount && (
+        {filtered.length === 0 && prefix && !roleConflictsWithTab && orgCount && (
           <Card className="border-brand-gold/40 bg-brand-gold/5">
             <CardContent className="flex items-start gap-3">
               <Mail className="mt-0.5 size-5 shrink-0 text-brand-gold" strokeWidth={2} />
-              {queryLooksLikeEmail ? (
+              {sameRoleAsTab ? (
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-medium text-primary">
+                    <span className="break-all">{resolvedExistingEmail}</span> ya está en Guardanza como{" "}
+                    {roleBucketLabel(existingAccountRole!)}.
+                  </p>
+                  <p className="text-xs text-muted-foreground">No hace falta invitarla de nuevo: solo agrégala a tu libreta.</p>
+                  <form action={quickInviteContact}>
+                    <input type="hidden" name="tab" value={activeTab} />
+                    <input type="hidden" name="email" value={resolvedExistingEmail ?? trimmedQuery} />
+                    <Button type="submit" size="sm">
+                      Agregar
+                    </Button>
+                  </form>
+                </div>
+              ) : queryLooksLikeEmail ? (
                 <div className="flex-1 space-y-2">
                   <p className="text-sm font-medium text-primary">
                     <span className="break-all">{trimmedQuery}</span> no tiene cuenta en Guardanza.
