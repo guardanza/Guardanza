@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Users, Search } from "lucide-react";
+import { Users, Search, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getUnifiedContacts, type UnifiedContactRow } from "@/lib/contacts-unified";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
-import { deleteContact, resendContactInvite } from "@/lib/actions/contacts";
+import { deleteContact, resendContactInvite, quickInviteContact } from "@/lib/actions/contacts";
+import { isValidEmail } from "@/lib/email";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -35,23 +36,27 @@ function matchesPrefix(row: UnifiedContactRow, prefix: string): boolean {
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; linked?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; linked?: string; invited?: string; error?: string }>;
 }) {
-  const { tab, q, linked, error: actionError } = await searchParams;
+  const { tab, q, linked, invited, error: actionError } = await searchParams;
   const activeTab: RoleBucket = TABS.some((t) => t.key === tab) ? (tab as RoleBucket) : "arrendador";
 
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
 
-  const { count: orgCount } = await supabase
+  const { data: adminMembership } = await supabase
     .from("memberships")
-    .select("*", { count: "exact", head: true })
-    .eq("role", "admin");
+    .select("organization_id")
+    .eq("role", "admin")
+    .maybeSingle();
+  const orgCount = !!adminMembership;
 
   const rows = await getUnifiedContacts(supabase, activeTab, userRes.user.id);
-  const prefix = q ? sanitizePrefix(q) : "";
+  const trimmedQuery = (q ?? "").trim();
+  const prefix = trimmedQuery ? sanitizePrefix(trimmedQuery) : "";
   const filtered = rows.filter((r) => matchesPrefix(r, prefix));
+  const queryLooksLikeEmail = isValidEmail(trimmedQuery);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
@@ -64,6 +69,13 @@ export default async function ContactsPage({
         <Alert>
           <AlertDescription>
             <strong>{linked}</strong> ya está en Guardanza — se agregó a tus contactos de inmediato, sin necesidad de invitación.
+          </AlertDescription>
+        </Alert>
+      )}
+      {invited && (
+        <Alert>
+          <AlertDescription>
+            Invitación enviada a <strong>{invited}</strong>.
           </AlertDescription>
         </Alert>
       )}
@@ -150,23 +162,60 @@ export default async function ContactsPage({
           );
         })}
 
-        {filtered.length === 0 && (
+        {filtered.length === 0 && !prefix && (
           <Card>
             <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
               <Users className="size-8 text-muted-foreground" strokeWidth={1.5} />
-              {prefix ? (
-                <>
-                  <p className="text-sm text-muted-foreground">No encontramos a nadie con &quot;{q}&quot; en esta pestaña.</p>
-                  <p className="text-xs text-muted-foreground">Primero crea o invita el contacto.</p>
-                  {orgCount ? (
-                    <Link href={`/contacts/new?role=${activeTab}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      + Nuevo contacto
-                    </Link>
-                  ) : null}
-                </>
+              <p className="text-sm text-muted-foreground">Todavía no tienes a nadie acá.</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Sin resultados de búsqueda: un solo camino claro hacia
+            invitar, no un botón genérico — si lo buscado ya es un email
+            se lo ofrece directo (sin retipear), si no, se pide el email.
+            Ambos caminos disparan la misma invitación real de siempre
+            (quickInviteContact reusa load_contact/issue_contact_invite). */}
+        {filtered.length === 0 && prefix && orgCount && (
+          <Card className="border-brand-gold/40 bg-brand-gold/5">
+            <CardContent className="flex items-start gap-3">
+              <Mail className="mt-0.5 size-5 shrink-0 text-brand-gold" strokeWidth={2} />
+              {queryLooksLikeEmail ? (
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-medium text-primary">
+                    <span className="break-all">{trimmedQuery}</span> no tiene cuenta en Guardanza.
+                  </p>
+                  <p className="text-xs text-muted-foreground">Invita a esta persona a sumarse a Guardanza.</p>
+                  <form action={quickInviteContact}>
+                    <input type="hidden" name="tab" value={activeTab} />
+                    <input type="hidden" name="email" value={trimmedQuery} />
+                    <Button type="submit" size="sm">
+                      Invitar
+                    </Button>
+                  </form>
+                </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Todavía no tienes a nadie acá.</p>
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-medium text-primary">No encontramos a nadie con &quot;{trimmedQuery}&quot;.</p>
+                  <p className="text-xs text-muted-foreground">Invita a esta persona por email:</p>
+                  <form action={quickInviteContact} className="flex flex-col gap-2 sm:flex-row">
+                    <input type="hidden" name="tab" value={activeTab} />
+                    <Input name="email" type="email" placeholder="email@ejemplo.cl" required className="sm:max-w-xs" />
+                    <Button type="submit" size="sm">
+                      Invitar
+                    </Button>
+                  </form>
+                </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {filtered.length === 0 && prefix && !orgCount && (
+          <Card>
+            <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+              <Users className="size-8 text-muted-foreground" strokeWidth={1.5} />
+              <p className="text-sm text-muted-foreground">No encontramos a nadie con &quot;{trimmedQuery}&quot; en esta pestaña.</p>
             </CardContent>
           </Card>
         )}
