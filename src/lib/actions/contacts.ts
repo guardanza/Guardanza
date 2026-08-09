@@ -8,6 +8,7 @@ import { findUserIdByEmail } from "@/lib/supabase/find-user-by-email";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
 import { siteOrigin } from "@/lib/actions/auth";
 import { emailProvider } from "@/lib/adapters/email";
+import { isValidEmail, deriveNameFromEmail } from "@/lib/email";
 
 type InviteOutcome = { linked: true } | { linked: false } | { linked: false; failed: true; message: string };
 
@@ -179,6 +180,75 @@ export async function resendContactInvite(formData: FormData) {
     redirect(`/contacts?linked=${encodeURIComponent(contact.full_name)}`);
   }
   redirect("/contacts");
+}
+
+// Invitación rápida desde el estado "sin resultados" de la búsqueda de
+// Mis Contactos — mismo load_contact()/issue_contact_invite() de
+// siempre, la misma invitación real que ya existía, solo un camino más
+// corto para llegar a ella: sin pedir nombre ni RUT. El nombre es un
+// placeholder derivado del email (igual que en el resto de la libreta,
+// el nombre real lo define la PERSONA al confirmar su cuenta) y el RUT
+// queda vacío, se completa después. organization_id no viaja del
+// cliente — se resuelve acá mismo contra la propia membership de admin
+// (load_contact igual la re-valida con is_org_admin, pero así ni
+// siquiera hace falta un campo oculto que alguien podría manipular).
+export async function quickInviteContact(formData: FormData) {
+  const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  if (!userRes.user) redirect("/login");
+
+  const tab = String(formData.get("tab") || "arrendador") as RoleBucket;
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+
+  const fail = (message: string): never =>
+    redirect(`/contacts?tab=${tab}&q=${encodeURIComponent(email)}&error=${encodeURIComponent(message)}`);
+
+  if (!isValidEmail(email)) return fail("Ingresa un email válido.");
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("organization_id, organizations(name)")
+    .eq("role", "admin")
+    .maybeSingle<{ organization_id: string; organizations: { name: string } | { name: string }[] | null }>();
+  if (!membership) return fail("Necesitas administrar una organización para invitar contactos.");
+
+  const org = Array.isArray(membership.organizations) ? membership.organizations[0] : membership.organizations;
+  const full_name = deriveNameFromEmail(email);
+  const target_user_id = await findUserIdByEmail(email);
+
+  const { data: contact, error } = await supabase
+    .rpc("load_contact", {
+      p_organization_id: membership.organization_id,
+      p_contact_role: tab,
+      p_full_name: full_name,
+      p_email: email,
+      p_rut: null,
+      p_target_user_id: target_user_id,
+    })
+    .single<{ id: string; status: string }>();
+
+  if (error) {
+    if (error.code === "23505") return fail("Ya tienes un contacto cargado con ese email.");
+    if (error.message.includes("contact_role_mismatch")) {
+      return fail(`Ese email ya pertenece a una cuenta de Guardanza con otro rol — no se puede invitar como ${roleBucketLabel(tab)}.`);
+    }
+    return fail(error.message);
+  }
+
+  revalidatePath("/contacts");
+
+  if (contact?.status === "confirmado") {
+    redirect(`/contacts?tab=${tab}&linked=${encodeURIComponent(full_name)}`);
+  }
+
+  // target_user_id ya se resolvió como null más arriba (por eso quedó
+  // pendiente) — la emisión inicial nunca pasa por la rama de vínculo
+  // directo, solo el reenvío la re-chequea.
+  await issueInviteOrLink(supabase, contact.id, full_name, email, org?.name ?? "Guardanza", tab, null);
+
+  redirect(`/contacts?tab=${tab}&invited=${encodeURIComponent(email)}`);
 }
 
 export async function deleteContact(formData: FormData) {
