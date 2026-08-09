@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Users, Search, Mail } from "lucide-react";
+import { Users, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getUnifiedContacts, type UnifiedContactRow } from "@/lib/contacts-unified";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
 import { deleteContact, resendContactInvite, quickInviteContact } from "@/lib/actions/contacts";
 import { isValidEmail } from "@/lib/email";
+import { findAccountRoleByEmail } from "@/lib/supabase/find-user-by-email";
+import { ContactsSearchField } from "@/components/contacts-search-field";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
@@ -19,6 +21,9 @@ const TABS: { key: RoleBucket; label: string }[] = [
   { key: "arrendatario", label: "Arrendatarios" },
   { key: "corredor", label: "Corredores" },
 ];
+const ALL_ROLES = TABS.map((t) => t.key);
+
+type RowWithRole = UnifiedContactRow & { role: RoleBucket };
 
 // Búsqueda por prefijo sobre los datos ya combinados de las dos capas
 // (libreta + capa vieja) — no es una sola query SQL como antes (las dos
@@ -36,9 +41,17 @@ function matchesPrefix(row: UnifiedContactRow, prefix: string): boolean {
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; linked?: string; invited?: string; error?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    q?: string;
+    linked?: string;
+    invited?: string;
+    existingEmail?: string;
+    existingRole?: string;
+    error?: string;
+  }>;
 }) {
-  const { tab, q, linked, invited, error: actionError } = await searchParams;
+  const { tab, q, linked, invited, existingEmail, existingRole: existingRoleParam, error: actionError } = await searchParams;
   const activeTab: RoleBucket = TABS.some((t) => t.key === tab) ? (tab as RoleBucket) : "arrendador";
 
   const supabase = await createClient();
@@ -52,11 +65,36 @@ export default async function ContactsPage({
     .maybeSingle();
   const orgCount = !!adminMembership;
 
-  const rows = await getUnifiedContacts(supabase, activeTab, userRes.user.id);
   const trimmedQuery = (q ?? "").trim();
   const prefix = trimmedQuery ? sanitizePrefix(trimmedQuery) : "";
-  const filtered = rows.filter((r) => matchesPrefix(r, prefix));
   const queryLooksLikeEmail = isValidEmail(trimmedQuery);
+
+  // Cambio 1: con búsqueda activa, se consultan las 3 pestañas (una
+  // persona puede existir con cualquier rol, sin importar en cuál estás
+  // parado) — sin búsqueda, se sigue navegando/filtrando por la pestaña
+  // activa nomás, como siempre.
+  let rows: RowWithRole[];
+  if (prefix) {
+    const perRole = await Promise.all(ALL_ROLES.map((role) => getUnifiedContacts(supabase, role, userRes.user.id)));
+    rows = ALL_ROLES.flatMap((role, i) => perRole[i].map((row) => ({ ...row, role })));
+  } else {
+    const activeRows = await getUnifiedContacts(supabase, activeTab, userRes.user.id);
+    rows = activeRows.map((row) => ({ ...row, role: activeTab }));
+  }
+  const filtered = rows.filter((r) => matchesPrefix(r, prefix));
+
+  // Si ya llegó un existingRole por redirect (un intento de invitar
+  // chocó con "camino 3"), se usa ese. Si no, y la búsqueda es un email
+  // que no dio resultados en NINGUNA pestaña, se chequea proactivamente
+  // si esa cuenta ya existe con otro rol — así el aviso educativo
+  // aparece ANTES de ofrecer invitar, no como sorpresa después de
+  // intentarlo.
+  let existingAccountRole: RoleBucket | null = TABS.some((t) => t.key === existingRoleParam) ? (existingRoleParam as RoleBucket) : null;
+  const existingAccountEmail = existingAccountRole ? (existingEmail ?? trimmedQuery) : null;
+  if (!existingAccountRole && filtered.length === 0 && prefix && orgCount && queryLooksLikeEmail) {
+    existingAccountRole = await findAccountRoleByEmail(trimmedQuery);
+  }
+  const resolvedExistingEmail = existingAccountRole ? (existingAccountEmail ?? trimmedQuery) : null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
@@ -106,17 +144,7 @@ export default async function ContactsPage({
         ))}
       </div>
 
-      <form className="relative">
-        <input type="hidden" name="tab" value={activeTab} />
-        <button
-          type="submit"
-          aria-label="Buscar"
-          className="absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-        >
-          <Search className="size-4" />
-        </button>
-        <Input name="q" defaultValue={q ?? ""} placeholder="Buscar por nombre, email o RUT..." className="pl-8" />
-      </form>
+      <ContactsSearchField tab={activeTab} initialQuery={q ?? ""} />
 
       <div className="space-y-3">
         {filtered.map((r) => {
@@ -124,15 +152,15 @@ export default async function ContactsPage({
           const expired = !roleConflict && r.status === "pendiente" && !!r.inviteExpiresAt && new Date(r.inviteExpiresAt) < new Date();
           const displayStatus = roleConflict ? "rol_distinto" : expired ? "expirada" : r.status;
           return (
-            <Card key={r.key}>
+            <Card key={`${r.role}-${r.key}`}>
               <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <Link href={`/contacts/${activeTab}/${encodeURIComponent(r.key)}`} className="min-w-0 flex-1 space-y-1">
+                <Link href={`/contacts/${r.role}/${encodeURIComponent(r.key)}`} className="min-w-0 flex-1 space-y-1">
                   <p className="truncate font-medium hover:underline">{r.fullName}</p>
                   {(r.email || r.rut) && (
                     <p className="truncate text-xs text-muted-foreground">{[r.email, r.rut].filter(Boolean).join(" · ")}</p>
                   )}
                   <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                    <Badge variant="outline">{roleBucketLabel(activeTab)}</Badge>
+                    <Badge variant="outline">{roleBucketLabel(r.role)}</Badge>
                     {displayStatus ? <StatusBadge status={displayStatus} /> : <Badge variant="outline">Sin ficha en tu libreta</Badge>}
                   </div>
                 </Link>
@@ -171,12 +199,33 @@ export default async function ContactsPage({
           </Card>
         )}
 
-        {/* Sin resultados de búsqueda: un solo camino claro hacia
-            invitar, no un botón genérico — si lo buscado ya es un email
-            se lo ofrece directo (sin retipear), si no, se pide el email.
-            Ambos caminos disparan la misma invitación real de siempre
-            (quickInviteContact reusa load_contact/issue_contact_invite). */}
-        {filtered.length === 0 && prefix && orgCount && (
+        {/* Una persona tiene un solo rol en la plataforma — si la
+            búsqueda (global, las 3 pestañas) no encontró a nadie en TU
+            libreta pero el email ya tiene cuenta con otro rol, esto se
+            muestra en vez del CTA de invitar. Es información, no un
+            error: mismo trato visual amable que el aviso de invitar. */}
+        {filtered.length === 0 && prefix && resolvedExistingEmail && existingAccountRole && (
+          <Card className="border-brand-gold/40 bg-brand-gold/5">
+            <CardContent className="flex items-start gap-3">
+              <Mail className="mt-0.5 size-5 shrink-0 text-brand-gold" strokeWidth={2} />
+              <div className="flex-1 space-y-1">
+                <p className="text-sm font-medium text-primary">
+                  <span className="break-all">{resolvedExistingEmail}</span> ya está en Guardanza como{" "}
+                  {roleBucketLabel(existingAccountRole)}.
+                </p>
+                <p className="text-xs text-muted-foreground">Una persona tiene un solo rol en la plataforma.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Sin resultados de búsqueda (y sin conflicto de rol): un solo
+            camino claro hacia invitar, no un botón genérico — si lo
+            buscado ya es un email se lo ofrece directo (sin retipear),
+            si no, se pide el email. Ambos caminos disparan la misma
+            invitación real de siempre (quickInviteContact reusa
+            load_contact/issue_contact_invite). */}
+        {filtered.length === 0 && prefix && !existingAccountRole && orgCount && (
           <Card className="border-brand-gold/40 bg-brand-gold/5">
             <CardContent className="flex items-start gap-3">
               <Mail className="mt-0.5 size-5 shrink-0 text-brand-gold" strokeWidth={2} />
@@ -211,11 +260,11 @@ export default async function ContactsPage({
           </Card>
         )}
 
-        {filtered.length === 0 && prefix && !orgCount && (
+        {filtered.length === 0 && prefix && !existingAccountRole && !orgCount && (
           <Card>
             <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
               <Users className="size-8 text-muted-foreground" strokeWidth={1.5} />
-              <p className="text-sm text-muted-foreground">No encontramos a nadie con &quot;{trimmedQuery}&quot; en esta pestaña.</p>
+              <p className="text-sm text-muted-foreground">No encontramos a nadie con &quot;{trimmedQuery}&quot;.</p>
             </CardContent>
           </Card>
         )}

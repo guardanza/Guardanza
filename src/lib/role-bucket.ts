@@ -21,3 +21,16 @@ export function roleBucketLabel(bucket: RoleBucket): string {
   if (bucket === "arrendador") return "arrendador(a)";
   return "arrendatario(a)";
 }
+
+const ROLE_BUCKETS: RoleBucket[] = ["arrendador", "arrendatario", "corredor"];
+
+// load_contact()/issue_contact_invite() (camino 3, Tanda B) devuelven el
+// rol real de la cuenta dentro del propio mensaje de excepción:
+// "contact_role_mismatch: target account already has role X, cannot load
+// as Y". Parsearlo acá evita una consulta aparte para mostrar un mensaje
+// específico ("ya está en Guardanza como X") en vez de uno genérico.
+export function extractRoleMismatch(errorMessage: string): RoleBucket | null {
+  const match = errorMessage.match(/already has role (\w+)/);
+  const candidate = match?.[1];
+  return ROLE_BUCKETS.find((r) => r === candidate) ?? null;
+}
