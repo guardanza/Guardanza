@@ -61,3 +61,58 @@ export async function reactivateCandidate(formData: FormData) {
   revalidatePath(`/properties/${property_id}`);
   redirect(`/properties/${property_id}`);
 }
+
+// Paso 5 (SENSIBLE): la conversión candidato→arrendatario + creación del
+// contrato, en un solo acto — antes de esto solo hay candidatos
+// compitiendo, sin ningún contrato. select_winning_candidate() (SECURITY
+// DEFINER) hace todo el trabajo pesado: valida que el candidato siga
+// en_evaluacion y que su contacto ya esté confirmado, crea el contrato,
+// arma contract_parties (arrendador = el dueño de la propiedad, nunca
+// quien llama — puede ser el corredor), y marca al resto de los
+// candidatos en_evaluacion de la misma propiedad como no_seleccionado.
+// Autoriza tanto al arrendador como al corredor delegado — una
+// autorización nueva, pero acotada a esta función: create_contract() (el
+// camino viejo, con email libre) sigue siendo estrictamente del
+// arrendador, sin cambios.
+export async function selectWinningCandidate(formData: FormData) {
+  const supabase = await createClient();
+  const property_id = String(formData.get("property_id"));
+  const candidate_id = String(formData.get("candidate_id") || "");
+  const start_date = String(formData.get("start_date"));
+  const end_date = String(formData.get("end_date"));
+  const rent_amount = Number(formData.get("rent_amount"));
+  const rent_currency = String(formData.get("rent_currency"));
+  const guarantee_currency = String(formData.get("guarantee_currency"));
+  const guarantee_amount = Number(formData.get("guarantee_amount"));
+
+  const fail = (message: string): never =>
+    redirect(`/contracts/new?property_id=${property_id}&candidate_id=${candidate_id}&error=${encodeURIComponent(message)}`);
+
+  const { data: contract, error } = await supabase
+    .rpc("select_winning_candidate", {
+      p_candidate_id: candidate_id,
+      p_start_date: start_date,
+      p_end_date: end_date,
+      p_rent_amount: rent_amount,
+      p_rent_currency: rent_currency,
+      p_guarantee_currency: guarantee_currency,
+      p_guarantee_amount: guarantee_amount,
+    })
+    .single<{ id: string }>();
+
+  if (error) {
+    if (error.message.includes("not en_evaluacion")) {
+      return fail("Este candidato ya no está en evaluación — puede que la propiedad ya tenga un ganador.");
+    }
+    if (error.message.includes("has not confirmed")) {
+      return fail("Este candidato todavía no confirmó su cuenta — no puede ser el arrendatario todavía.");
+    }
+    if (error.message.includes("not authorized")) {
+      return fail("No tienes permiso para elegir un ganador en esta propiedad.");
+    }
+    return fail(error.message);
+  }
+
+  revalidatePath(`/properties/${property_id}`);
+  redirect(`/contracts/${contract.id}`);
+}

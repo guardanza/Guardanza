@@ -146,9 +146,11 @@ export default async function PropertyDetailPage({
 
       {/* Candidatos (Tanda D Fase 1): no se muestra si la propiedad ya
           tiene un contrato en curso — está ocupada, no admite candidatos
-          nuevos (mismo criterio que el trigger en la base). Elegir
-          ganador todavía no existe acá — es el paso sensible siguiente,
-          que crea el contrato. */}
+          nuevos (mismo criterio que el trigger en la base). "Elegir
+          ganador" lleva al formulario de contrato precargado con los
+          datos esperados de la propiedad — la creación real (y el paso
+          de los demás candidatos a no_seleccionado) pasa recién ahí,
+          vía select_winning_candidate(). */}
       {!isOccupied && (
         <Card className="p-0">
           <div className="border-b px-4 py-3">
@@ -167,16 +169,25 @@ export default async function PropertyDetailPage({
                         {c.contact.status === "pendiente" && " · pendiente de confirmar"}
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
                       <StatusBadge status={c.status} />
                       {c.status === "en_evaluacion" && (
-                        <form action={markCandidateNotSelected}>
-                          <input type="hidden" name="id" value={c.id} />
-                          <input type="hidden" name="property_id" value={id} />
-                          <Button type="submit" variant="outline" size="sm">
-                            No seleccionado
-                          </Button>
-                        </form>
+                        <>
+                          {c.contact.status === "confirmado" ? (
+                            <Link href={`/contracts/new?property_id=${id}&candidate_id=${c.id}`} className={buttonVariants({ size: "sm" })}>
+                              Elegir ganador
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No puede ganar hasta confirmar su cuenta</span>
+                          )}
+                          <form action={markCandidateNotSelected}>
+                            <input type="hidden" name="id" value={c.id} />
+                            <input type="hidden" name="property_id" value={id} />
+                            <Button type="submit" variant="outline" size="sm">
+                              No seleccionado
+                            </Button>
+                          </form>
+                        </>
                       )}
                       {c.status === "no_seleccionado" && (
                         <form action={reactivateCandidate}>
