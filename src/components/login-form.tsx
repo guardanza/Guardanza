@@ -49,7 +49,13 @@ export function LoginForm({ startExpanded = false }: { startExpanded?: boolean }
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="signin-password">Contraseña</Label>
-              <Link href="/forgot-password" className="text-xs text-primary underline-offset-4 hover:underline">
+              {/* tabIndex={-1}: fuera del orden de tabulación principal a
+                  propósito — sin esto, Tab salta de Email directo acá en
+                  vez de a Contraseña, interrumpiendo el flujo natural de
+                  quien escribe con el teclado. Sigue siendo clickeable
+                  con mouse/touch y alcanzable por lectores de pantalla
+                  (navegan por enlaces, no por tabIndex). */}
+              <Link href="/forgot-password" tabIndex={-1} className="text-xs text-primary underline-offset-4 hover:underline">
                 ¿Olvidaste tu contraseña?
               </Link>
             </div>
