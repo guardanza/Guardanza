@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { validateRut, formatRut } from "@/lib/rut";
 import { findUserIdByEmail } from "@/lib/supabase/find-user-by-email";
+import { extractRoleMismatch } from "@/lib/role-bucket";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
 import { siteOrigin } from "@/lib/actions/auth";
 import { emailProvider } from "@/lib/adapters/email";
@@ -232,6 +233,16 @@ export async function quickInviteContact(formData: FormData) {
   if (error) {
     if (error.code === "23505") return fail("Ya tienes un contacto cargado con ese email.");
     if (error.message.includes("contact_role_mismatch")) {
+      // Una persona tiene un solo rol en la plataforma — esto no es un
+      // error de formulario, es información. Redirige con el rol real
+      // (parseado del propio mensaje de la excepción) para que la página
+      // muestre el aviso educativo en vez de la alerta roja genérica.
+      const existingRole = extractRoleMismatch(error.message);
+      if (existingRole) {
+        redirect(
+          `/contacts?tab=${tab}&q=${encodeURIComponent(email)}&existingEmail=${encodeURIComponent(email)}&existingRole=${existingRole}`
+        );
+      }
       return fail(`Ese email ya pertenece a una cuenta de Guardanza con otro rol — no se puede invitar como ${roleBucketLabel(tab)}.`);
     }
     return fail(error.message);
