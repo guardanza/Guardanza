@@ -16,7 +16,7 @@ import { LayoutDashboard, Building2, Users, FileText, MoreHorizontal } from "luc
 const links = [
   { href: "/", label: "Inicio", icon: LayoutDashboard },
   { href: "/properties", label: "Propiedades", icon: Building2 },
-  { href: "/contacts", label: "Mis contactos", icon: Users },
+  { href: "/contacts", label: "Contactos", icon: Users },
   { href: "/contracts", label: "Contratos", icon: FileText },
   { href: "/more", label: "Más", icon: MoreHorizontal },
 ];

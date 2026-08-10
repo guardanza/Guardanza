@@ -30,7 +30,7 @@ const GROUPS: NavGroup[] = [
     label: "Cartera",
     items: [
       { href: "/properties", label: "Propiedades", icon: Building2 },
-      { href: "/contacts", label: "Mis contactos", icon: Users },
+      { href: "/contacts", label: "Contactos", icon: Users },
       { href: "/contracts", label: "Contratos", icon: FileText },
     ],
   },

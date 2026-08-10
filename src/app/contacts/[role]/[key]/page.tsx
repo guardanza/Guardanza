@@ -34,7 +34,7 @@ export default async function ContactDetailPage({
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <Link href={`/contacts?tab=${role}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ChevronLeft className="size-4" />
-        Mis contactos
+        Contactos
       </Link>
 
       <div>
