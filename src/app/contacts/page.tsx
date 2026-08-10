@@ -8,6 +8,7 @@ import { deleteContact, resendContactInvite, quickInviteContact } from "@/lib/ac
 import { isValidEmail } from "@/lib/email";
 import { findAccountRoleByEmail } from "@/lib/supabase/find-user-by-email";
 import { ContactsSearchField } from "@/components/contacts-search-field";
+import { DeleteContactDialog } from "@/components/delete-contact-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
@@ -143,7 +144,9 @@ export default async function ContactsPage({
             href={`/contacts?tab=${t.key}`}
             className={cn(
               "flex-1 rounded-md px-3 py-1.5 text-center text-sm font-medium whitespace-nowrap transition-colors",
-              activeTab === t.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              activeTab === t.key
+                ? "bg-card text-foreground shadow-sm ring-1 ring-inset ring-brand-gold/60"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             {t.label}
@@ -184,12 +187,12 @@ export default async function ContactsPage({
                         </button>
                       </form>
                     )}
-                    <form action={deleteContact}>
-                      <input type="hidden" name="id" value={r.contactId} />
-                      <button type="submit" className={buttonVariants({ variant: "outline", size: "sm", className: "w-full sm:w-auto" })}>
-                        Quitar
-                      </button>
-                    </form>
+                    <DeleteContactDialog
+                      action={deleteContact}
+                      contactId={r.contactId}
+                      fullName={r.fullName}
+                      status={r.status === "pendiente" ? "pendiente" : "confirmado"}
+                    />
                   </div>
                 )}
               </CardContent>
