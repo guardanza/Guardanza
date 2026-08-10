@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 const TABS: { key: RoleBucket; label: string }[] = [
-  { key: "arrendador", label: "Arrendadores / Dueños" },
+  { key: "arrendador", label: "Arrendadores" },
   { key: "arrendatario", label: "Arrendatarios" },
   { key: "corredor", label: "Corredores" },
 ];
@@ -126,7 +126,7 @@ export default async function ContactsPage({
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Mis contactos</h1>
+          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Contactos</h1>
           <p className="text-sm text-muted-foreground">Arrendadores, arrendatarios y corredoras con los que trabajas.</p>
         </div>
         {orgCount ? (
