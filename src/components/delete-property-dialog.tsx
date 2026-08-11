@@ -49,8 +49,16 @@ export function DeletePropertyDialog({
 
   return (
     <>
-      <Button type="button" variant="destructive" size="sm" onClick={() => setOpen(true)}>
-        <Trash2 /> Eliminar
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+        onClick={() => setOpen(true)}
+        title="Eliminar propiedad"
+        aria-label="Eliminar propiedad"
+      >
+        <Trash2 className="size-4" />
       </Button>
       <BottomSheet open={open} onOpenChange={setOpen}>
         <BottomSheetContent>

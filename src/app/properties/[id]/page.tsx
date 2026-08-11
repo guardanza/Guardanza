@@ -8,7 +8,6 @@ import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate } f
 import { stripParticularSuffix } from "@/lib/labels";
 import { formatMoney, type MoneyCurrency } from "@/lib/money";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
@@ -55,8 +54,23 @@ export default async function PropertyDetailPage({
 
   // "Ocupada" = tiene un contrato que no terminó — mismo criterio que el
   // trigger property_candidates_block_if_occupied en la base, para que la
-  // UI nunca muestre un buscador que la base va a rechazar igual.
-  const isOccupied = (contracts ?? []).some((c) => c.status !== "finalizado" && c.status !== "cancelado");
+  // UI nunca muestre un buscador que la base va a rechazar igual. Ese
+  // mismo contrato activo es la fuente del arrendatario a mostrar en la
+  // cabecera — no se infiere de property_candidates (status
+  // 'seleccionado') porque un contrato también se puede crear directo,
+  // sin pasar por la evaluación de candidatos ("+ Nuevo contrato").
+  const activeContract = (contracts ?? []).find((c) => c.status !== "finalizado" && c.status !== "cancelado");
+  const isOccupied = !!activeContract;
+
+  let tenantName: string | null = null;
+  if (activeContract) {
+    const { data: tenantPartyRows } = await supabase
+      .from("contract_parties")
+      .select("profiles(full_name)")
+      .eq("contract_id", activeContract.id)
+      .eq("role", "arrendatario");
+    tenantName = tenantPartyRows?.[0] ? (one(tenantPartyRows[0].profiles)?.full_name ?? null) : null;
+  }
 
   const { data: candidateRows } = await supabase
     .from("property_candidates")
@@ -75,28 +89,38 @@ export default async function PropertyDetailPage({
         </Alert>
       )}
 
-      <PropertyThumb url={property.photo_url} className="h-48 w-full rounded-xl sm:h-64" />
+      <PropertyThumb url={property.photo_url} className="h-24 w-full rounded-xl sm:h-32" />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{property.address}</h1>
-          <p className="text-sm text-muted-foreground">
-            {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
-          </p>
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {owners.map((o) => (
-              <Badge key={o.id} variant="secondary">
-                {stripParticularSuffix(o.name)}
-              </Badge>
-            ))}
-            {broker && <Badge variant="outline">Corredora: {broker.name}</Badge>}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Link href={`/properties/${id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            <Pencil /> Editar
+      <div className="space-y-1">
+        <div className="flex items-center gap-1">
+          <h1 className="min-w-0 flex-1 truncate text-xl font-semibold tracking-tight md:text-2xl">{property.address}</h1>
+          <Link
+            href={`/properties/${id}/edit`}
+            className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+            title="Editar propiedad"
+            aria-label="Editar propiedad"
+          >
+            <Pencil className="size-4" />
           </Link>
           <DeletePropertyDialog action={deleteProperty} propertyId={id} address={property.address} />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
+        </p>
+        <div className="space-y-0.5 pt-1 text-sm">
+          {owners.length > 0 && (
+            <p>
+              <span className="text-muted-foreground">Arrendador:</span> {owners.map((o) => stripParticularSuffix(o.name)).join(", ")}
+            </p>
+          )}
+          {broker && (
+            <p>
+              <span className="text-muted-foreground">Corredor:</span> {broker.name}
+            </p>
+          )}
+          <p>
+            <span className="text-muted-foreground">Arrendatario:</span> {tenantName ?? "Sin adjudicar"}
+          </p>
         </div>
       </div>
 
@@ -106,10 +130,10 @@ export default async function PropertyDetailPage({
             <h2 className="text-sm font-medium">Detalles de la propiedad</h2>
             {property.listing_url && <ListingPortalLink url={property.listing_url} />}
           </div>
-          <CardContent className="space-y-2 py-4 text-sm">
+          <CardContent className="space-y-2 text-sm">
             {property.expected_rent_amount && (
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Arriendo mensual esperado</span>
+                <span className="text-muted-foreground">Valor de arriendo</span>
                 <span className="font-medium tabular-nums">
                   {formatMoney(property.expected_rent_amount, (property.expected_rent_currency as MoneyCurrency) ?? "CLP")}
                 </span>
@@ -117,13 +141,13 @@ export default async function PropertyDetailPage({
             )}
             {property.expected_term_months && (
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Plazo de arriendo esperado</span>
+                <span className="text-muted-foreground">Plazo de arriendo</span>
                 <span className="font-medium tabular-nums">{property.expected_term_months} meses</span>
               </div>
             )}
             {property.expected_guarantee_amount && (
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Garantía esperada</span>
+                <span className="text-muted-foreground">Valor garantía</span>
                 <span className="font-medium tabular-nums">
                   {formatMoney(property.expected_guarantee_amount, (property.expected_guarantee_currency as MoneyCurrency) ?? "CLP")}
                 </span>
