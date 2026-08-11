@@ -265,10 +265,11 @@ export async function quickInviteContact(formData: FormData) {
 export async function deleteContact(formData: FormData) {
   const supabase = await createClient();
   const id = String(formData.get("id"));
+  const tab = String(formData.get("tab") || "arrendador");
 
   const { error } = await supabase.from("contacts").delete().eq("id", id);
-  if (error) redirect(`/contacts?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`/contacts?tab=${tab}&error=${encodeURIComponent(error.message)}`);
 
   revalidatePath("/contacts");
-  redirect("/contacts");
+  redirect(`/contacts?tab=${tab}`);
 }

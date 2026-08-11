@@ -2,7 +2,14 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { BottomSheet, BottomSheetContent, BottomSheetDescription, BottomSheetFooter, BottomSheetTitle } from "@/components/ui/bottom-sheet";
+import {
+  BottomSheet,
+  BottomSheetContent,
+  BottomSheetDescription,
+  BottomSheetFooter,
+  BottomSheetHeader,
+  BottomSheetTitle,
+} from "@/components/ui/bottom-sheet";
 
 // Envuelve el formulario de la Sección 1 (datos de la propiedad) para
 // interceptar el submit solo cuando el plazo ingresado es sospechosamente
@@ -57,10 +64,12 @@ export function PropertyDetailsForm({
       </form>
       <BottomSheet open={shortTerm !== null} onOpenChange={(open) => !open && setShortTerm(null)}>
         <BottomSheetContent>
-          <BottomSheetTitle>¿Seguro que el plazo está en meses?</BottomSheetTitle>
-          <BottomSheetDescription>
-            Ingresaste {shortTerm} {shortTerm === 1 ? "mes" : "meses"}.
-          </BottomSheetDescription>
+          <BottomSheetHeader>
+            <BottomSheetTitle>¿Seguro que el plazo está en meses?</BottomSheetTitle>
+            <BottomSheetDescription>
+              Ingresaste {shortTerm} {shortTerm === 1 ? "mes" : "meses"}.
+            </BottomSheetDescription>
+          </BottomSheetHeader>
           <BottomSheetFooter>
             <Button type="button" variant="outline" onClick={handleFix}>
               Corregir

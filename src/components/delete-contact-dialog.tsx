@@ -4,7 +4,14 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BottomSheet, BottomSheetContent, BottomSheetDescription, BottomSheetFooter, BottomSheetTitle } from "@/components/ui/bottom-sheet";
+import {
+  BottomSheet,
+  BottomSheetContent,
+  BottomSheetDescription,
+  BottomSheetFooter,
+  BottomSheetHeader,
+  BottomSheetTitle,
+} from "@/components/ui/bottom-sheet";
 
 function ConfirmDeleteButton() {
   const { pending } = useFormStatus();
@@ -39,11 +46,13 @@ export function DeleteContactDialog({
   contactId,
   fullName,
   status,
+  tab,
 }: {
   action: (formData: FormData) => void;
   contactId: string;
   fullName: string;
   status: "pendiente" | "confirmado";
+  tab: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -54,14 +63,17 @@ export function DeleteContactDialog({
       </Button>
       <BottomSheet open={open} onOpenChange={setOpen}>
         <BottomSheetContent>
-          <form action={action}>
+          <form action={action} className="space-y-3">
             <input type="hidden" name="id" value={contactId} />
-            <BottomSheetTitle>¿Quitar a {fullName} de tus contactos?</BottomSheetTitle>
-            <BottomSheetDescription>
-              {status === "pendiente"
-                ? "Se cancela la invitación pendiente: el link que se generó deja de funcionar de inmediato. Si quieres invitarla más adelante, vas a tener que empezar de nuevo."
-                : "Esto no afecta ninguna propiedad, contrato ni firma ya vinculada con esta persona — solo se quita de tu libreta. Si la necesitas más adelante, vas a tener que agregarla de nuevo."}
-            </BottomSheetDescription>
+            <input type="hidden" name="tab" value={tab} />
+            <BottomSheetHeader>
+              <BottomSheetTitle>¿Quitar a {fullName} de tus contactos?</BottomSheetTitle>
+              <BottomSheetDescription>
+                {status === "pendiente"
+                  ? "Se cancela la invitación pendiente — el link deja de funcionar de inmediato."
+                  : "No afecta ninguna propiedad, contrato ni firma ya vinculada — solo sale de tu libreta."}
+              </BottomSheetDescription>
+            </BottomSheetHeader>
             <BottomSheetFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancelar

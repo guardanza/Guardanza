@@ -14,6 +14,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { PropertyThumb } from "@/components/property-thumb";
 import { CandidateSearchField } from "@/components/candidate-search-field";
+import { AdjudicateCandidateSheet, DiscardCandidateSheet } from "@/components/candidate-decision-sheets";
 
 export default async function PropertyDetailPage({
   params,
@@ -154,7 +155,7 @@ export default async function PropertyDetailPage({
       {!isOccupied && (
         <Card className="p-0">
           <div className="border-b px-4 py-3">
-            <h2 className="text-sm font-medium">Candidatos</h2>
+            <h2 className="text-sm font-medium">Candidatos para arrendar</h2>
             <p className="text-xs text-muted-foreground">Personas de tu libreta en evaluación para ser el arrendatario de esta propiedad.</p>
           </div>
           <CardContent className="space-y-3 py-4">
@@ -170,23 +171,27 @@ export default async function PropertyDetailPage({
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      <StatusBadge status={c.status} />
+                      {/* "en_evaluacion" es implícito: ya está dentro del
+                          marco "Candidatos para arrendar", repetirlo acá
+                          es redundante. El estado sigue existiendo abajo
+                          sin cambios — solo se oculta esta etiqueta. */}
+                      {c.status !== "en_evaluacion" && <StatusBadge status={c.status} />}
                       {c.status === "en_evaluacion" && (
                         <>
                           {c.contact.status === "confirmado" ? (
-                            <Link href={`/contracts/new?property_id=${id}&candidate_id=${c.id}`} className={buttonVariants({ size: "sm" })}>
-                              Elegir ganador
-                            </Link>
+                            <AdjudicateCandidateSheet
+                              href={`/contracts/new?property_id=${id}&candidate_id=${c.id}`}
+                              fullName={c.contact.full_name}
+                            />
                           ) : (
                             <span className="text-xs text-muted-foreground">No puede ganar hasta confirmar su cuenta</span>
                           )}
-                          <form action={markCandidateNotSelected}>
-                            <input type="hidden" name="id" value={c.id} />
-                            <input type="hidden" name="property_id" value={id} />
-                            <Button type="submit" variant="outline" size="sm">
-                              No seleccionado
-                            </Button>
-                          </form>
+                          <DiscardCandidateSheet
+                            action={markCandidateNotSelected}
+                            candidateId={c.id}
+                            propertyId={id}
+                            fullName={c.contact.full_name}
+                          />
                         </>
                       )}
                       {c.status === "no_seleccionado" && (
