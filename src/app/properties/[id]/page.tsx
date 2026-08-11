@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { deleteProperty } from "@/lib/actions/properties";
@@ -15,6 +15,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { PropertyThumb } from "@/components/property-thumb";
 import { CandidateSearchField } from "@/components/candidate-search-field";
 import { AdjudicateCandidateSheet, DiscardCandidateSheet } from "@/components/candidate-decision-sheets";
+import { ListingPortalLink } from "@/components/listing-portal-link";
 
 export default async function PropertyDetailPage({
   params,
@@ -105,20 +106,11 @@ export default async function PropertyDetailPage({
 
       {hasListingDetails && (
         <Card className="p-0">
-          <div className="border-b px-4 py-3">
-            <h2 className="text-sm font-medium">Detalles del listado</h2>
+          <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+            <h2 className="text-sm font-medium">Detalles de la propiedad</h2>
+            {property.listing_url && <ListingPortalLink url={property.listing_url} />}
           </div>
           <CardContent className="space-y-2 py-4 text-sm">
-            {property.listing_url && (
-              <a
-                href={property.listing_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-primary underline-offset-4 hover:underline"
-              >
-                Ver aviso externo <ExternalLink className="size-3.5" strokeWidth={2} />
-              </a>
-            )}
             {property.expected_rent_amount && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Arriendo mensual esperado</span>
@@ -153,7 +145,14 @@ export default async function PropertyDetailPage({
           de los demás candidatos a no_seleccionado) pasa recién ahí,
           vía select_winning_candidate(). */}
       {!isOccupied && (
-        <Card className="p-0">
+        // Esta tarjeta es donde se toma la decisión importante (elegir al
+        // arrendatario) — el acento dorado que el resto de las tarjetas
+        // solo muestra al pasar el mouse (before:scale-y-0 en Card, ver
+        // card.tsx) queda permanente acá, más un borde levemente más
+        // definido. Mismo lenguaje visual del sistema, sin fondo de color
+        // (eso se reserva para los avisos informativos) — para que
+        // destaque sin leerse como una alerta.
+        <Card className="p-0 border-brand-gold/40 before:scale-y-100">
           <div className="border-b px-4 py-3">
             <h2 className="text-sm font-medium">Candidatos para arrendar</h2>
             <p className="text-xs text-muted-foreground">Personas de tu libreta en evaluación para ser el arrendatario de esta propiedad.</p>
