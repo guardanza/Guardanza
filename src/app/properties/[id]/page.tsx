@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { deleteProperty } from "@/lib/actions/properties";
@@ -16,6 +16,7 @@ import { PropertyThumb } from "@/components/property-thumb";
 import { CandidateSearchField } from "@/components/candidate-search-field";
 import { AdjudicateCandidateSheet, DiscardCandidateSheet } from "@/components/candidate-decision-sheets";
 import { ListingPortalLink } from "@/components/listing-portal-link";
+import { DeletePropertyDialog } from "@/components/delete-property-dialog";
 
 export default async function PropertyDetailPage({
   params,
@@ -95,12 +96,7 @@ export default async function PropertyDetailPage({
           <Link href={`/properties/${id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <Pencil /> Editar
           </Link>
-          <form action={deleteProperty}>
-            <input type="hidden" name="id" value={id} />
-            <button type="submit" className={buttonVariants({ variant: "destructive", size: "sm" })}>
-              <Trash2 /> Eliminar
-            </button>
-          </form>
+          <DeletePropertyDialog action={deleteProperty} propertyId={id} address={property.address} />
         </div>
       </div>
 
