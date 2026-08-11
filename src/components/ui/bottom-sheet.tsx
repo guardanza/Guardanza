@@ -56,6 +56,18 @@ function BottomSheetContent({
   )
 }
 
+// Agrupa título + descripción con su propio respiro (space-y-1.5) —
+// separado del space-y-3 más generoso entre BottomSheetContent y
+// BottomSheetFooter. Antes el título y la descripción quedaban pegados
+// cada vez que el contenido vivía dentro de un <form> (el space-y-3 de
+// BottomSheetContent solo separa a sus HIJOS DIRECTOS; un <form> que
+// envuelve título+descripción+footer rompe ese espaciado por completo).
+// Envolver título+descripción acá adentro hace que el respiro sea
+// intrínseco al componente, sin depender de dónde caiga el <form>.
+function BottomSheetHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return <div data-slot="bottom-sheet-header" className={cn("space-y-1.5", className)} {...props} />
+}
+
 function BottomSheetTitle({ className, ...props }: DialogPrimitive.Title.Props) {
   return (
     <DialogPrimitive.Title
@@ -94,5 +106,6 @@ export {
   BottomSheetContent,
   BottomSheetDescription,
   BottomSheetFooter,
+  BottomSheetHeader,
   BottomSheetTitle,
 }

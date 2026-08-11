@@ -192,6 +192,7 @@ export default async function ContactsPage({
                       contactId={r.contactId}
                       fullName={r.fullName}
                       status={r.status === "pendiente" ? "pendiente" : "confirmado"}
+                      tab={r.role}
                     />
                   </div>
                 )}
