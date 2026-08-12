@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signContractLandlord, signContractTenant, cancelContract, payGuarantee } from "@/lib/actions/contracts";
+import { undoWinningCandidate } from "@/lib/actions/candidates";
 import { openDispute } from "@/lib/actions/disputes";
 import { one } from "@/lib/supabase/one";
 import { hasCompletedProfile } from "@/lib/profile-completeness";
@@ -10,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { Separator } from "@/components/ui/separator";
 import { RequireRutPrompt } from "@/components/require-rut-prompt";
+import { UndoAdjudicationSheet } from "@/components/undo-adjudication-sheet";
+import { CancelContractSheet } from "@/components/cancel-contract-sheet";
 
 export default async function ContractDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,8 +26,9 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   // itself is still present (the view passes through every column) and
   // stays in use for the header badge, where the finer detail is useful
   // rather than a maintenance burden.
-  const { data: contract, error } = await supabase.from("contracts_branch_status").select("*, properties(address)").eq("id", id).single();
+  const { data: contract, error } = await supabase.from("contracts_branch_status").select("*, properties(id, address)").eq("id", id).single();
   if (error || !contract) notFound();
+  const property = one(contract.properties);
 
   const { data: amounts } = await supabase
     .rpc("contract_guarantee_amounts", { p_contract_id: id })
@@ -70,6 +74,17 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
     contract.estado_firma === "firmado_parcialmente" ||
     contract.estado_garantia === "pendiente";
 
+  // "Deshacer adjudicación" solo mientras nadie firmó — a diferencia de
+  // "Cancelar contrato" (isCancellable), que sigue disponible incluso
+  // después de la primera firma. Nunca se lo ofrece al arrendatario: la
+  // autorización real de undo_winning_candidate() es admin de la
+  // organización dueña o de la corredora, nunca quien arrienda.
+  const canUndo = contract.estado_firma === "esperando_firmas" && (myRole === "arrendador" || myRole === "corredor");
+  const { data: tenantParty } = canUndo
+    ? await supabase.from("contract_parties").select("profiles(full_name)").eq("contract_id", id).eq("role", "arrendatario").maybeSingle()
+    : { data: null };
+  const tenantName = tenantParty ? (one(tenantParty.profiles)?.full_name ?? "el arrendatario") : "el arrendatario";
+
   const signLandlordAction = signContractLandlord.bind(null, id);
   const signTenantAction = signContractTenant.bind(null, id);
   const cancelAction = cancelContract.bind(null, id);
@@ -78,7 +93,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{one(contract.properties)?.address}</h1>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{property?.address}</h1>
         <StatusBadge status={contract.status} />
       </div>
 
@@ -163,12 +178,10 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           </form>
         )}
 
-        {isCancellable && (myRole === "arrendador" || myRole === "arrendatario") && (
-          <form action={cancelAction}>
-            <Button type="submit" variant="outline">
-              Cancelar contrato
-            </Button>
-          </form>
+        {isCancellable && (myRole === "arrendador" || myRole === "arrendatario") && <CancelContractSheet action={cancelAction} />}
+
+        {canUndo && property && (
+          <UndoAdjudicationSheet action={undoWinningCandidate} contractId={id} propertyId={property.id} tenantName={tenantName} />
         )}
 
         {contract.estado_garantia === "en_custodia" && guarantee && myRole === "arrendador" && (
