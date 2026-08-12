@@ -23,13 +23,14 @@ import { cn } from "@/lib/utils";
 // tener — siempre se muestran, incluso sin asignar todavía. El corredor
 // puede genuinamente no participar, pero igual se muestra el chip (con
 // su propio estado vacío) para que los 3 roles sean siempre visibles y
-// escaneables de un vistazo, en vez de que la fila cambie de ancho
-// según qué datos haya. Verde = asignado, rojizo = sin asignar — mismo
-// lenguaje de color que el resto de la app (activo/confirmado en verde,
-// estados sin resolver en rojo).
+// escaneables de un vistazo, en vez de que la fila cambie de ancho según
+// qué datos haya. Verde = asignado (mismo lenguaje que activo/confirmado
+// en el resto de la app); sin asignar es un estado pendiente, no un
+// error — gris neutro, nunca rojo, mismo tono que cancelado/no
+// seleccionado en StatusBadge.
 function RoleBadge({ label, value, emptyText }: { label: string; value: string | null; emptyText: string }) {
   return (
-    <Badge variant={value ? "secondary" : "destructive"} className={cn(value && "bg-success/15 text-success")}>
+    <Badge variant="secondary" className={cn(value ? "bg-success/15 text-success" : "bg-muted text-muted-foreground")}>
       {label}: {value ?? emptyText}
     </Badge>
   );
@@ -212,7 +213,9 @@ export default async function PropertyDetailPage({
                           marco "Candidatos para arrendar", repetirlo acá
                           es redundante. El estado sigue existiendo abajo
                           sin cambios — solo se oculta esta etiqueta. */}
-                      {c.status !== "en_evaluacion" && <StatusBadge status={c.status} />}
+                      {c.status !== "en_evaluacion" && (
+                        <StatusBadge status={c.status} label={c.status === "seleccionado" ? "Adjudicado" : undefined} />
+                      )}
                       {c.status === "en_evaluacion" && (
                         <>
                           {c.contact.status === "confirmado" ? (

@@ -38,7 +38,10 @@ const STATUS_STYLES: Record<string, string> = {
 // for "this needs attention now", not decoration.
 const PULSING_STATUSES = new Set(["en_disputa", "escalada"]);
 
-export function StatusBadge({ status, className }: { status: string; className?: string }) {
+// `label` sobrescribe el texto sin tocar el color/mapping — ej.
+// "seleccionado" (nombre interno del estado) se lee "Adjudicado" en la
+// ficha de propiedad, mismo verde de siempre.
+export function StatusBadge({ status, label, className }: { status: string; label?: string; className?: string }) {
   return (
     <span
       className={cn(
@@ -48,7 +51,7 @@ export function StatusBadge({ status, className }: { status: string; className?:
       )}
     >
       {PULSING_STATUSES.has(status) && <span className="size-1.5 shrink-0 animate-pulse-urgent rounded-full bg-current" />}
-      {status.replace(/_/g, " ")}
+      {label ?? status.replace(/_/g, " ")}
     </span>
   );
 }
