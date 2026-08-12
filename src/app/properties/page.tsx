@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2 } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { stripParticularSuffix } from "@/lib/labels";
@@ -29,8 +29,8 @@ export default async function PropertiesPage() {
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Propiedades</h1>
           <p className="text-sm text-muted-foreground">Catálogo de propiedades vinculadas a tus organizaciones.</p>
         </div>
-        <Link href="/properties/new" className={buttonVariants()}>
-          + Nueva propiedad
+        <Link href="/properties/new" className={buttonVariants({ size: "icon" })} title="Nueva propiedad" aria-label="Nueva propiedad">
+          <Plus className="size-4" />
         </Link>
       </div>
 
