@@ -116,3 +116,32 @@ export async function selectWinningCandidate(formData: FormData) {
   revalidatePath(`/properties/${property_id}`);
   redirect(`/contracts/${contract.id}`);
 }
+
+// Paso 6 (SENSIBLE): deshacer una adjudicación por completo, como si
+// nunca hubiera pasado — solo mientras nadie firmó todavía.
+// undo_winning_candidate() (SECURITY DEFINER) valida eso, borra el
+// contrato y su garantía, y devuelve al candidato ganador (y a los que
+// esa misma adjudicación había descartado) a en_evaluacion. Vive en
+// /contracts/[id] junto a "Cancelar contrato" — a diferencia de esa
+// acción (que deja el contrato como registro histórico 'cancelado'),
+// esto lo borra: pensado para "me equivoqué de candidato", no para
+// dejar un rastro de que hubo un intento.
+export async function undoWinningCandidate(formData: FormData) {
+  const supabase = await createClient();
+  const contract_id = String(formData.get("contract_id"));
+  const property_id = String(formData.get("property_id"));
+
+  const { error } = await supabase.rpc("undo_winning_candidate", { p_contract_id: contract_id });
+  if (error) {
+    if (error.message.includes("already has a signature")) {
+      redirect(`/contracts/${contract_id}?error=${encodeURIComponent("Ya hay al menos una firma — no se puede deshacer, solo cancelar.")}`);
+    }
+    if (error.message.includes("not authorized")) {
+      redirect(`/contracts/${contract_id}?error=${encodeURIComponent("No tienes permiso para deshacer esta adjudicación.")}`);
+    }
+    redirect(`/contracts/${contract_id}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/properties/${property_id}`);
+  redirect(`/properties/${property_id}`);
+}
