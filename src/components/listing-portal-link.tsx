@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { ArrowUpRight, ExternalLink } from "lucide-react";
 import { detectListingPortal } from "@/lib/listing-portal";
 import { cn } from "@/lib/utils";
 
@@ -21,10 +21,13 @@ export function ListingPortalLink({ url }: { url: string }) {
         rel="noopener noreferrer"
         title={label}
         aria-label={label}
-        className="flex h-8 shrink-0 items-center rounded-md bg-white px-2 ring-1 ring-border transition-transform hover:scale-105"
+        className="relative flex h-8 shrink-0 items-center rounded-md bg-white px-2 ring-1 ring-border transition-transform hover:scale-105"
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- asset propio en public/, sin necesidad de Next/Image para un ícono fijo. */}
         <img src={portal.src} alt={label} className="h-4 w-auto" />
+        <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-card ring-1 ring-border">
+          <ArrowUpRight className="size-2.5 text-muted-foreground" strokeWidth={2.5} />
+        </span>
       </a>
     );
   }

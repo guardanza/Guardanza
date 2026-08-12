@@ -17,6 +17,23 @@ import { CandidateSearchField } from "@/components/candidate-search-field";
 import { AdjudicateCandidateSheet, DiscardCandidateSheet } from "@/components/candidate-decision-sheets";
 import { ListingPortalLink } from "@/components/listing-portal-link";
 import { DeletePropertyDialog } from "@/components/delete-property-dialog";
+import { cn } from "@/lib/utils";
+
+// Arrendador y arrendatario son roles que toda propiedad tiene o va a
+// tener — siempre se muestran, incluso sin asignar todavía. El corredor
+// puede genuinamente no participar, pero igual se muestra el chip (con
+// su propio estado vacío) para que los 3 roles sean siempre visibles y
+// escaneables de un vistazo, en vez de que la fila cambie de ancho
+// según qué datos haya. Verde = asignado, rojizo = sin asignar — mismo
+// lenguaje de color que el resto de la app (activo/confirmado en verde,
+// estados sin resolver en rojo).
+function RoleBadge({ label, value, emptyText }: { label: string; value: string | null; emptyText: string }) {
+  return (
+    <Badge variant={value ? "secondary" : "destructive"} className={cn(value && "bg-success/15 text-success")}>
+      {label}: {value ?? emptyText}
+    </Badge>
+  );
+}
 
 export default async function PropertyDetailPage({
   params,
@@ -119,9 +136,9 @@ export default async function PropertyDetailPage({
           {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
         </p>
         <div className="flex flex-wrap gap-1.5 pt-1">
-          {owners.length > 0 && <Badge variant="secondary">Arrendador: {owners.map((o) => stripParticularSuffix(o.name)).join(", ")}</Badge>}
-          {broker && <Badge variant="secondary">Corredor: {broker.name}</Badge>}
-          <Badge variant="secondary">Arrendatario: {tenantName ?? "Sin adjudicar"}</Badge>
+          <RoleBadge label="Arrendador" value={owners.length > 0 ? owners.map((o) => stripParticularSuffix(o.name)).join(", ") : null} emptyText="Sin asignar" />
+          <RoleBadge label="Corredor" value={broker?.name ?? null} emptyText="Sin corredor" />
+          <RoleBadge label="Arrendatario" value={tenantName} emptyText="Sin adjudicar" />
         </div>
       </div>
 
@@ -131,7 +148,7 @@ export default async function PropertyDetailPage({
             <h2 className="text-sm font-medium">Detalles de la propiedad</h2>
             {property.listing_url && <ListingPortalLink url={property.listing_url} />}
           </div>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className="space-y-2 pb-4 text-sm">
             {property.expected_rent_amount && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Valor de arriendo</span>
