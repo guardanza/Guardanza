@@ -8,12 +8,11 @@ import { updateProfile } from "@/lib/actions/profile";
 import { changePassword } from "@/lib/actions/settings";
 import { updateSystemConfig } from "@/lib/actions/system-config";
 import { requestRoleChange } from "@/lib/actions/role-change";
-import { labelToRoleBucket } from "@/lib/role-bucket";
+import { labelToRoleBucket, roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
 import { one } from "@/lib/supabase/one";
 import { orgTypeLabel, stripParticularSuffix } from "@/lib/labels";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -22,7 +21,15 @@ import { SavedIndicator } from "@/components/saved-indicator";
 import { AvatarPicker } from "@/components/avatar-picker";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { RoleChangeRequestDialog } from "@/components/role-change-request-dialog";
+import { RoleChip } from "@/components/role-chip";
+import { StatusBadge } from "@/components/status-badge";
 import { GoogleIcon } from "@/components/icons/google-icon";
+
+const ESTADO_SOLICITUD_LABELS: Record<string, string> = {
+  pendiente: "Pendiente",
+  aprobada: "Aprobada",
+  rechazada: "Rechazada",
+};
 
 export default async function ProfilePage({
   searchParams,
@@ -86,35 +93,6 @@ export default async function ProfilePage({
       )}
       <div>
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Perfil</h1>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <p className="text-sm text-muted-foreground">{userRes.user.email}</p>
-          <Badge variant="outline">{profileType}</Badge>
-          {!profile?.is_platform_admin && ultimaSolicitud?.estado !== "pendiente" && (
-            <RoleChangeRequestDialog
-              action={requestRoleChange}
-              currentBucket={currentBucket}
-              currentLabel={profileType}
-              activeContractsCount={activeContractsCount}
-            />
-          )}
-        </div>
-        {ultimaSolicitud && ultimaSolicitud.estado === "pendiente" && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Tienes una solicitud de cambio de rol <span className="font-medium text-foreground">pendiente</span> de
-            revisión.
-          </p>
-        )}
-        {ultimaSolicitud && ultimaSolicitud.estado === "aprobada" && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Tu última solicitud de cambio de rol fue <span className="font-medium text-foreground">aprobada</span>.
-          </p>
-        )}
-        {ultimaSolicitud && ultimaSolicitud.estado === "rechazada" && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Tu última solicitud de cambio de rol fue <span className="font-medium text-destructive">rechazada</span>
-            {ultimaSolicitud.motivo_rechazo ? `: ${ultimaSolicitud.motivo_rechazo}` : "."}
-          </p>
-        )}
       </div>
 
       <Card>
@@ -126,12 +104,53 @@ export default async function ProfilePage({
         </CardContent>
       </Card>
 
+      {!profile?.is_platform_admin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Rol en Guardanza</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="space-y-1">
+                <RoleChip label={profileType} />
+                {currentBucket === "corredor" && myOrg && (
+                  <p className="text-xs text-muted-foreground">{stripParticularSuffix(myOrg.name)}</p>
+                )}
+              </div>
+              {ultimaSolicitud?.estado !== "pendiente" && (
+                <RoleChangeRequestDialog
+                  action={requestRoleChange}
+                  currentBucket={currentBucket}
+                  currentLabel={profileType}
+                  activeContractsCount={activeContractsCount}
+                />
+              )}
+            </div>
+
+            {ultimaSolicitud && (
+              <div className="space-y-1.5 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">Tu última solicitud de cambio de rol</span>
+                  <StatusBadge status={ultimaSolicitud.estado} label={ESTADO_SOLICITUD_LABELS[ultimaSolicitud.estado]} />
+                </div>
+                <p>
+                  Rol solicitado:{" "}
+                  <span className="font-medium text-foreground">
+                    {roleBucketLabel(ultimaSolicitud.rol_solicitado as RoleBucket)}
+                  </span>
+                </p>
+                {ultimaSolicitud.estado === "rechazada" && ultimaSolicitud.motivo_rechazo && (
+                  <p className="text-muted-foreground">Motivo: {ultimaSolicitud.motivo_rechazo}</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader className="flex items-center justify-between">
-          <div>
-            <CardTitle>Datos personales</CardTitle>
-            <CardDescription>Tu RUT se valida automáticamente.</CardDescription>
-          </div>
+          <CardTitle>Datos personales</CardTitle>
           <Suspense fallback={null}>
             <SavedIndicator />
           </Suspense>
@@ -140,6 +159,7 @@ export default async function ProfilePage({
           <ProfileForm
             action={updateProfile}
             provider={provider}
+            email={userRes.user.email ?? ""}
             initialFullName={profile?.full_name ?? ""}
             initialRut={profile?.rut ?? ""}
             initialPhone={profile?.phone ?? ""}

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SaveButton } from "@/components/save-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RutInput } from "@/components/rut-input";
 import type { RoleBucket } from "@/lib/role-bucket";
 
 const WARNINGS: Record<RoleBucket, string> = {
@@ -58,7 +59,7 @@ export function DirectRoleChangeForm({ action }: { action: (formData: FormData) 
             <>
               <div className="space-y-1.5">
                 <Label htmlFor="org_rut">RUT</Label>
-                <Input id="org_rut" name="org_rut" placeholder="12.345.678-9" />
+                <RutInput id="org_rut" name="org_rut" placeholder="12.345.678-9" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="org_legal_form">Tipo</Label>

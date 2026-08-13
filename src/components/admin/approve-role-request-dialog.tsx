@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/save-button";
+import { RutInput } from "@/components/rut-input";
 import {
   Dialog,
   DialogClose,
@@ -57,7 +58,7 @@ export function ApproveRoleRequestDialog({
                 <>
                   <div className="space-y-1.5">
                     <Label htmlFor="org_rut">RUT de la corredora</Label>
-                    <Input id="org_rut" name="org_rut" placeholder="12.345.678-9" />
+                    <RutInput id="org_rut" name="org_rut" placeholder="12.345.678-9" />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="org_legal_form">Tipo</Label>

@@ -7,6 +7,7 @@ import { ROLE_OPTIONS, type RoleOption } from "@/lib/role-options";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/password-input";
+import { RutInput } from "@/components/rut-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/icons/google-icon";
@@ -134,7 +135,7 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="google_rut">RUT</Label>
-            <Input id="google_rut" name="rut" placeholder="12.345.678-9" required />
+            <RutInput id="google_rut" placeholder="12.345.678-9" required />
           </div>
 
           <Button type="submit" className="w-full">
@@ -179,7 +180,7 @@ export function SignupWizard({ initialRole, initialLegalForm }: { initialRole?: 
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="rut">RUT</Label>
-              <Input id="rut" name="rut" placeholder="12.345.678-9" required />
+              <RutInput id="rut" placeholder="12.345.678-9" required />
             </div>
           </>
         )}

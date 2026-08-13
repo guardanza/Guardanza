@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RutInput } from "@/components/rut-input";
 
 const ROLE_OPTIONS: RoleBucket[] = ["arrendatario", "arrendador", "corredor"];
 
@@ -97,7 +98,7 @@ export default async function NewContactPage({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="rut">RUT</Label>
-              <Input id="rut" name="rut" required placeholder="11.111.111-1" />
+              <RutInput id="rut" required placeholder="11.111.111-1" />
             </div>
             <Button type="submit" className="w-full">
               Cargar contacto
