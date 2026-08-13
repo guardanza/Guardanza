@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { RutInput } from "@/components/rut-input";
 
 // Versión simplificada del wizard de /signup — no hace falta elegir
 // Google vs. Email (la sesión ya existe) ni pedir contraseña, solo el rol
@@ -57,7 +58,7 @@ export function ChooseRoleForm() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="rut">RUT</Label>
-              <Input id="rut" name="rut" placeholder="12.345.678-9" required />
+              <RutInput id="rut" placeholder="12.345.678-9" required />
             </div>
           </>
         )}

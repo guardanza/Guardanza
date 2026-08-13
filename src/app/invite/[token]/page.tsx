@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PasswordInput } from "@/components/password-input";
+import { RutInput } from "@/components/rut-input";
 
 export default async function InvitePage({
   params,
@@ -91,7 +92,7 @@ export default async function InvitePage({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="rut">RUT</Label>
-                <Input id="rut" name="rut" defaultValue={invite.rut ?? ""} required placeholder="11.111.111-1" />
+                <RutInput id="rut" defaultValue={invite.rut ?? ""} required placeholder="11.111.111-1" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="password">Contraseña</Label>
