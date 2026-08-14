@@ -247,15 +247,13 @@ export default async function PropertyDetailPage({
 
       <Card className="p-0">
         <div className="border-b px-4 py-3">
-          <h2 className="text-sm font-medium">Contratos</h2>
+          <h2 className="text-sm font-medium">Contratos de esta propiedad</h2>
         </div>
         {contracts && contracts.length > 0 ? (
           <div className="divide-y">
             {contracts.map((c) => (
               <Link key={c.id} href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-muted/50">
-                <span>
-                  {c.guarantee_amount} {c.guarantee_currency}
-                </span>
+                <span className="tabular-nums">{formatMoney(c.guarantee_amount, c.guarantee_currency as MoneyCurrency)}</span>
                 <StatusBadge status={c.status} />
               </Link>
             ))}
