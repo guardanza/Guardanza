@@ -8,7 +8,6 @@ import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate } f
 import { stripParticularSuffix } from "@/lib/labels";
 import { formatMoney, type MoneyCurrency } from "@/lib/money";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
@@ -17,24 +16,7 @@ import { CandidateSearchField } from "@/components/candidate-search-field";
 import { AdjudicateCandidateSheet, DiscardCandidateSheet } from "@/components/candidate-decision-sheets";
 import { ListingPortalLink } from "@/components/listing-portal-link";
 import { DeletePropertyDialog } from "@/components/delete-property-dialog";
-import { cn } from "@/lib/utils";
-
-// Arrendador y arrendatario son roles que toda propiedad tiene o va a
-// tener — siempre se muestran, incluso sin asignar todavía. El corredor
-// puede genuinamente no participar, pero igual se muestra el chip (con
-// su propio estado vacío) para que los 3 roles sean siempre visibles y
-// escaneables de un vistazo, en vez de que la fila cambie de ancho según
-// qué datos haya. Verde = asignado (mismo lenguaje que activo/confirmado
-// en el resto de la app); sin asignar es un estado pendiente, no un
-// error — gris neutro, nunca rojo, mismo tono que cancelado/no
-// seleccionado en StatusBadge.
-function RoleBadge({ label, value, emptyText }: { label: string; value: string | null; emptyText: string }) {
-  return (
-    <Badge variant="secondary" className={cn(value ? "bg-success/15 text-success" : "bg-muted text-muted-foreground")}>
-      {label}: {value ?? emptyText}
-    </Badge>
-  );
-}
+import { RoleBadge } from "@/components/role-badge";
 
 export default async function PropertyDetailPage({
   params,

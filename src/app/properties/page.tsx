@@ -3,11 +3,11 @@ import { redirect } from "next/navigation";
 import { Building2, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
-import { stripParticularSuffix } from "@/lib/labels";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PropertyThumb } from "@/components/property-thumb";
+import { cn } from "@/lib/utils";
 
 export default async function PropertiesPage() {
   const supabase = await createClient();
@@ -16,49 +16,59 @@ export default async function PropertiesPage() {
 
   const { data: properties, error } = await supabase
     .from("properties")
-    .select(
-      "id, address, photo_url, property_landlords(organizations(id, name)), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
-    )
+    .select("id, address, photo_url, communes(name, regions(name))")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
 
+  // Ocupada = tiene un contrato que no terminó, mismo criterio que la
+  // ficha de propiedad — una consulta para todo el catálogo en vez de
+  // una por tarjeta, para no pagar N+1 en una lista que puede crecer.
+  const propertyIds = (properties ?? []).map((p) => p.id);
+  const { data: contracts } =
+    propertyIds.length > 0
+      ? await supabase.from("contracts").select("property_id, status").in("property_id", propertyIds)
+      : { data: [] };
+  const occupiedIds = new Set(
+    (contracts ?? []).filter((c) => c.status !== "finalizado" && c.status !== "cancelado").map((c) => c.property_id)
+  );
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Propiedades</h1>
           <p className="text-sm text-muted-foreground">Catálogo de propiedades vinculadas a tus organizaciones.</p>
         </div>
-        <Link href="/properties/new" className={buttonVariants({ size: "icon" })} title="Nueva propiedad" aria-label="Nueva propiedad">
-          <Plus className="size-4" />
+        <Link href="/properties/new" className={buttonVariants({ size: "sm" })}>
+          <Plus className="size-3.5" />
+          Nueva
         </Link>
       </div>
 
       {properties && properties.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-2">
           {properties.map((p) => {
-            const owners = (p.property_landlords ?? [])
-              .map((l) => one(l.organizations))
-              .filter((o): o is { id: string; name: string } => !!o);
-            const broker = one(p.broker);
             const commune = one(p.communes);
             const region = commune ? one(commune.regions) : null;
+            const occupied = occupiedIds.has(p.id);
             return (
               <Link key={p.id} href={`/properties/${p.id}`}>
-                <Card className="gap-0 overflow-hidden p-0 transition-shadow hover:shadow-md">
-                  <PropertyThumb url={p.photo_url} className="h-36 w-full" />
-                  <CardContent className="space-y-1.5 py-3">
-                    <p className="truncate text-sm font-medium">{p.address}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {owners.map((o) => (
-                        <Badge key={o.id} variant="secondary">
-                          {stripParticularSuffix(o.name)}
+                <Card size="sm" className="transition-shadow hover:shadow-md">
+                  <CardContent className="flex items-center gap-3">
+                    <PropertyThumb url={p.photo_url} className="size-16 shrink-0 rounded-lg" />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="truncate text-sm font-medium">{p.address}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        <Badge variant="secondary" className="bg-success/15 text-success">
+                          Arrendador
                         </Badge>
-                      ))}
-                      {broker && <Badge variant="outline">{broker.name}</Badge>}
+                        <Badge variant="secondary" className={cn(occupied ? "bg-success/15 text-success" : "bg-muted text-muted-foreground")}>
+                          {occupied ? "Arrendatario" : "Sin adjudicar"}
+                        </Badge>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
