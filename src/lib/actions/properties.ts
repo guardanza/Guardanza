@@ -23,12 +23,12 @@ async function uploadPhotoIfPresent(
   return data.publicUrl;
 }
 
-// Reduced to the minimum properties needs to exist at all — dirección,
-// comuna, and the first owning org (organization_id stays not null, so
-// there's always at least one owner from the start; guardado incremental
-// means everything else — foto, código de corredora, expected_* fields,
-// copropietarios adicionales — gets filled in afterwards on /edit, never
-// lost, never blocking the initial save).
+// Pantalla A del Paso 1 del wizard: lo mínimo para que la propiedad
+// exista — dirección, comuna, y la organización que administra la ficha
+// (organization_id, siempre la del corredor que la crea, nunca elegible
+// acá — "Arrendador" real se resuelve aparte, en property_landlords, vía
+// el buscador de /edit). Nace en status='borrador' (default de columna)
+// — recién pasa a 'activa' al completar el Paso 2 (ver updateProperty).
 export async function createProperty(formData: FormData) {
   const supabase = await createClient();
 
@@ -37,7 +37,7 @@ export async function createProperty(formData: FormData) {
   const commune_id = String(formData.get("commune_id") || "") || null;
 
   const fail = (message: string): never =>
-    redirect(`/properties/new?organization_id=${organization_id}&error=${encodeURIComponent(message)}`);
+    redirect(`/properties/new?error=${encodeURIComponent(message)}`);
 
   const { data: property, error } = await supabase
     .from("properties")
@@ -46,9 +46,12 @@ export async function createProperty(formData: FormData) {
     .single();
   if (error) return fail(error.message);
 
-  // The creating org is the first row in property_landlords — same
-  // invariant the Paso 1 backfill established for every pre-existing
-  // property (always at least one landlord row matching organization_id).
+  // La organización creadora entra como la primera fila de
+  // property_landlords (mismo backfill 1:1 de siempre) — pero como es
+  // type='broker' (la del corredor), el filtro por type='individual' que
+  // usa el wizard para decidir si ya hay arrendador real la ignora. El
+  // Paso 1 sigue pidiendo un arrendador de verdad hasta que se agregue
+  // uno vía el buscador.
   const { error: landlordError } = await supabase
     .from("property_landlords")
     .insert({ property_id: property.id, organization_id });
@@ -79,14 +82,32 @@ function normalizeListingUrl(raw: string): string | null {
   return withScheme;
 }
 
+// organization_id ya no viaja del cliente — el selector que lo exponía
+// como si fuera "Arrendador" mostraba las propias corredoras del usuario
+// (bug: sacado por completo, ver diagnóstico del wizard). Quién
+// administra la ficha se fija una sola vez, al crearla, y no se vuelve a
+// tocar acá.
+//
+// activate=1 (solo lo manda el botón "Confirmar" del Paso 2 del wizard)
+// es la única puerta que pasa la propiedad de 'borrador' a 'activa' —
+// cualquier otro guardado (correcciones del Paso 1, o edición posterior
+// ya con la propiedad activa) deja el estado como está.
 export async function updateProperty(formData: FormData) {
   const supabase = await createClient();
 
   const id = String(formData.get("id"));
-  const address = String(formData.get("address"));
-  const commune_id = String(formData.get("commune_id") || "") || null;
-  const organization_id = String(formData.get("organization_id") || "") || null;
+  // El Paso 2 del wizard (Foto y valores) no incluye dirección/comuna en
+  // su formulario — a diferencia del Paso 1 y de la edición de una
+  // propiedad ya activa, que sí las traen. formData.has() distingue "no
+  // se mandó este campo" (Paso 2) de "se mandó vacío" (no debería pasar,
+  // el campo es required, pero si pasara sería un vaciado real). Sin este
+  // chequeo, confirmar el Paso 2 pisaba la dirección ya guardada con la
+  // string "null" y la comuna con NULL.
+  const hasAddressFields = formData.has("address");
+  const address = hasAddressFields ? String(formData.get("address")) : undefined;
+  const commune_id = hasAddressFields ? String(formData.get("commune_id") || "") || null : undefined;
   const listing_url_raw = String(formData.get("listing_url") || "").trim() || null;
+  const activate = formData.get("activate") === "1";
 
   const fail = (message: string): never =>
     redirect(`/properties/${id}/edit?error=${encodeURIComponent(message)}`);
@@ -114,9 +135,7 @@ export async function updateProperty(formData: FormData) {
   const { error } = await supabase
     .from("properties")
     .update({
-      address,
-      commune_id,
-      ...(organization_id ? { organization_id } : {}),
+      ...(hasAddressFields ? { address, commune_id } : {}),
       ...(photo_url ? { photo_url } : {}),
       listing_url,
       expected_rent_amount: parseOptionalNumber(formData, "expected_rent_amount"),
@@ -124,12 +143,17 @@ export async function updateProperty(formData: FormData) {
       expected_term_months: parseOptionalNumber(formData, "expected_term_months"),
       expected_guarantee_amount: parseOptionalNumber(formData, "expected_guarantee_amount"),
       expected_guarantee_currency: parseOptionalCurrency(formData, "expected_guarantee_currency"),
+      ...(activate ? { status: "activa" as const } : {}),
     })
     .eq("id", id);
   if (error) return fail(error.message);
 
-  revalidatePath(`/properties/${id}`);
-  redirect(`/properties/${id}`);
+  if (activate) {
+    revalidatePath(`/properties/${id}`);
+    redirect(`/properties/${id}`);
+  }
+  revalidatePath(`/properties/${id}/edit`);
+  redirect(`/properties/${id}/edit`);
 }
 
 // Arrendadores adicionales: recibe un organization_id ya resuelto por
