@@ -69,8 +69,9 @@ export default async function PropertyDetailPage({
   // UI nunca muestre un buscador que la base va a rechazar igual. Ese
   // mismo contrato activo es la fuente del arrendatario a mostrar en la
   // cabecera — no se infiere de property_candidates (status
-  // 'seleccionado') porque un contrato también se puede crear directo,
-  // sin pasar por la evaluación de candidatos ("+ Nuevo contrato").
+  // 'seleccionado') porque un contrato pudo haberse creado por el
+  // camino directo, ya retirado (Opción C) pero todavía presente en
+  // contratos viejos que no pasaron por evaluación de candidatos.
   const activeContract = (contracts ?? []).find((c) => c.status !== "finalizado" && c.status !== "cancelado");
   const isOccupied = !!activeContract;
 
@@ -245,11 +246,8 @@ export default async function PropertyDetailPage({
       )}
 
       <Card className="p-0">
-        <div className="flex items-center justify-between border-b px-4 py-3">
+        <div className="border-b px-4 py-3">
           <h2 className="text-sm font-medium">Contratos</h2>
-          <Link href={`/contracts/new?property_id=${id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            + Nuevo contrato
-          </Link>
         </div>
         {contracts && contracts.length > 0 ? (
           <div className="divide-y">

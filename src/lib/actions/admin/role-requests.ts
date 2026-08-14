@@ -88,8 +88,9 @@ export async function changeRoleDirect(formData: FormData) {
     if (rutRaw && !validateRut(rutRaw)) return fail(`El RUT ${rutRaw} no es válido.`);
   }
 
-  // profiles has no email column (it lives on auth.users) — same lookup
-  // path createContract uses to resolve a tenant by email.
+  // profiles has no email column (it lives on auth.users) — same
+  // admin.listUsers() lookup pattern used elsewhere in the app to
+  // resolve an email to an account (see findUserIdByEmail).
   const admin = createServiceRoleClient();
   const { data: usersPage, error: lookupError } = await admin.auth.admin.listUsers();
   if (lookupError) return fail(lookupError.message);

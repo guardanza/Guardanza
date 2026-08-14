@@ -33,11 +33,13 @@ function sanitizeTerm(raw: string): string {
 //      (contact_role='arrendatario', con email) -> property_candidates.
 //      Cubre tanto al candidato en evaluación como al ganador ya
 //      adjudicado (el estado queda en 'seleccionado', la fila no se borra).
-//   2. Vía contrato directo ("+ Nuevo contrato", sin evaluación): no deja
-//      ficha en contacts, así que ahí solo hay nombre/RUT vía profiles
-//      (contract_parties/property_tenants) — sin email, porque esa ruta
-//      nunca lo captura en ninguna tabla accesible. Limitación de datos
-//      conocida y aceptada, no un bug de la búsqueda.
+//   2. Vía contrato directo (el camino sin evaluación, retirado en la
+//      Opción C — ver create_contract()): no dejaba ficha en contacts,
+//      así que los contratos viejos creados así solo tienen nombre/RUT
+//      vía profiles (contract_parties/property_tenants) — sin email,
+//      porque esa ruta nunca lo capturó en ninguna tabla accesible.
+//      Limitación de datos conocida y aceptada, no un bug de la
+//      búsqueda — solo relevante para contratos anteriores al retiro.
 export async function searchPropertyIds(supabase: Supa, rawQuery: string): Promise<Set<string> | null> {
   const term = sanitizeTerm(rawQuery);
   if (term.length < 2) return null;
