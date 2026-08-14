@@ -4,7 +4,7 @@ import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { deleteProperty } from "@/lib/actions/properties";
-import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate } from "@/lib/actions/candidates";
+import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate, quickAdjudicate } from "@/lib/actions/candidates";
 import { stripParticularSuffix } from "@/lib/labels";
 import { formatMoney, type MoneyCurrency } from "@/lib/money";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { PropertyThumb } from "@/components/property-thumb";
 import { CandidateSearchField } from "@/components/candidate-search-field";
+import { QuickAdjudicateSheet } from "@/components/quick-adjudicate-sheet";
 import { AdjudicateCandidateSheet, DiscardCandidateSheet } from "@/components/candidate-decision-sheets";
 import { ListingPortalLink } from "@/components/listing-portal-link";
 import { DeletePropertyDialog } from "@/components/delete-property-dialog";
@@ -174,9 +175,12 @@ export default async function PropertyDetailPage({
         // (eso se reserva para los avisos informativos) — para que
         // destaque sin leerse como una alerta.
         <Card className="p-0 border-brand-gold/40 before:scale-y-100">
-          <div className="border-b px-4 py-3">
-            <h2 className="text-sm font-medium">Candidatos para arrendar</h2>
-            <p className="text-xs text-muted-foreground">Personas de tu libreta en evaluación para ser el arrendatario de esta propiedad.</p>
+          <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
+            <div>
+              <h2 className="text-sm font-medium">Candidatos para arrendar</h2>
+              <p className="text-xs text-muted-foreground">Personas de tu libreta en evaluación para ser el arrendatario de esta propiedad.</p>
+            </div>
+            <QuickAdjudicateSheet action={quickAdjudicate} propertyId={id} />
           </div>
           <CardContent className="space-y-3 py-4">
             {candidates.length > 0 ? (
