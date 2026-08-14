@@ -77,6 +77,16 @@ async function issueInviteOrLink(
 // email?", y se le pasa a la función. Camino 1 (queda pendiente) dispara
 // además la invitación real — token propio, emitido por
 // issue_contact_invite(), enviado por el adapter de email (mock por ahora).
+// next (wizard de alta de propiedad): cuando se llega acá desde "¿No está
+// en tu libreta? Invítalo primero" del buscador de arrendadores, vuelve
+// ahí en vez de a /contacts al terminar — el resto del flujo (load_contact,
+// la invitación real) no cambia en nada. Solo rutas propias (empieza con
+// "/", nunca "//" — protocol-relative sería salir del sitio) para no abrir
+// un open-redirect con un valor que viene de la URL.
+function safeNext(next: string): string | null {
+  return /^\/(?!\/)/.test(next) ? next : null;
+}
+
 export async function createContact(formData: FormData) {
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -89,9 +99,11 @@ export async function createContact(formData: FormData) {
     .trim()
     .toLowerCase();
   const rut = String(formData.get("rut") || "").trim();
+  const next = safeNext(String(formData.get("next") || ""));
+  const nextParam = next ? `&next=${encodeURIComponent(next)}` : "";
 
   const fail = (message: string): never =>
-    redirect(`/contacts/new?organization_id=${organization_id}&error=${encodeURIComponent(message)}`);
+    redirect(`/contacts/new?organization_id=${organization_id}${nextParam}&error=${encodeURIComponent(message)}`);
 
   if (!full_name) return fail("Ingresa el nombre del contacto.");
   if (!email) return fail("Ingresa el email del contacto.");
@@ -121,9 +133,10 @@ export async function createContact(formData: FormData) {
   }
 
   revalidatePath("/contacts");
+  if (next) revalidatePath(next);
 
   if (contact?.status === "confirmado") {
-    redirect(`/contacts?linked=${encodeURIComponent(full_name)}`);
+    redirect(next ?? `/contacts?linked=${encodeURIComponent(full_name)}`);
   }
 
   if (contact?.status === "pendiente") {
@@ -134,7 +147,7 @@ export async function createContact(formData: FormData) {
     await issueInviteOrLink(supabase, contact.id, full_name, email, org?.name ?? "Guardanza", contact_role, null);
   }
 
-  redirect("/contacts");
+  redirect(next ?? "/contacts");
 }
 
 // Reenviar: puede pasar de dos formas. Si el email sigue sin cuenta,

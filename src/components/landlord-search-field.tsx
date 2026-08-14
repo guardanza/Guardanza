@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -24,12 +25,19 @@ type Selected = { organizationId: string; fullName: string };
 // esa acción ya sabe leer. Al resolverse la selección, se envía el
 // formulario contenedor solo — sin botón "Agregar" aparte, elegir un
 // resultado ya alcanza.
-export function LandlordSearchField({ inputName = "organization_id" }: { inputName?: string }) {
+//
+// inviteHref (wizard de alta de propiedad): cuando la búsqueda no
+// encuentra a nadie, ofrece ir a cargar/invitar el contacto — mismo
+// formulario de "Nuevo contacto" de siempre (createContact), no un
+// mecanismo nuevo. Opcional: los demás usos de este buscador (edición
+// de una propiedad ya activa) siguen igual si no se pasa.
+export function LandlordSearchField({ inputName = "organization_id", inviteHref }: { inputName?: string; inviteHref?: string }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ContactResult[]>([]);
   const [selected, setSelected] = useState<Selected | null>(null);
   const [resolving, setResolving] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hiddenInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,13 +55,23 @@ export function LandlordSearchField({ inputName = "organization_id" }: { inputNa
         .order("full_name")
         .limit(10);
       setResults((data as ContactResult[]) ?? []);
+      setSearching(false);
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query, selected]);
 
+  // searching se maneja desde el evento de escritura (no desde el efecto
+  // de arriba) para no llamar setState de forma síncrona dentro de un
+  // efecto — ahí solo se apaga, al terminar la búsqueda.
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    setSearching(value.trim().length >= 2);
+  }
+
   const visibleResults = selected || query.trim().length < 2 ? [] : results;
+  const noResults = !selected && !searching && query.trim().length >= 2 && results.length === 0;
 
   // El input oculto recién refleja el valor resuelto después de este
   // commit — disparar el submit en un efecto (no justo después del
@@ -90,6 +108,7 @@ export function LandlordSearchField({ inputName = "organization_id" }: { inputNa
               onClick={() => {
                 setSelected(null);
                 setQuery("");
+                setSearching(false);
               }}
               className="text-muted-foreground hover:text-destructive"
               aria-label="Quitar selección"
@@ -104,7 +123,7 @@ export function LandlordSearchField({ inputName = "organization_id" }: { inputNa
           <Input
             id="landlord_search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             placeholder="Ej: Ana Arrendadora"
             className="pl-8"
             autoComplete="off"
@@ -138,6 +157,14 @@ export function LandlordSearchField({ inputName = "organization_id" }: { inputNa
                 </li>
               ))}
             </ul>
+          )}
+          {noResults && inviteHref && (
+            <p className="pt-1.5 text-xs text-muted-foreground">
+              ¿No está en tu libreta?{" "}
+              <Link href={inviteHref} className="font-medium text-primary hover:underline">
+                Invítalo primero
+              </Link>
+            </p>
           )}
         </div>
       )}

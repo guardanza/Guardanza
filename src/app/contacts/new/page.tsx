@@ -15,9 +15,9 @@ const ROLE_OPTIONS: RoleBucket[] = ["arrendatario", "arrendador", "corredor"];
 export default async function NewContactPage({
   searchParams,
 }: {
-  searchParams: Promise<{ organization_id?: string; error?: string; role?: string }>;
+  searchParams: Promise<{ organization_id?: string; error?: string; role?: string; next?: string }>;
 }) {
-  const { organization_id, error, role } = await searchParams;
+  const { organization_id, error, role, next } = await searchParams;
   const defaultRole: RoleBucket = ROLE_OPTIONS.includes(role as RoleBucket) ? (role as RoleBucket) : "arrendatario";
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -50,6 +50,7 @@ export default async function NewContactPage({
         </CardHeader>
         <CardContent>
           <form action={createContact} className="space-y-3">
+            {next && /^\/[^/].*/.test(next) && <input type="hidden" name="next" value={next} />}
             {organization_id ? (
               <input type="hidden" name="organization_id" defaultValue={organization_id} />
             ) : orgOptions.length === 1 ? (
