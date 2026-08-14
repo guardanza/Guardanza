@@ -1,23 +1,30 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Plus, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
+import { searchPropertyIds } from "@/lib/property-search";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PropertyThumb } from "@/components/property-thumb";
+import { PropertySearchField } from "@/components/property-search-field";
 import { cn } from "@/lib/utils";
 
-export default async function PropertiesPage() {
+export default async function PropertiesPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams;
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
 
-  const { data: properties, error } = await supabase
-    .from("properties")
-    .select("id, address, photo_url, communes(name, regions(name))")
-    .order("created_at", { ascending: false });
+  const matchedIds = q ? await searchPropertyIds(supabase, q) : null;
+  const searching = matchedIds !== null;
+
+  const baseQuery = supabase.from("properties").select("id, address, photo_url, communes(name, regions(name))").order("created_at", { ascending: false });
+  const { data: properties, error } =
+    searching && matchedIds.size === 0
+      ? { data: [], error: null }
+      : await (searching ? baseQuery.in("id", [...matchedIds]) : baseQuery);
   if (error) throw new Error(error.message);
 
   // Ocupada = tiene un contrato que no terminó, mismo criterio que la
@@ -44,6 +51,8 @@ export default async function PropertiesPage() {
           Nueva
         </Link>
       </div>
+
+      <PropertySearchField initialQuery={q ?? ""} />
 
       {properties && properties.length > 0 ? (
         <div className="space-y-2">
@@ -76,6 +85,13 @@ export default async function PropertiesPage() {
             );
           })}
         </div>
+      ) : searching ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+            <SearchX className="size-8 text-muted-foreground" strokeWidth={1.5} />
+            <p className="text-sm text-muted-foreground">Sin resultados para &ldquo;{q}&rdquo;.</p>
+          </CardContent>
+        </Card>
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
