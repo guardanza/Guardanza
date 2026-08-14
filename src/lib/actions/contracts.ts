@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { hasCompletedProfile } from "@/lib/profile-completeness";
 
 // Defense in depth behind the UI-level block on the pages that render
@@ -12,57 +11,6 @@ import { hasCompletedProfile } from "@/lib/profile-completeness";
 async function requireRut(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const { data: profile } = await supabase.from("profiles").select("rut").eq("id", userId).single();
   if (!hasCompletedProfile(profile)) throw new Error("Necesitas completar tu RUT antes de firmar o crear contratos.");
-}
-
-export async function createContract(formData: FormData) {
-  const supabase = await createClient();
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes.user) redirect("/login");
-  await requireRut(supabase, userRes.user.id);
-
-  const property_id = String(formData.get("property_id"));
-  const start_date = String(formData.get("start_date"));
-  const end_date = String(formData.get("end_date"));
-  const rent_amount = Number(formData.get("rent_amount"));
-  const rent_currency = String(formData.get("rent_currency"));
-  const guarantee_currency = String(formData.get("guarantee_currency"));
-  const guarantee_amount = Number(formData.get("guarantee_amount"));
-  const tenant_email = String(formData.get("tenant_email"));
-
-  const fail = (message: string): never =>
-    redirect(`/contracts/new?property_id=${property_id}&error=${encodeURIComponent(message)}`);
-
-  // Resolve the tenant BEFORE creating the contract — otherwise a bad email
-  // leaves an orphaned draft contract with no tenant attached and no way
-  // back to it from this form. Needs service_role: profiles RLS can't
-  // expose a brand-new counterparty with no shared contract yet.
-  const admin = createServiceRoleClient();
-  const { data: usersPage, error: lookupError } = await admin.auth.admin.listUsers();
-  if (lookupError) return fail(lookupError.message);
-  const tenant = usersPage.users.find((u) => u.email === tenant_email);
-  if (!tenant) {
-    return fail(`No existe una cuenta con el email ${tenant_email}. El arrendatario debe registrarse primero.`);
-  }
-
-  const { data: contract, error } = await supabase
-    .rpc("create_contract", {
-      p_property_id: property_id,
-      p_start_date: start_date,
-      p_end_date: end_date,
-      p_rent_amount: rent_amount,
-      p_rent_currency: rent_currency,
-      p_guarantee_currency: guarantee_currency,
-      p_guarantee_amount: guarantee_amount,
-    })
-    .single<{ id: string }>();
-  if (error) return fail(error.message);
-
-  const { error: tenantPartyError } = await supabase
-    .from("contract_parties")
-    .insert({ contract_id: contract.id, user_id: tenant.id, role: "arrendatario" });
-  if (tenantPartyError) return fail(tenantPartyError.message);
-
-  redirect(`/contracts/${contract.id}`);
 }
 
 export async function signContractLandlord(contractId: string) {

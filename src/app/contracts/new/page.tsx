@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hasCompletedProfile } from "@/lib/profile-completeness";
 import { one } from "@/lib/supabase/one";
-import { createContract } from "@/lib/actions/contracts";
 import { selectWinningCandidate } from "@/lib/actions/candidates";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,70 +23,64 @@ function addMonths(date: Date, months: number): Date {
   return d;
 }
 
+// Único punto de entrada para crear un contrato: siempre desde un
+// candidato ya elegido (evaluación normal, o el atajo "Ya tengo al
+// arrendatario"). El camino viejo con email libre (create_contract(),
+// sin candidato detrás) se retiró — ver Opción C. Sin candidate_id no
+// hay nada que mostrar acá, así que se redirige de vuelta a la
+// propiedad en vez de dejar una página condenada a fallar.
 export default async function NewContractPage({
   searchParams,
 }: {
   searchParams: Promise<{ property_id?: string; candidate_id?: string; error?: string }>;
 }) {
   const { property_id, candidate_id, error } = await searchParams;
+  if (!candidate_id) redirect(property_id ? `/properties/${property_id}` : "/properties");
 
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("rut").eq("id", userRes.user.id).single();
-  const returnTo = `/contracts/new?property_id=${property_id ?? ""}${candidate_id ? `&candidate_id=${candidate_id}` : ""}`;
+  const returnTo = `/contracts/new?property_id=${property_id ?? ""}&candidate_id=${candidate_id}`;
 
-  // Sección 5 (SENSIBLE): al llegar con un candidato ya elegido, este
-  // formulario deja de pedir el email libre y en cambio precarga renta,
-  // plazo y garantía desde los campos "esperados" de la propiedad
-  // (Tanda A) — el corredor no retipea nada, solo confirma o ajusta
-  // antes de crear el contrato. select_winning_candidate() vuelve a
-  // validar todo esto server-side (estado en_evaluacion, contacto
-  // confirmado) — este chequeo acá es solo para no mostrar un
-  // formulario condenado a fallar.
-  let candidate: { id: string; contactFullName: string } | null = null;
-  let expectedRentAmount: number | null = null;
-  let expectedRentCurrency: string | null = null;
-  let expectedTermMonths: number | null = null;
-  let expectedGuaranteeAmount: number | null = null;
-  let expectedGuaranteeCurrency: string | null = null;
+  // SENSIBLE: precarga renta, plazo y garantía desde los campos
+  // "esperados" de la propiedad (Tanda A) — el corredor no retipea
+  // nada, solo confirma o ajusta antes de crear el contrato.
+  // select_winning_candidate() vuelve a validar todo esto server-side
+  // (estado en_evaluacion, contacto confirmado) — este chequeo acá es
+  // solo para no mostrar un formulario condenado a fallar.
+  const { data: candidateRow } = await supabase
+    .from("property_candidates")
+    .select(
+      "id, status, contacts(full_name, status), properties(expected_rent_amount, expected_rent_currency, expected_term_months, expected_guarantee_amount, expected_guarantee_currency)"
+    )
+    .eq("id", candidate_id)
+    .single();
 
-  if (candidate_id) {
-    const { data: candidateRow } = await supabase
-      .from("property_candidates")
-      .select(
-        "id, status, contacts(full_name, status), properties(expected_rent_amount, expected_rent_currency, expected_term_months, expected_guarantee_amount, expected_guarantee_currency)"
-      )
-      .eq("id", candidate_id)
-      .single();
-
-    const contact = candidateRow ? one(candidateRow.contacts) : null;
-    if (!candidateRow || !contact) {
-      redirect(`/properties/${property_id}?error=${encodeURIComponent("Este candidato ya no existe.")}`);
-    }
-    if (candidateRow.status !== "en_evaluacion") {
-      redirect(`/properties/${property_id}?error=${encodeURIComponent("Este candidato ya no está en evaluación.")}`);
-    }
-    if (contact.status !== "confirmado") {
-      redirect(
-        `/properties/${property_id}?error=${encodeURIComponent("Este candidato todavía no confirmó su cuenta — no puede ser el arrendatario todavía.")}`
-      );
-    }
-
-    const property = one(candidateRow.properties);
-    candidate = { id: candidateRow.id, contactFullName: contact.full_name };
-    expectedRentAmount = property?.expected_rent_amount ?? null;
-    expectedRentCurrency = property?.expected_rent_currency ?? null;
-    expectedTermMonths = property?.expected_term_months ?? null;
-    expectedGuaranteeAmount = property?.expected_guarantee_amount ?? null;
-    expectedGuaranteeCurrency = property?.expected_guarantee_currency ?? null;
+  const contact = candidateRow ? one(candidateRow.contacts) : null;
+  if (!candidateRow || !contact) {
+    redirect(`/properties/${property_id}?error=${encodeURIComponent("Este candidato ya no existe.")}`);
   }
+  if (candidateRow.status !== "en_evaluacion") {
+    redirect(`/properties/${property_id}?error=${encodeURIComponent("Este candidato ya no está en evaluación.")}`);
+  }
+  if (contact.status !== "confirmado") {
+    redirect(
+      `/properties/${property_id}?error=${encodeURIComponent("Este candidato todavía no confirmó su cuenta — no puede ser el arrendatario todavía.")}`
+    );
+  }
+
+  const property = one(candidateRow.properties);
+  const expectedRentAmount = property?.expected_rent_amount ?? null;
+  const expectedRentCurrency = property?.expected_rent_currency ?? null;
+  const expectedTermMonths = property?.expected_term_months ?? null;
+  const expectedGuaranteeAmount = property?.expected_guarantee_amount ?? null;
+  const expectedGuaranteeCurrency = property?.expected_guarantee_currency ?? null;
 
   const today = new Date();
   const defaultStartDate = toDateInput(today);
   const defaultEndDate = expectedTermMonths ? toDateInput(addMonths(today, expectedTermMonths)) : "";
-  const action = candidate ? selectWinningCandidate : createContract;
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
@@ -103,29 +96,18 @@ export default async function NewContractPage({
         <CardHeader>
           <CardTitle>Nuevo contrato</CardTitle>
           <CardDescription>
-            {candidate
-              ? "Precargado con los datos esperados de la propiedad — ajústalos si hace falta antes de crear el contrato."
-              : "Queda pendiente de firma del arrendador — se envía a firmar después de crearlo."}
+            Precargado con los datos esperados de la propiedad — ajústalos si hace falta antes de crear el contrato.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={action} className="space-y-4">
+          <form action={selectWinningCandidate} className="space-y-4">
             <input type="hidden" name="property_id" defaultValue={property_id} />
+            <input type="hidden" name="candidate_id" defaultValue={candidateRow.id} />
 
-            {candidate ? (
-              <>
-                <input type="hidden" name="candidate_id" defaultValue={candidate.id} />
-                <div className="space-y-1.5">
-                  <Label>Arrendatario</Label>
-                  <p className="rounded-lg border px-3 py-1.5 text-sm">{candidate.contactFullName}</p>
-                </div>
-              </>
-            ) : (
-              <div className="space-y-1.5">
-                <Label htmlFor="tenant_email">Arrendatario (email, debe tener cuenta ya creada)</Label>
-                <Input id="tenant_email" name="tenant_email" type="email" required />
-              </div>
-            )}
+            <div className="space-y-1.5">
+              <Label>Arrendatario</Label>
+              <p className="rounded-lg border px-3 py-1.5 text-sm">{contact.full_name}</p>
+            </div>
 
             <div className="space-y-1.5">
               <Label>Vigencia</Label>
