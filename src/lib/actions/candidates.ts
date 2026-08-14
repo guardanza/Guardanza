@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { findUserIdByEmail } from "@/lib/supabase/find-user-by-email";
 
 // Candidatos (Tanda D Fase 1): un candidato es un contacto arrendatario
 // de la libreta (Tanda B) vinculado a una propiedad — no una entidad
@@ -31,6 +33,114 @@ export async function addPropertyCandidate(formData: FormData) {
 
   revalidatePath(`/properties/${property_id}`);
   redirect(`/properties/${property_id}`);
+}
+
+// "Ya tengo al arrendatario" (Paso 1 de la Opción C): atajo para cuando
+// no hace falta competencia de candidatos — encadena tres piezas que ya
+// existen y quedan sin tocar (load_contact, el insert de
+// property_candidates, y el formulario /contracts/new de siempre) en vez
+// de duplicar su lógica. Termina en el MISMO lugar donde termina agregar
+// un candidato a mano y elegirlo como ganador — esto es solo un on-ramp
+// más rápido a ese mismo camino, no un camino nuevo.
+//
+// Caso borde deliberadamente simple: si el email ya está cargado en la
+// libreta (choque de unique(organization_id, email)), no se intenta
+// reusar el contacto automáticamente — se avisa y la persona ya aparece
+// en el buscador normal de candidatos de abajo. Menos superficie nueva
+// en una zona sensible, a costa de un paso manual en un caso raro.
+export async function quickAdjudicate(formData: FormData) {
+  const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  if (!userRes.user) redirect("/login");
+
+  const property_id = String(formData.get("property_id"));
+  const email = String(formData.get("tenant_email") || "")
+    .trim()
+    .toLowerCase();
+
+  const fail = (message: string): never => redirect(`/properties/${property_id}?error=${encodeURIComponent(message)}`);
+  if (!email) return fail("Ingresa el email del arrendatario.");
+
+  const target_user_id = await findUserIdByEmail(email);
+  if (!target_user_id) {
+    return fail(`No existe una cuenta con el email ${email}. El arrendatario debe registrarse primero.`);
+  }
+
+  const { data: property } = await supabase
+    .from("properties")
+    .select("organization_id, broker_organization_id")
+    .eq("id", property_id)
+    .single();
+  if (!property) return fail("Esta propiedad ya no existe.");
+
+  // Una cuenta administra como mucho una organización (Restricción B,
+  // 20260731170001) — no hace falta decidir entre dueña o corredora,
+  // alcanza con encontrar la única que administra el que llama, si es
+  // alguna de las dos de esta propiedad.
+  const { data: adminMembership } = await supabase
+    .from("memberships")
+    .select("organization_id")
+    .eq("user_id", userRes.user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  const organization_id = adminMembership?.organization_id;
+  if (!organization_id || (organization_id !== property.organization_id && organization_id !== property.broker_organization_id)) {
+    return fail("No tienes permiso para adjudicar en esta propiedad.");
+  }
+
+  // Nombre y RUT salen del propio perfil de la cuenta encontrada — así
+  // el corredor no tiene que retipear datos que esa cuenta ya tiene.
+  // Service-role porque profiles_select_self_or_shared no deja leer el
+  // perfil de un tercero sin relación compartida todavía (que es
+  // justo lo que se está por crear).
+  const admin = createServiceRoleClient();
+  const { data: targetProfile } = await admin.from("profiles").select("full_name, rut").eq("id", target_user_id).maybeSingle<{
+    full_name: string;
+    rut: string | null;
+  }>();
+  if (!targetProfile) return fail("No se pudo obtener el perfil de esa cuenta.");
+
+  const { data: contact, error: contactError } = await supabase
+    .rpc("load_contact", {
+      p_organization_id: organization_id,
+      p_contact_role: "arrendatario",
+      p_full_name: targetProfile.full_name,
+      p_email: email,
+      p_rut: targetProfile.rut,
+      p_target_user_id: target_user_id,
+    })
+    .single<{ id: string }>();
+
+  if (contactError) {
+    if (contactError.code === "23505") {
+      return fail("Ya tienes un contacto cargado con ese email — búscalo abajo, entre los candidatos, para adjudicarlo.");
+    }
+    if (contactError.message.includes("platform admin")) {
+      return fail("Esa cuenta es de un administrador de plataforma — no puede ser arrendatario.");
+    }
+    if (contactError.message.includes("contact_role_mismatch")) {
+      return fail("Ese email ya pertenece a una cuenta de Guardanza con otro rol — no puede ser arrendatario(a).");
+    }
+    return fail(contactError.message);
+  }
+
+  const { data: candidate, error: candidateError } = await supabase
+    .from("property_candidates")
+    .insert({ property_id, contact_id: contact.id })
+    .select("id")
+    .single();
+
+  if (candidateError) {
+    if (candidateError.code === "23505") {
+      return fail("Esa persona ya es candidata a esta propiedad — búscala abajo para adjudicarla.");
+    }
+    if (candidateError.message.includes("already has an active contract")) {
+      return fail("Esta propiedad ya tiene un contrato en curso — no admite candidatos nuevos.");
+    }
+    return fail(candidateError.message);
+  }
+
+  redirect(`/contracts/new?property_id=${property_id}&candidate_id=${candidate.id}`);
 }
 
 export async function markCandidateNotSelected(formData: FormData) {
