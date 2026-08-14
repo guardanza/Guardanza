@@ -4,16 +4,18 @@ import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { deleteProperty } from "@/lib/actions/properties";
-import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate, quickAdjudicate } from "@/lib/actions/candidates";
+import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate } from "@/lib/actions/candidates";
 import { stripParticularSuffix } from "@/lib/labels";
 import { formatMoney, type MoneyCurrency } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { PropertyThumb } from "@/components/property-thumb";
 import { CandidateSearchField } from "@/components/candidate-search-field";
-import { QuickAdjudicateSheet } from "@/components/quick-adjudicate-sheet";
+import { NewContractButton } from "@/components/new-contract-button";
+import { ScrollIntoViewOnMount } from "@/components/scroll-into-view-on-mount";
 import { AdjudicateCandidateSheet, DiscardCandidateSheet } from "@/components/candidate-decision-sheets";
 import { ListingPortalLink } from "@/components/listing-portal-link";
 import { DeletePropertyDialog } from "@/components/delete-property-dialog";
@@ -24,10 +26,11 @@ export default async function PropertyDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; focus?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, focus } = await searchParams;
+  const focusCandidatos = focus === "candidatos";
   const supabase = await createClient();
 
   const { data: property, error: fetchError } = await supabase
@@ -52,6 +55,7 @@ export default async function PropertyDetailPage({
     .map((l) => one(l.organizations))
     .filter((o): o is { id: string; name: string; type: string } => !!o);
   const owners = landlordOrgs.filter((o) => o.type === "individual");
+  const hasLandlord = owners.length > 0;
   const broker = one(property.broker) ?? landlordOrgs.find((o) => o.type === "broker") ?? null;
   const commune = one(property.communes);
   const region = commune ? one(commune.regions) : null;
@@ -93,6 +97,7 @@ export default async function PropertyDetailPage({
   const candidates = (candidateRows ?? [])
     .map((c) => ({ id: c.id, status: c.status, contact: one(c.contacts) }))
     .filter((c): c is { id: string; status: string; contact: { full_name: string; email: string; status: string } } => !!c.contact);
+  const hasReadyCandidate = candidates.some((c) => c.status === "en_evaluacion" && c.contact.status === "confirmado");
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:px-6 md:py-10">
@@ -175,13 +180,26 @@ export default async function PropertyDetailPage({
         // definido. Mismo lenguaje visual del sistema, sin fondo de color
         // (eso se reserva para los avisos informativos) — para que
         // destaque sin leerse como una alerta.
-        <Card className="p-0 border-brand-gold/40 before:scale-y-100">
+        <Card
+          id="candidatos-para-arrendar"
+          className={cn(
+            "scroll-mt-4 p-0 border-brand-gold/40 before:scale-y-100 transition-shadow duration-500",
+            focusCandidatos && "ring-2 ring-brand-gold/50"
+          )}
+        >
+          <ScrollIntoViewOnMount targetId="candidatos-para-arrendar" when={focusCandidatos} />
           <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
             <div>
-              <h2 className="text-sm font-medium">Candidatos para arrendar</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-medium">Candidatos para arrendar</h2>
+                {candidates.length === 0 ? (
+                  <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-foreground">Empieza aquí</span>
+                ) : hasReadyCandidate ? (
+                  <span className="shrink-0 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">Listo para adjudicar</span>
+                ) : null}
+              </div>
               <p className="text-xs text-muted-foreground">Personas de tu libreta en evaluación para ser el arrendatario de esta propiedad.</p>
             </div>
-            <QuickAdjudicateSheet action={quickAdjudicate} propertyId={id} />
           </div>
           <CardContent className="space-y-3 py-4">
             {candidates.length > 0 ? (
@@ -209,6 +227,8 @@ export default async function PropertyDetailPage({
                             <AdjudicateCandidateSheet
                               href={`/contracts/new?property_id=${id}&candidate_id=${c.id}`}
                               fullName={c.contact.full_name}
+                              hasLandlord={hasLandlord}
+                              propertyId={id}
                             />
                           ) : (
                             <span className="text-xs text-muted-foreground">No puede ganar hasta confirmar su cuenta</span>
@@ -246,8 +266,9 @@ export default async function PropertyDetailPage({
       )}
 
       <Card className="p-0">
-        <div className="border-b px-4 py-3">
+        <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
           <h2 className="text-sm font-medium">Contratos de esta propiedad</h2>
+          {!isOccupied && <NewContractButton propertyId={id} hasLandlord={hasLandlord} />}
         </div>
         {contracts && contracts.length > 0 ? (
           <div className="divide-y">

@@ -13,6 +13,7 @@ import {
   BottomSheetHeader,
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
+import { MissingLandlordNotice } from "@/components/missing-landlord-notice";
 
 // "Adjudicar" (antes "Elegir ganador") sigue siendo, hoy, una navegación
 // simple — la creación real del contrato pasa recién en /contracts/new
@@ -20,7 +21,25 @@ import {
 // confirmación previa existe para que quede claro, antes de saltar a ese
 // formulario, que se trata de dejar fuera de carrera al resto de los
 // candidatos y ocupar la propiedad — no un simple "ver más detalles".
-export function AdjudicateCandidateSheet({ href, fullName }: { href: string; fullName: string }) {
+//
+// hasLandlord cierra un hueco real: select_winning_candidate() arma el
+// contrato con el admin de properties.organization_id como arrendador,
+// sin validar que esa organización sea un arrendador individual de
+// verdad (podría ser la propia corredora, si la propiedad se cargó sin
+// un arrendador aparte) — hoy eso dejaba crear un contrato sin
+// arrendador real. Acá se ataja en la UI, en las dos puertas de entrada
+// a la creación (esta y "Nuevo contrato"), sin tocar esa función.
+export function AdjudicateCandidateSheet({
+  href,
+  fullName,
+  hasLandlord,
+  propertyId,
+}: {
+  href: string;
+  fullName: string;
+  hasLandlord: boolean;
+  propertyId: string;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -30,20 +49,26 @@ export function AdjudicateCandidateSheet({ href, fullName }: { href: string; ful
       </Button>
       <BottomSheet open={open} onOpenChange={setOpen}>
         <BottomSheetContent>
-          <BottomSheetHeader>
-            <BottomSheetTitle>¿Adjudicar la propiedad a {fullName}?</BottomSheetTitle>
-            <BottomSheetDescription>
-              Se creará el contrato con esta persona como arrendatario(a) y la propiedad quedará ocupada.
-            </BottomSheetDescription>
-          </BottomSheetHeader>
-          <BottomSheetFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Link href={href} className={buttonVariants()}>
-              Adjudicar
-            </Link>
-          </BottomSheetFooter>
+          {hasLandlord ? (
+            <>
+              <BottomSheetHeader>
+                <BottomSheetTitle>¿Adjudicar la propiedad a {fullName}?</BottomSheetTitle>
+                <BottomSheetDescription>
+                  Se creará el contrato con esta persona como arrendatario(a) y la propiedad quedará ocupada.
+                </BottomSheetDescription>
+              </BottomSheetHeader>
+              <BottomSheetFooter>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                  Cancelar
+                </Button>
+                <Link href={href} className={buttonVariants()}>
+                  Adjudicar
+                </Link>
+              </BottomSheetFooter>
+            </>
+          ) : (
+            <MissingLandlordNotice propertyId={propertyId} onCancel={() => setOpen(false)} />
+          )}
         </BottomSheetContent>
       </BottomSheet>
     </>
