@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
-import { deleteProperty } from "@/lib/actions/properties";
+import { deleteProperty, deactivateProperty, reactivateProperty } from "@/lib/actions/properties";
 import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate } from "@/lib/actions/candidates";
 import { stripParticularSuffix } from "@/lib/labels";
 import { formatMoney, type MoneyCurrency } from "@/lib/money";
@@ -19,7 +19,9 @@ import { ScrollIntoViewOnMount } from "@/components/scroll-into-view-on-mount";
 import { AdjudicateCandidateSheet, DiscardCandidateSheet } from "@/components/candidate-decision-sheets";
 import { ListingPortalLink } from "@/components/listing-portal-link";
 import { DeletePropertyDialog } from "@/components/delete-property-dialog";
+import { PropertyLifecycleAction } from "@/components/property-lifecycle-action";
 import { RoleBadge } from "@/components/role-badge";
+import { Badge } from "@/components/ui/badge";
 
 export default async function PropertyDetailPage({
   params,
@@ -36,7 +38,7 @@ export default async function PropertyDetailPage({
   const { data: property, error: fetchError } = await supabase
     .from("properties")
     .select(
-      "id, address, photo_url, organization_id, listing_url, expected_rent_amount, expected_rent_currency, expected_term_months, expected_guarantee_amount, expected_guarantee_currency, property_landlords(organizations(id, name, type)), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
+      "id, address, photo_url, organization_id, status, listing_url, expected_rent_amount, expected_rent_currency, expected_term_months, expected_guarantee_amount, expected_guarantee_currency, property_landlords(organizations(id, name, type)), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
     )
     .eq("id", id)
     .single();
@@ -78,6 +80,17 @@ export default async function PropertyDetailPage({
   // contratos viejos que no pasaron por evaluación de candidatos.
   const activeContract = (contracts ?? []).find((c) => c.status !== "finalizado" && c.status !== "cancelado");
   const isOccupied = !!activeContract;
+
+  // Mismo contrato "vivo" de arriba, categorizado para elegir qué mensaje
+  // mostrar si el corredor intenta marcar la propiedad fuera de cartera
+  // (ver set_property_inactive en la base, que vuelve a validar esto
+  // mismo antes de escribir — esto es solo para no mostrar un sheet
+  // genérico cuando ya se sabe de antemano por qué está bloqueado).
+  const blockingReason: "en_proceso" | "en_custodia" | null = !activeContract
+    ? null
+    : activeContract.status === "activo" || activeContract.status === "propuesta_termino" || activeContract.status === "en_disputa"
+      ? "en_custodia"
+      : "en_proceso";
 
   let tenantName: string | null = null;
   if (activeContract) {
@@ -128,11 +141,27 @@ export default async function PropertyDetailPage({
         <p className="text-sm text-muted-foreground">
           {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
         </p>
-        <div className="flex flex-wrap gap-1.5 pt-1">
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          {property.status === "inactiva" && (
+            <Badge variant="secondary" className="bg-muted text-muted-foreground">
+              Fuera de cartera
+            </Badge>
+          )}
           <RoleBadge label="Arrendador" value={owners.length > 0 ? owners.map((o) => stripParticularSuffix(o.name)).join(", ") : null} emptyText="Sin asignar" />
           <RoleBadge label="Corredor" value={broker?.name ?? null} emptyText="Sin corredor" />
           <RoleBadge label="Arrendatario" value={tenantName} emptyText="Sin adjudicar" />
         </div>
+        {property.status !== "borrador" && (
+          <div className="pt-1">
+            <PropertyLifecycleAction
+              propertyId={id}
+              status={property.status}
+              blockingReason={blockingReason}
+              deactivateAction={deactivateProperty}
+              reactivateAction={reactivateProperty}
+            />
+          </div>
+        )}
       </div>
 
       {hasListingDetails && (
