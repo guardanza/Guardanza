@@ -101,7 +101,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
           una pestaña fría — por eso vive arriba de todo, sin importar qué
           filtro esté activo, y desaparece solo cuando no queda ninguno. */}
       {!viewingDrafts && draftCount > 0 && (
-        <Link href={singleDraftId ? `/properties/${singleDraftId}/edit` : "/properties?status=borrador"}>
+        <Link href={singleDraftId ? `/properties/${singleDraftId}/edit` : "/properties?status=borrador"} className="block">
           <Card className="border-brand-gold/40 bg-brand-gold/5 transition-shadow hover:shadow-md">
             <CardContent className="flex items-center gap-3">
               <FileClock className="size-5 shrink-0 text-brand-gold" strokeWidth={2} />
@@ -110,7 +110,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
                   Tienes {draftCount} {draftCount === 1 ? "propiedad sin terminar" : "propiedades sin terminar"} — complétala
                   {draftCount === 1 ? "" : "s"}.
                 </p>
-                <p className="text-xs text-muted-foreground">Falta terminar el alta para que quede activa.</p>
+                <p className="text-xs text-muted-foreground">Faltan completar algunos datos para activar la propiedad.</p>
               </div>
             </CardContent>
           </Card>

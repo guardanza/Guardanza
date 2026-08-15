@@ -88,10 +88,18 @@ function normalizeListingUrl(raw: string): string | null {
 // administra la ficha se fija una sola vez, al crearla, y no se vuelve a
 // tocar acá.
 //
-// activate=1 (solo lo manda el botón "Confirmar" del Paso 2 del wizard)
-// es la única puerta que pasa la propiedad de 'borrador' a 'activa' —
-// cualquier otro guardado (correcciones del Paso 1, o edición posterior
-// ya con la propiedad activa) deja el estado como está.
+// activate=1 (solo lo manda el botón "Guardar cambios" del Paso 2 del
+// wizard) es la única puerta que pasa la propiedad de 'borrador' a
+// 'activa' — cualquier otro guardado (correcciones del Paso 1, o edición
+// posterior ya con la propiedad activa) deja el estado como está.
+//
+// Pero activate=1 no alcanza solo: valor de arriendo, plazo y garantía
+// son obligatorios para ACTIVAR (no para crear — el Paso 1 ya guardó la
+// propiedad como borrador con solo dirección/comuna/arrendador). Si
+// falta alguno, se guarda igual lo que sí vino, pero el estado se queda
+// en 'borrador' — PropertyDetailsForm ya bloquea este caso antes de
+// llegar acá con un bottom sheet, esto es la defensa server-side (nunca
+// confiar en que el cliente ya filtró bien).
 export async function updateProperty(formData: FormData) {
   const supabase = await createClient();
 
@@ -108,6 +116,10 @@ export async function updateProperty(formData: FormData) {
   const commune_id = hasAddressFields ? String(formData.get("commune_id") || "") || null : undefined;
   const listing_url_raw = String(formData.get("listing_url") || "").trim() || null;
   const activate = formData.get("activate") === "1";
+  const expected_rent_amount = parseOptionalNumber(formData, "expected_rent_amount");
+  const expected_term_months = parseOptionalNumber(formData, "expected_term_months");
+  const expected_guarantee_amount = parseOptionalNumber(formData, "expected_guarantee_amount");
+  const canActivate = expected_rent_amount !== null && expected_term_months !== null && expected_guarantee_amount !== null;
 
   const fail = (message: string): never =>
     redirect(`/properties/${id}/edit?error=${encodeURIComponent(message)}`);
@@ -138,15 +150,26 @@ export async function updateProperty(formData: FormData) {
       ...(hasAddressFields ? { address, commune_id } : {}),
       ...(photo_url ? { photo_url } : {}),
       listing_url,
-      expected_rent_amount: parseOptionalNumber(formData, "expected_rent_amount"),
+      expected_rent_amount,
       expected_rent_currency: parseOptionalCurrency(formData, "expected_rent_currency"),
-      expected_term_months: parseOptionalNumber(formData, "expected_term_months"),
-      expected_guarantee_amount: parseOptionalNumber(formData, "expected_guarantee_amount"),
+      expected_term_months,
+      expected_guarantee_amount,
       expected_guarantee_currency: parseOptionalCurrency(formData, "expected_guarantee_currency"),
-      ...(activate ? { status: "activa" as const } : {}),
+      ...(activate && canActivate ? { status: "activa" as const } : {}),
     })
     .eq("id", id);
   if (error) return fail(error.message);
+
+  if (activate && !canActivate) {
+    const missing = [
+      expected_rent_amount === null && "valor de arriendo",
+      expected_term_months === null && "plazo de arriendo",
+      expected_guarantee_amount === null && "valor garantía",
+    ]
+      .filter((v): v is string => !!v)
+      .join(", ");
+    return fail(`Faltan datos para activar la propiedad: ${missing}.`);
+  }
 
   if (activate) {
     revalidatePath(`/properties/${id}`);
