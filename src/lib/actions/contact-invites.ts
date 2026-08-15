@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { findUserIdByEmail } from "@/lib/supabase/find-user-by-email";
 import { validateRut, formatRut } from "@/lib/rut";
+import { assignRoleIfNone } from "@/lib/auth/role-assignment";
+import type { RoleBucket } from "@/lib/role-bucket";
 
 function inviteFail(token: string, message: string): never {
   redirect(`/invite/${token}?error=${encodeURIComponent(message)}`);
@@ -54,6 +56,16 @@ export async function acceptContactInvite(formData: FormData) {
   }
 
   const supabase = await createClient();
+
+  // contact_role se resuelve del propio token (mismo RPC anon-safe que ya
+  // usa la pantalla para mostrarlo) — nunca de un campo que viniera del
+  // formulario, para no confiar en nada que alguien pudiera manipular
+  // antes del signUp.
+  const { data: invite } = await supabase
+    .rpc("resolve_contact_invite", { p_token: token })
+    .maybeSingle<{ contact_role: RoleBucket }>();
+  if (!invite) return inviteFail(token, "Esta invitación ya no es válida — pedile a quien te invitó que la reenvíe.");
+
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
@@ -69,6 +81,32 @@ export async function acceptContactInvite(formData: FormData) {
   if (profileError) {
     if (profileError.code === "23505") return inviteFail(token, "Ese RUT ya está registrado en otra cuenta de Guardanza.");
     return inviteFail(token, profileError.message);
+  }
+
+  // Mismo puente organización↔persona que usa el alta normal
+  // (signUpWithRole/el callback de Google, ambos vía assignRoleIfNone) —
+  // sin esto, aceptar una invitación dejaba la cuenta confirmada pero sin
+  // organización, así que nunca se podía resolver como arrendador/
+  // corredor real (resolve_contact_organization). Va ANTES de
+  // confirm_contact_invite a propósito: ese RPC ya deja rol_declarado
+  // seteado, y assignRoleIfNone no hace nada si detecta que la cuenta ya
+  // tiene un rol asentado — llamarlo después sería un no-op. Un
+  // corredor invitado (sin nombre de corretaje pedido en esta pantalla,
+  // a diferencia del alta normal) queda como corredor independiente,
+  // mismo criterio que ya usa un arrendador invitado ("Nombre
+  // (particular)").
+  if (invite.contact_role === "arrendador" || invite.contact_role === "corredor") {
+    const { error: roleAssignError } = await assignRoleIfNone({
+      userId: signUpData.user.id,
+      role: invite.contact_role,
+      legalForm: invite.contact_role === "corredor" ? "persona_natural" : undefined,
+      companyName: invite.contact_role === "corredor" ? `${full_name} (corredor)` : undefined,
+      rut: formatRut(rutInput),
+      fallbackName: full_name,
+    });
+    if (roleAssignError) {
+      console.error(`[contact-invites] no se pudo crear la organización para ${signUpData.user.id}: ${roleAssignError}`);
+    }
   }
 
   const admin = createServiceRoleClient();
