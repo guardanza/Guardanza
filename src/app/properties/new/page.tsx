@@ -35,7 +35,7 @@ export default async function NewPropertyPage({
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
+    <div className="mx-auto max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-10">
       <WizardSteps current={1} />
       {error && (
         <Alert variant="destructive">

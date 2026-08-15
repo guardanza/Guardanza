@@ -41,8 +41,20 @@ const PULSING_STATUSES = new Set(["en_disputa", "escalada"]);
 
 // `label` sobrescribe el texto sin tocar el color/mapping — ej.
 // "seleccionado" (nombre interno del estado) se lee "Adjudicado" en la
-// ficha de propiedad, mismo verde de siempre.
-export function StatusBadge({ status, label, className }: { status: string; label?: string; className?: string }) {
+// ficha de propiedad, mismo verde de siempre. `icon` es opcional, mismo
+// espíritu — un ícono de apoyo (ej. el escudo de "En Guardanza" en
+// Contactos) sin tocar color ni texto.
+export function StatusBadge({
+  status,
+  label,
+  icon: Icon,
+  className,
+}: {
+  status: string;
+  label?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  className?: string;
+}) {
   return (
     <span
       className={cn(
@@ -52,6 +64,7 @@ export function StatusBadge({ status, label, className }: { status: string; labe
       )}
     >
       {PULSING_STATUSES.has(status) && <span className="size-1.5 shrink-0 animate-pulse-urgent rounded-full bg-current" />}
+      {Icon && <Icon className="size-3 shrink-0" />}
       {label ?? status.replace(/_/g, " ")}
     </span>
   );

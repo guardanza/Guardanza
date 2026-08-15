@@ -58,7 +58,7 @@ export default async function RootLayout({
                   </Link>
                   <div className="min-w-0 flex-1">
                     <Link href="/profile" className="block truncate text-xs font-medium hover:underline">
-                      {userRes.user.email}
+                      {avatarProfile?.full_name || userRes.user.email}
                     </Link>
                     <p className="truncate text-[11px] text-muted-foreground">{profileType}</p>
                     <form action={signOut}>
