@@ -97,7 +97,10 @@ export default async function PropertyDetailPage({
   const candidates = (candidateRows ?? [])
     .map((c) => ({ id: c.id, status: c.status, contact: one(c.contacts) }))
     .filter((c): c is { id: string; status: string; contact: { full_name: string; email: string; status: string } } => !!c.contact);
-  const hasReadyCandidate = candidates.some((c) => c.status === "en_evaluacion" && c.contact.status === "confirmado");
+  const readyCandidates = candidates
+    .filter((c) => c.status === "en_evaluacion" && c.contact.status === "confirmado")
+    .map((c) => ({ id: c.id, fullName: c.contact.full_name }));
+  const hasReadyCandidate = readyCandidates.length > 0;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:px-6 md:py-10">
@@ -184,7 +187,7 @@ export default async function PropertyDetailPage({
           id="candidatos-para-arrendar"
           className={cn(
             "scroll-mt-4 p-0 border-brand-gold/40 before:scale-y-100 transition-shadow duration-500",
-            focusCandidatos && "ring-2 ring-brand-gold/50"
+            focusCandidatos && "ring-4 ring-brand-gold/60"
           )}
         >
           <ScrollIntoViewOnMount targetId="candidatos-para-arrendar" when={focusCandidatos} />
@@ -268,7 +271,7 @@ export default async function PropertyDetailPage({
       <Card className="p-0">
         <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
           <h2 className="text-sm font-medium">Contratos de esta propiedad</h2>
-          {!isOccupied && <NewContractButton propertyId={id} hasLandlord={hasLandlord} />}
+          {!isOccupied && <NewContractButton propertyId={id} hasLandlord={hasLandlord} readyCandidates={readyCandidates} />}
         </div>
         {contracts && contracts.length > 0 ? (
           <div className="divide-y">

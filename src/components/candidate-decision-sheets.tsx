@@ -15,6 +15,40 @@ import {
 } from "@/components/ui/bottom-sheet";
 import { MissingLandlordNotice } from "@/components/missing-landlord-notice";
 
+// Contenido compartido de la confirmación de "Adjudicar" — mismo texto y
+// mismo link a /contracts/new sea que se llegue desde la fila del
+// candidato (AdjudicateCandidateSheet) o desde "Nuevo contrato" cuando ya
+// hay un único candidato listo (NewContractButton). Una sola fuente para
+// esta copy evita que las dos puertas de entrada digan cosas distintas.
+export function AdjudicateConfirmContent({
+  href,
+  fullName,
+  onCancel,
+}: {
+  href: string;
+  fullName: string;
+  onCancel: () => void;
+}) {
+  return (
+    <>
+      <BottomSheetHeader>
+        <BottomSheetTitle>¿Adjudicar la propiedad a {fullName}?</BottomSheetTitle>
+        <BottomSheetDescription>
+          Se creará el contrato con esta persona como arrendatario(a) y la propiedad quedará ocupada.
+        </BottomSheetDescription>
+      </BottomSheetHeader>
+      <BottomSheetFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Link href={href} className={buttonVariants()}>
+          Adjudicar
+        </Link>
+      </BottomSheetFooter>
+    </>
+  );
+}
+
 // "Adjudicar" (antes "Elegir ganador") sigue siendo, hoy, una navegación
 // simple — la creación real del contrato pasa recién en /contracts/new
 // (select_winning_candidate(), ver candidates.ts), no acá. La
@@ -50,22 +84,7 @@ export function AdjudicateCandidateSheet({
       <BottomSheet open={open} onOpenChange={setOpen}>
         <BottomSheetContent>
           {hasLandlord ? (
-            <>
-              <BottomSheetHeader>
-                <BottomSheetTitle>¿Adjudicar la propiedad a {fullName}?</BottomSheetTitle>
-                <BottomSheetDescription>
-                  Se creará el contrato con esta persona como arrendatario(a) y la propiedad quedará ocupada.
-                </BottomSheetDescription>
-              </BottomSheetHeader>
-              <BottomSheetFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                  Cancelar
-                </Button>
-                <Link href={href} className={buttonVariants()}>
-                  Adjudicar
-                </Link>
-              </BottomSheetFooter>
-            </>
+            <AdjudicateConfirmContent href={href} fullName={fullName} onCancel={() => setOpen(false)} />
           ) : (
             <MissingLandlordNotice propertyId={propertyId} onCancel={() => setOpen(false)} />
           )}
