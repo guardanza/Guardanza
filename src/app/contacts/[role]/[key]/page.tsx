@@ -8,6 +8,7 @@ import { formatMoney } from "@/lib/money";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
+import { ContactStatusBadge } from "@/components/contact-status-badge";
 
 const VALID_ROLES: RoleBucket[] = ["arrendador", "arrendatario", "corredor"];
 
@@ -41,7 +42,7 @@ export default async function ContactDetailPage({
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{row.fullName}</h1>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <Badge variant="outline">{roleBucketLabel(role)}</Badge>
-          {row.status ? <StatusBadge status={row.status} /> : <Badge variant="outline">Sin ficha en tu libreta</Badge>}
+          {row.status ? <ContactStatusBadge status={row.status} /> : <Badge variant="outline">Sin ficha en tu libreta</Badge>}
         </div>
         {(row.email || row.rut) && (
           <p className="mt-1 text-sm text-muted-foreground">{[row.email, row.rut].filter(Boolean).join(" · ")}</p>

@@ -11,7 +11,7 @@ import { ContactsSearchField } from "@/components/contacts-search-field";
 import { DeleteContactDialog } from "@/components/delete-contact-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/status-badge";
+import { ContactStatusBadge } from "@/components/contact-status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -171,7 +171,7 @@ export default async function ContactsPage({
                   )}
                   <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     <Badge variant="outline">{roleBucketLabel(r.role)}</Badge>
-                    {displayStatus ? <StatusBadge status={displayStatus} /> : <Badge variant="outline">Sin ficha en tu libreta</Badge>}
+                    {displayStatus ? <ContactStatusBadge status={displayStatus} /> : <Badge variant="outline">Sin ficha en tu libreta</Badge>}
                   </div>
                 </Link>
                 {r.contactId && (

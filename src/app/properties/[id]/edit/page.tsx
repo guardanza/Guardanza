@@ -118,7 +118,7 @@ export default async function EditPropertyPage({
   // llegar a crear un contrato sin arrendador real.
   if (property.status === "borrador" && !hasLandlord) {
     return (
-      <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
+      <div className="mx-auto max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-10">
         <WizardSteps current={1} />
         {error && (
           <Alert variant="destructive">
@@ -155,7 +155,7 @@ export default async function EditPropertyPage({
   // wizard, el usuario ya es el corredor por defecto.
   if (property.status === "borrador") {
     return (
-      <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
+      <div className="mx-auto max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-10">
         <WizardSteps current={2} />
         {error && (
           <Alert variant="destructive">
@@ -226,7 +226,7 @@ export default async function EditPropertyPage({
   // ficha, mostraba las propias corredoras del usuario — bug, retirado
   // por completo, no solo del wizard).
   return (
-    <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:px-6 md:py-10">
+    <div className="mx-auto max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-10">
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
