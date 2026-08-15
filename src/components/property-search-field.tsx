@@ -13,7 +13,11 @@ import { Input } from "@/components/ui/input";
 // Mismo umbral de 2 caracteres que el resto de los buscadores del
 // proyecto — por debajo de eso, o al borrar todo, vuelve a mostrarse el
 // catálogo completo.
-export function PropertySearchField({ initialQuery }: { initialQuery: string }) {
+//
+// `status` es el filtro activo (ver PropertyStatusFilter) — se
+// re-incluye en cada actualización para no perderlo mientras se escribe
+// (este campo arma el querystring desde cero en cada tecla).
+export function PropertySearchField({ initialQuery, status }: { initialQuery: string; status: "activa" | "inactiva" | "todas" }) {
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState(initialQuery);
@@ -26,6 +30,7 @@ export function PropertySearchField({ initialQuery }: { initialQuery: string }) 
       const trimmed = query.trim();
       const params = new URLSearchParams();
       if (trimmed.length >= 2) params.set("q", trimmed);
+      if (status !== "activa") params.set("status", status);
       const qs = params.toString();
       startTransition(() => {
         router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
@@ -35,7 +40,7 @@ export function PropertySearchField({ initialQuery }: { initialQuery: string }) 
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- router/pathname son estables, re-correr por ellos solo generaría un debounce de más
-  }, [query]);
+  }, [query, status]);
 
   return (
     <div className="relative">

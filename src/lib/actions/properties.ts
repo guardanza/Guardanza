@@ -280,3 +280,41 @@ export async function deleteProperty(formData: FormData) {
   revalidatePath("/properties");
   redirect("/properties");
 }
+
+// Marcar/reactivar fuera de cartera: la validación real (¿tiene un
+// contrato en proceso o una garantía en custodia?) vive adentro de
+// set_property_inactive() — atómica, con lock de fila, mismo patrón que
+// pay_guarantee()/sign_contract_tenant(). La UI ya decide de antemano qué
+// mensaje mostrar (PropertyLifecycleAction calcula lo mismo server-side
+// para elegir el bottom sheet correcto), pero esta acción es la que de
+// verdad manda — nunca confía en que el cliente ya filtró bien.
+export async function deactivateProperty(formData: FormData) {
+  const supabase = await createClient();
+  const id = String(formData.get("id"));
+
+  const { error } = await supabase.rpc("set_property_inactive", { p_property_id: id });
+  if (error) {
+    const message = error.message.includes("guarantee_in_custody")
+      ? "Esta propiedad tiene una garantía en custodia. No puedes sacarla de cartera hasta cerrar el contrato."
+      : error.message.includes("contract_in_progress")
+        ? "Esta propiedad tiene un contrato en proceso. Debes cancelarlo antes de sacarla de cartera."
+        : "No se pudo marcar la propiedad fuera de cartera.";
+    redirect(`/properties/${id}?error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath(`/properties/${id}`);
+  redirect(`/properties/${id}`);
+}
+
+export async function reactivateProperty(formData: FormData) {
+  const supabase = await createClient();
+  const id = String(formData.get("id"));
+
+  const { error } = await supabase.rpc("set_property_active", { p_property_id: id });
+  if (error) {
+    redirect(`/properties/${id}?error=${encodeURIComponent("No se pudo reactivar la propiedad.")}`);
+  }
+
+  revalidatePath(`/properties/${id}`);
+  redirect(`/properties/${id}`);
+}
