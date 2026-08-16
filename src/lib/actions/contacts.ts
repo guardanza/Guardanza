@@ -22,7 +22,7 @@ type InviteOutcome = { linked: true } | { linked: false } | { linked: false; fai
 // linked=false, arma el link y llama al adapter — un fallo del ENVÍO en
 // sí (no del RPC) no tumba nada más: se loguea y la persona igual puede
 // reenviar desde /contacts.
-async function issueInviteOrLink(
+export async function issueInviteOrLink(
   supabase: Awaited<ReturnType<typeof createClient>>,
   contactId: string,
   fullName: string,

@@ -4,7 +4,7 @@ import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { deleteProperty, deactivateProperty, reactivateProperty } from "@/lib/actions/properties";
-import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate } from "@/lib/actions/candidates";
+import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate, inviteCandidateByEmail } from "@/lib/actions/candidates";
 import { stripParticularSuffix } from "@/lib/labels";
 import { formatMoney, type MoneyCurrency } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,8 @@ import { DeletePropertyDialog } from "@/components/delete-property-dialog";
 import { PropertyLifecycleAction } from "@/components/property-lifecycle-action";
 import { RoleBadge } from "@/components/role-badge";
 import { Badge } from "@/components/ui/badge";
+import { ContactStatusBadge } from "@/components/contact-status-badge";
+import { categorizeBlockingContract } from "@/lib/property-status";
 
 export default async function PropertyDetailPage({
   params,
@@ -86,11 +88,7 @@ export default async function PropertyDetailPage({
   // (ver set_property_inactive en la base, que vuelve a validar esto
   // mismo antes de escribir — esto es solo para no mostrar un sheet
   // genérico cuando ya se sabe de antemano por qué está bloqueado).
-  const blockingReason: "en_proceso" | "en_custodia" | null = !activeContract
-    ? null
-    : activeContract.status === "activo" || activeContract.status === "propuesta_termino" || activeContract.status === "en_disputa"
-      ? "en_custodia"
-      : "en_proceso";
+  const blockingReason = activeContract ? categorizeBlockingContract(activeContract.status) : null;
 
   let tenantName: string | null = null;
   if (activeContract) {
@@ -263,7 +261,7 @@ export default async function PropertyDetailPage({
                               propertyId={id}
                             />
                           ) : (
-                            <span className="text-xs text-muted-foreground">No puede ganar hasta confirmar su cuenta</span>
+                            <ContactStatusBadge status="pendiente" />
                           )}
                           <DiscardCandidateSheet
                             action={markCandidateNotSelected}
@@ -291,7 +289,7 @@ export default async function PropertyDetailPage({
             )}
             <form action={addPropertyCandidate}>
               <input type="hidden" name="property_id" value={id} />
-              <CandidateSearchField />
+              <CandidateSearchField propertyId={id} inviteAction={inviteCandidateByEmail} />
             </form>
           </CardContent>
         </Card>

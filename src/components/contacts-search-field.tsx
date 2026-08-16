@@ -22,8 +22,23 @@ export function ContactsSearchField({ tab, initialQuery }: { tab: string; initia
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState(initialQuery);
+  const [lastSyncedQuery, setLastSyncedQuery] = useState(initialQuery);
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Resincroniza el texto visible cuando ?q= cambia por una navegación
+  // externa a este campo (cambiar de pestaña, o el redirect de invitar
+  // con un rol elegido en Mis Contactos — Tema 2) — sin esto, el estado
+  // local seguía mostrando la búsqueda vieja, y el efecto de más abajo
+  // (que corre también cuando cambia `tab`) la volvía a empujar a la URL,
+  // pisando el redirect ya limpio del servidor. setState durante el
+  // render (no en un efecto) es el patrón que React recomienda para
+  // "ajustar un estado cuando cambia un prop" — evita el commit extra
+  // que dispararía un efecto.
+  if (initialQuery !== lastSyncedQuery) {
+    setLastSyncedQuery(initialQuery);
+    setQuery(initialQuery);
+  }
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

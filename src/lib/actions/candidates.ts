@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { findUserIdByEmail } from "@/lib/supabase/find-user-by-email";
+import { issueInviteOrLink } from "@/lib/actions/contacts";
+import { isValidEmail, deriveNameFromEmail } from "@/lib/email";
 
 // Candidatos (Tanda D Fase 1): un candidato es un contacto arrendatario
 // de la libreta (Tanda B) vinculado a una propiedad — no una entidad
@@ -29,6 +31,105 @@ export async function addPropertyCandidate(formData: FormData) {
       return fail("Esta propiedad ya tiene un contrato en curso — no admite candidatos nuevos.");
     }
     return fail(error.message);
+  }
+
+  revalidatePath(`/properties/${property_id}`);
+  redirect(`/properties/${property_id}`);
+}
+
+// Invitar por email desde el buscador de candidatos, cuando la búsqueda
+// no encuentra a nadie en la libreta — mismo mecanismo que ya usa "Mis
+// contactos" (quickInviteContact/issueInviteOrLink), no uno nuevo. El
+// rol acá NUNCA se pregunta: por venir del buscador de candidatos de una
+// propiedad, siempre es 'arrendatario' — a diferencia de Mis Contactos
+// (Tema 2), donde el mismo botón podría invitar con cualquier rol y por
+// eso sí hace falta elegirlo.
+//
+// Dos escrituras encadenadas (load_contact, después el insert en
+// property_candidates) en vez de una sola función de base — mismo
+// patrón ya usado en quickAdjudicate, un poco más abajo en este archivo:
+// el candidato queda 'en_evaluacion' igual que si se hubiera elegido de
+// la libreta, pero con el contacto en status 'pendiente' hasta que
+// acepte la invitación (Opción A: no se puede adjudicar a alguien que
+// no confirmó su cuenta — property_candidates no impone esto, lo valida
+// select_winning_candidate() más adelante, no acá).
+export async function inviteCandidateByEmail(formData: FormData) {
+  const supabase = await createClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  if (!userRes.user) redirect("/login");
+
+  const property_id = String(formData.get("property_id"));
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+
+  const fail = (message: string): never => redirect(`/properties/${property_id}?error=${encodeURIComponent(message)}`);
+  if (!isValidEmail(email)) return fail("Ingresa un email válido.");
+
+  const { data: property } = await supabase
+    .from("properties")
+    .select("organization_id, broker_organization_id")
+    .eq("id", property_id)
+    .single();
+  if (!property) return fail("Esta propiedad ya no existe.");
+
+  // Mismo criterio que quickAdjudicate: una cuenta administra como mucho
+  // una organización, alcanza con encontrar la única que administra el
+  // que llama, si es alguna de las dos de esta propiedad.
+  const { data: adminMembership } = await supabase
+    .from("memberships")
+    .select("organization_id, organizations(name)")
+    .eq("user_id", userRes.user.id)
+    .eq("role", "admin")
+    .maybeSingle<{ organization_id: string; organizations: { name: string } | { name: string }[] | null }>();
+  const organization_id = adminMembership?.organization_id;
+  if (!organization_id || (organization_id !== property.organization_id && organization_id !== property.broker_organization_id)) {
+    return fail("No tienes permiso para invitar candidatos en esta propiedad.");
+  }
+  const org = Array.isArray(adminMembership?.organizations) ? adminMembership.organizations[0] : adminMembership?.organizations;
+
+  const full_name = deriveNameFromEmail(email);
+  const target_user_id = await findUserIdByEmail(email);
+
+  const { data: contact, error: contactError } = await supabase
+    .rpc("load_contact", {
+      p_organization_id: organization_id,
+      p_contact_role: "arrendatario",
+      p_full_name: full_name,
+      p_email: email,
+      p_rut: null,
+      p_target_user_id: target_user_id,
+    })
+    .single<{ id: string; status: string }>();
+
+  if (contactError) {
+    if (contactError.code === "23505") {
+      return fail("Ya tienes un contacto cargado con ese email — búscalo por nombre o RUT entre los candidatos.");
+    }
+    if (contactError.message.includes("platform admin")) {
+      return fail("Esa cuenta es de un administrador de plataforma — no puede ser arrendatario.");
+    }
+    if (contactError.message.includes("contact_role_mismatch")) {
+      return fail("Ese email ya pertenece a una cuenta de Guardanza con otro rol — no puede ser arrendatario(a).");
+    }
+    return fail(contactError.message);
+  }
+
+  const { error: candidateError } = await supabase.from("property_candidates").insert({ property_id, contact_id: contact.id });
+  if (candidateError) {
+    if (candidateError.code === "23505") return fail("Esa persona ya es candidata a esta propiedad.");
+    if (candidateError.message.includes("already has an active contract")) {
+      return fail("Esta propiedad ya tiene un contrato en curso — no admite candidatos nuevos.");
+    }
+    return fail(candidateError.message);
+  }
+
+  // target_user_id ya se resolvió como null más arriba (por eso quedó
+  // pendiente) — la emisión inicial nunca pasa por la rama de vínculo
+  // directo, solo el reenvío la re-chequea (mismo comentario que en
+  // quickInviteContact, misma función reutilizada acá).
+  if (contact.status === "pendiente") {
+    await issueInviteOrLink(supabase, contact.id, full_name, email, org?.name ?? "Guardanza", "arrendatario", null);
   }
 
   revalidatePath(`/properties/${property_id}`);
