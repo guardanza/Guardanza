@@ -4,12 +4,15 @@ import { Building2, Plus, SearchX, ChevronLeft, FileClock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { searchPropertyIds } from "@/lib/property-search";
+import { categorizeBlockingContract, type ContractBlockingReason } from "@/lib/property-status";
+import { deactivateProperty, reactivateProperty } from "@/lib/actions/properties";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PropertyThumb } from "@/components/property-thumb";
 import { PropertySearchField } from "@/components/property-search-field";
 import { PropertyStatusFilter } from "@/components/property-status-filter";
+import { PropertyRowMenu } from "@/components/property-row-menu";
 import { cn } from "@/lib/utils";
 
 type StatusFilter = "activa" | "inactiva" | "todas";
@@ -62,6 +65,19 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
   const occupiedIds = new Set(
     (contracts ?? []).filter((c) => c.status !== "finalizado" && c.status !== "cancelado").map((c) => c.property_id)
   );
+
+  // Mismo dato que occupiedIds, categorizado por propiedad para el menú
+  // de tres puntitos (PropertyRowMenu) — qué mensaje de bloqueo mostrar
+  // si se intenta marcar fuera de cartera, sin una consulta aparte por
+  // tarjeta (a lo sumo un contrato vivo por propiedad, mismo invariante
+  // de siempre).
+  const blockingReasonByPropertyId = new Map<string, ContractBlockingReason>();
+  for (const c of contracts ?? []) {
+    if (c.status === "finalizado" || c.status === "cancelado") continue;
+    if (!blockingReasonByPropertyId.has(c.property_id)) {
+      blockingReasonByPropertyId.set(c.property_id, categorizeBlockingContract(c.status));
+    }
+  }
 
   const emptyMessage = searching
     ? `Sin resultados para "${q}".`
@@ -133,9 +149,12 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
             const region = commune ? one(commune.regions) : null;
             const occupied = occupiedIds.has(p.id);
             return (
-              <Link key={p.id} href={viewingDrafts ? `/properties/${p.id}/edit` : `/properties/${p.id}`}>
-                <Card size="sm" className="transition-shadow hover:shadow-md">
-                  <CardContent className="flex items-center gap-3">
+              <Card key={p.id} size="sm" className="transition-shadow hover:shadow-md">
+                <CardContent className="flex items-center gap-3">
+                  <Link
+                    href={viewingDrafts ? `/properties/${p.id}/edit` : `/properties/${p.id}`}
+                    className="flex min-w-0 flex-1 items-center gap-3"
+                  >
                     <PropertyThumb url={p.photo_url} className="size-16 shrink-0 rounded-lg" />
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="truncate text-sm font-medium">{p.address}</p>
@@ -164,9 +183,18 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
                         )}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </Link>
+                  {!viewingDrafts && (
+                    <PropertyRowMenu
+                      propertyId={p.id}
+                      status={p.status as "activa" | "inactiva"}
+                      blockingReason={blockingReasonByPropertyId.get(p.id) ?? null}
+                      deactivateAction={deactivateProperty}
+                      reactivateAction={reactivateProperty}
+                    />
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
         </div>

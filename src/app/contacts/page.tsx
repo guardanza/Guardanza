@@ -8,12 +8,12 @@ import { deleteContact, resendContactInvite, quickInviteContact } from "@/lib/ac
 import { isValidEmail } from "@/lib/email";
 import { findAccountRoleByEmail } from "@/lib/supabase/find-user-by-email";
 import { ContactsSearchField } from "@/components/contacts-search-field";
+import { QuickInviteButton } from "@/components/quick-invite-role-sheet";
 import { DeleteContactDialog } from "@/components/delete-contact-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContactStatusBadge } from "@/components/contact-status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
@@ -266,25 +266,13 @@ export default async function ContactsPage({
                     <span className="break-all">{trimmedQuery}</span> no tiene cuenta en Guardanza.
                   </p>
                   <p className="text-xs text-muted-foreground">Invita a esta persona a sumarse a Guardanza.</p>
-                  <form action={quickInviteContact}>
-                    <input type="hidden" name="tab" value={activeTab} />
-                    <input type="hidden" name="email" value={trimmedQuery} />
-                    <Button type="submit" size="sm">
-                      Invitar
-                    </Button>
-                  </form>
+                  <QuickInviteButton action={quickInviteContact} email={trimmedQuery} />
                 </div>
               ) : (
                 <div className="flex-1 space-y-2">
                   <p className="text-sm font-medium text-primary">No encontramos a nadie con &quot;{trimmedQuery}&quot;.</p>
                   <p className="text-xs text-muted-foreground">Invita a esta persona por email:</p>
-                  <form action={quickInviteContact} className="flex flex-col gap-2 sm:flex-row">
-                    <input type="hidden" name="tab" value={activeTab} />
-                    <Input name="email" type="email" placeholder="email@ejemplo.cl" required className="sm:max-w-xs" />
-                    <Button type="submit" size="sm">
-                      Invitar
-                    </Button>
-                  </form>
+                  <QuickInviteButton action={quickInviteContact} />
                 </div>
               )}
             </CardContent>
