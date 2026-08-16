@@ -183,7 +183,7 @@ export default async function EditPropertyPage({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Arriendo mensual esperado (opcional)</Label>
+                <Label>Valor de arriendo</Label>
                 <MoneyAmountInput
                   amountName="expected_rent_amount"
                   currencyName="expected_rent_currency"
@@ -203,7 +203,7 @@ export default async function EditPropertyPage({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Monto garantía de arriendo</Label>
+                <Label>Valor garantía</Label>
                 <MoneyAmountInput
                   amountName="expected_guarantee_amount"
                   currencyName="expected_guarantee_currency"
@@ -212,7 +212,7 @@ export default async function EditPropertyPage({
                 />
               </div>
               <Button type="submit" className="w-full">
-                Confirmar
+                Guardar cambios
               </Button>
             </PropertyDetailsForm>
           </CardContent>
@@ -258,7 +258,7 @@ export default async function EditPropertyPage({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Arriendo mensual esperado (opcional)</Label>
+              <Label>Valor de arriendo</Label>
               <MoneyAmountInput
                 amountName="expected_rent_amount"
                 currencyName="expected_rent_currency"
@@ -278,7 +278,7 @@ export default async function EditPropertyPage({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Monto garantía de arriendo</Label>
+              <Label>Valor garantía</Label>
               <MoneyAmountInput
                 amountName="expected_guarantee_amount"
                 currencyName="expected_guarantee_currency"

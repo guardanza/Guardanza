@@ -11,13 +11,23 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 
-// Envuelve el formulario de la Sección 1 (datos de la propiedad) para
-// interceptar el submit solo cuando el plazo ingresado es sospechosamente
-// corto (1 a 3 meses) — probablemente alguien puso años sin darse cuenta.
-// Es una confirmación suave (bottom sheet, no modal bloqueante al centro):
-// "Continuar" deja pasar el guardado tal cual, "Corregir" solo cierra el
-// aviso y devuelve el foco al campo, sin bloquear el guardado si el
-// usuario de verdad quiso ese plazo.
+// Envuelve el formulario de la Sección 1 (datos de la propiedad) — dos
+// chequeos antes de dejar pasar el submit, los dos como bottom sheet (no
+// modal bloqueante al centro), nunca un error después de un viaje de ida
+// y vuelta fallido:
+//
+// 1. Activar sin los datos obligatorios: valor de arriendo, plazo y
+//    garantía son obligatorios para ACTIVAR (no para crear — el Paso 1
+//    ya guardó la propiedad como borrador solo con dirección/comuna/
+//    arrendador). El campo oculto activate=1 (solo lo manda el botón de
+//    Paso 2) es la señal de que se está intentando activar — si falta
+//    alguno de los tres, se bloquea acá mismo, antes de llegar al
+//    servidor (que igual vuelve a chequear esto, nunca confía en que el
+//    cliente ya filtró bien — ver updateProperty).
+// 2. Plazo sospechosamente corto (1 a 3 meses) — probablemente alguien
+//    puso años sin darse cuenta. "Continuar" deja pasar el guardado tal
+//    cual, "Corregir" solo cierra el aviso y devuelve el foco al campo,
+//    sin bloquear el guardado si el usuario de verdad quiso ese plazo.
 export function PropertyDetailsForm({
   action,
   children,
@@ -28,9 +38,10 @@ export function PropertyDetailsForm({
   const formRef = useRef<HTMLFormElement>(null);
   const bypassRef = useRef(false);
   const [shortTerm, setShortTerm] = useState<number | null>(null);
+  const [missingFields, setMissingFields] = useState<string[] | null>(null);
 
-  function getTermInput() {
-    return formRef.current?.elements.namedItem("expected_term_months") as HTMLInputElement | null;
+  function getField(name: string) {
+    return formRef.current?.elements.namedItem(name) as HTMLInputElement | null;
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -38,7 +49,22 @@ export function PropertyDetailsForm({
       bypassRef.current = false;
       return;
     }
-    const raw = getTermInput()?.value.trim();
+
+    const activating = getField("activate")?.value === "1";
+    if (activating) {
+      const missing = [
+        !getField("expected_rent_amount")?.value.trim() && "Valor de arriendo",
+        !getField("expected_term_months")?.value.trim() && "Plazo de arriendo",
+        !getField("expected_guarantee_amount")?.value.trim() && "Valor garantía",
+      ].filter((v): v is string => !!v);
+      if (missing.length > 0) {
+        e.preventDefault();
+        setMissingFields(missing);
+        return;
+      }
+    }
+
+    const raw = getField("expected_term_months")?.value.trim();
     const months = raw ? Number(raw) : null;
     if (months && months > 0 && months < 4) {
       e.preventDefault();
@@ -54,7 +80,7 @@ export function PropertyDetailsForm({
 
   function handleFix() {
     setShortTerm(null);
-    getTermInput()?.focus();
+    getField("expected_term_months")?.focus();
   }
 
   return (
@@ -62,6 +88,21 @@ export function PropertyDetailsForm({
       <form ref={formRef} action={action} onSubmit={handleSubmit} className="space-y-3">
         {children}
       </form>
+      <BottomSheet open={missingFields !== null} onOpenChange={(open) => !open && setMissingFields(null)}>
+        <BottomSheetContent>
+          <BottomSheetHeader>
+            <BottomSheetTitle>Faltan datos para activar la propiedad</BottomSheetTitle>
+            <BottomSheetDescription>
+              Completa estos campos antes de activarla: {missingFields?.join(", ")}.
+            </BottomSheetDescription>
+          </BottomSheetHeader>
+          <BottomSheetFooter>
+            <Button type="button" onClick={() => setMissingFields(null)}>
+              Entendido
+            </Button>
+          </BottomSheetFooter>
+        </BottomSheetContent>
+      </BottomSheet>
       <BottomSheet open={shortTerm !== null} onOpenChange={(open) => !open && setShortTerm(null)}>
         <BottomSheetContent>
           <BottomSheetHeader>
