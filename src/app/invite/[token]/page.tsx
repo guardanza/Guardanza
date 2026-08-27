@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { findUserIdByEmail } from "@/lib/supabase/find-user-by-email";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
-import { acceptContactInvite, linkExistingAccountInvite } from "@/lib/actions/contact-invites";
+import { acceptContactInvite, linkExistingAccountInvite, rejectContactInvite } from "@/lib/actions/contact-invites";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,16 +9,39 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PasswordInput } from "@/components/password-input";
 import { RutInput } from "@/components/rut-input";
+import { RejectInviteAction } from "@/components/reject-invite-action";
 
 export default async function InvitePage({
   params,
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; rejected?: string }>;
 }) {
   const { token } = await params;
-  const { error } = await searchParams;
+  const { error, rejected } = await searchParams;
+
+  // El rechazo invalida el token (ver reject_contact_invite) — después de
+  // rechazar, resolve_contact_invite ya no encontraría nada y esta misma
+  // página caería en el branch genérico de "invitación no válida", que
+  // suena a error. Un rechazo fue una decisión, no una falla, así que se
+  // muestra aparte, sin siquiera intentar resolver el token de nuevo.
+  if (rejected === "1") {
+    return (
+      <div className="mx-auto max-w-md px-4 py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>Rechazaste esta invitación</CardTitle>
+            <CardDescription>
+              Gracias por avisarnos. Si fue un error, pídele a quien te invitó que te reenvíe la invitación desde su
+              libreta de contactos.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
   const supabase = await createClient();
 
   const { data: invite } = await supabase
@@ -104,6 +127,9 @@ export default async function InvitePage({
               </Button>
             </form>
           )}
+          <div className="mt-3 text-center">
+            <RejectInviteAction action={rejectContactInvite} token={token} />
+          </div>
         </CardContent>
       </Card>
     </div>

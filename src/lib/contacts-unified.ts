@@ -15,6 +15,7 @@ export type UnifiedContactRow = {
   status: "confirmado" | "pendiente" | null; // null = no hay ficha en tu libreta, solo la capa vieja
   roleConflict: boolean;
   inviteExpiresAt: string | null;
+  inviteRejectedAt: string | null;
   contactId: string | null; // presente si hay una ficha de libreta detrás (habilita reenviar/quitar)
   organizationId: string | null;
 };
@@ -41,7 +42,7 @@ async function getArrendatarios(supabase: Supa, myUserId: string): Promise<Unifi
   const [{ data: contacts }, { data: tenants }, { data: parties }] = await Promise.all([
     supabase
       .from("contacts")
-      .select("id, full_name, email, rut, status, user_id, role_conflict_at, invite_expires_at")
+      .select("id, full_name, email, rut, status, user_id, role_conflict_at, invite_expires_at, invite_rejected_at")
       .eq("contact_role", "arrendatario"),
     supabase.from("property_tenants").select("user_id, profiles(full_name)"),
     supabase.from("contract_parties").select("user_id, profiles(full_name)").eq("role", "arrendatario"),
@@ -59,6 +60,7 @@ async function getArrendatarios(supabase: Supa, myUserId: string): Promise<Unifi
       status: c.status,
       roleConflict: !!c.role_conflict_at,
       inviteExpiresAt: c.invite_expires_at,
+      inviteRejectedAt: c.invite_rejected_at,
       contactId: c.id,
       organizationId: null,
     };
@@ -83,6 +85,7 @@ async function getArrendatarios(supabase: Supa, myUserId: string): Promise<Unifi
       status: null,
       roleConflict: false,
       inviteExpiresAt: null,
+      inviteRejectedAt: null,
       contactId: null,
       organizationId: null,
     });
@@ -95,7 +98,7 @@ async function getOrgBackedRole(supabase: Supa, role: "arrendador" | "corredor",
   const [{ data: contacts }, { data: myAdminOrgs }, { data: properties }, { data: landlords }] = await Promise.all([
     supabase
       .from("contacts")
-      .select("id, full_name, email, rut, status, user_id, role_conflict_at, invite_expires_at")
+      .select("id, full_name, email, rut, status, user_id, role_conflict_at, invite_expires_at, invite_rejected_at")
       .eq("contact_role", role),
     supabase.from("memberships").select("organization_id").eq("user_id", myUserId).eq("role", "admin"),
     supabase.from("properties").select("id, organization_id, broker_organization_id"),
@@ -139,6 +142,7 @@ async function getOrgBackedRole(supabase: Supa, role: "arrendador" | "corredor",
       status: c.status,
       roleConflict: !!c.role_conflict_at,
       inviteExpiresAt: c.invite_expires_at,
+      inviteRejectedAt: c.invite_rejected_at,
       contactId: c.id,
       organizationId: resolvedOrgId,
     });
@@ -154,6 +158,7 @@ async function getOrgBackedRole(supabase: Supa, role: "arrendador" | "corredor",
       status: c.status,
       roleConflict: !!c.role_conflict_at,
       inviteExpiresAt: c.invite_expires_at,
+      inviteRejectedAt: c.invite_rejected_at,
       contactId: c.id,
       organizationId: null,
     });
@@ -171,6 +176,7 @@ async function getOrgBackedRole(supabase: Supa, role: "arrendador" | "corredor",
         status: null,
         roleConflict: false,
         inviteExpiresAt: null,
+        inviteRejectedAt: null,
         contactId: null,
         organizationId: o.id,
       });
