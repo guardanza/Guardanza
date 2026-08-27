@@ -12,6 +12,28 @@ function inviteFail(token: string, message: string): never {
   redirect(`/invite/${token}?error=${encodeURIComponent(message)}`);
 }
 
+// Rechazo explícito — el token sigue siendo la única credencial (mismo
+// modelo de confianza que resolve_contact_invite, nunca requiere sesión),
+// así que esto llama al RPC con el cliente normal (anon key), sin pasar
+// por el service-role client: no hace falta resolver ningún user_id,
+// rechazar no crea ni vincula ninguna cuenta. reject_contact_invite()
+// nunca lanza excepción por sí sola (ok=false es un resultado normal,
+// mismo patrón que confirm_contact_invite ante un rol distinto) — el
+// único motivo por el que esto termina en inviteFail es un token que ya
+// no matchea nada (vencido, ya usado, ya rechazado antes).
+export async function rejectContactInvite(formData: FormData) {
+  const token = String(formData.get("token") || "");
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("reject_contact_invite", { p_token: token }).single<{ ok: boolean }>();
+
+  if (error || !data?.ok) {
+    return inviteFail(token, "Esta invitación ya no es válida — puede que ya se haya usado o vencido.");
+  }
+
+  redirect(`/invite/${token}?rejected=1`);
+}
+
 // El camino "el email del token ya tiene cuenta" — no se pide contraseña
 // ni nada, el token ya es la prueba de identidad. confirm_contact_invite
 // re-chequea la regla de rol server-side (camino 3 al confirmar); si la

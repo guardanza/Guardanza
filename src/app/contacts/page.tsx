@@ -158,9 +158,16 @@ export default async function ContactsPage({
 
       <div className="space-y-3">
         {filtered.map((r) => {
-          const roleConflict = r.status === "pendiente" && r.roleConflict;
-          const expired = !roleConflict && r.status === "pendiente" && !!r.inviteExpiresAt && new Date(r.inviteExpiresAt) < new Date();
-          const displayStatus = roleConflict ? "rol_distinto" : expired ? "expirada" : r.status;
+          // Rechazada primero: es la señal más completa (la persona dijo
+          // que no, a propósito) — si además queda una marca vieja de
+          // rol_distinto de un intento anterior (el rechazo no la borra,
+          // solo invalida el token), no tiene sentido mostrar esa en vez
+          // de "rechazada". expirada no puede coexistir con rechazada —
+          // rechazar ya deja invite_expires_at en null.
+          const rejected = r.status === "pendiente" && r.inviteRejectedAt;
+          const roleConflict = !rejected && r.status === "pendiente" && r.roleConflict;
+          const expired = !rejected && !roleConflict && r.status === "pendiente" && !!r.inviteExpiresAt && new Date(r.inviteExpiresAt) < new Date();
+          const displayStatus = rejected ? "invitacion_rechazada" : roleConflict ? "rol_distinto" : expired ? "expirada" : r.status;
           return (
             <Card key={`${r.role}-${r.key}`}>
               <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -179,6 +186,7 @@ export default async function ContactsPage({
                     {r.status === "pendiente" && (
                       <form action={resendContactInvite}>
                         <input type="hidden" name="id" value={r.contactId} />
+                        <input type="hidden" name="tab" value={activeTab} />
                         <button
                           type="submit"
                           className={buttonVariants({ variant: "outline", size: "sm", className: "w-full sm:w-auto" })}

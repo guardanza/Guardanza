@@ -4,7 +4,7 @@
 -- (...000301-...000305, ...000311-...000313, ...0000003a1-...0000003b1).
 
 begin;
-select plan(66);
+select plan(75);
 
 -- ---------------------------------------------------------------------
 -- Fixtures
@@ -718,6 +718,108 @@ select is(
   (select role_conflict_at from public.contacts where email = 'confirm-mismatch@test.local'),
   null,
   'issue_contact_invite: reenviar limpia role_conflict_at, es un intento fresco'
+);
+
+-- ---------------------------------------------------------------------
+-- reject_contact_invite() — Parte 3: rechazo explícito, mismo token que
+-- ya usa aceptar. La ficha NO se borra ni cambia de status — sigue
+-- 'pendiente' con invite_rejected_at marcado (mismo patrón que
+-- role_conflict_at), y el token queda invalidado — no se puede reusar
+-- después, ni para rechazar de nuevo ni para aceptar.
+-- ---------------------------------------------------------------------
+create temporary table reject_invite_capture (label text primary key, raw_token text);
+grant select, insert on reject_invite_capture to authenticated, anon, service_role;
+
+select pg_temp.login_as('00000000-0000-0000-0000-000000000301'); -- org1 admin
+select public.load_contact(
+  '00000000-0000-0000-0000-0000000003a1', 'arrendatario', 'Reject Fresh', 'reject-fresh@test.local', null, null
+);
+insert into reject_invite_capture (label, raw_token)
+  select 'fresh', raw_token from public.issue_contact_invite(
+    (select id from public.contacts where email = 'reject-fresh@test.local')
+  );
+reset role;
+
+-- Token inválido: no revienta, devuelve ok = false — mismo criterio que
+-- confirm_contact_invite ante un rol distinto: un resultado normal, no
+-- un error de servidor.
+set local role anon;
+select is(
+  (select ok from public.reject_contact_invite('token-que-no-existe')),
+  false,
+  'reject_contact_invite: un token inexistente devuelve ok = false, sin lanzar excepción'
+);
+reset role;
+
+-- Callable por anon — es lo que hace posible rechazar desde /invite/[token]
+-- sin ninguna sesión de Supabase.
+set local role anon;
+select is(
+  (select ok from public.reject_contact_invite((select raw_token from reject_invite_capture where label = 'fresh'))),
+  true,
+  'reject_contact_invite: invocable por anon, caso feliz devuelve ok = true'
+);
+reset role;
+
+select is(
+  (select status from public.contacts where email = 'reject-fresh@test.local'),
+  'pendiente',
+  'reject_contact_invite: la ficha sigue pendiente, no se borra ni cambia de status'
+);
+select isnt(
+  (select invite_rejected_at from public.contacts where email = 'reject-fresh@test.local'),
+  null,
+  'reject_contact_invite: deja invite_rejected_at marcado'
+);
+select is(
+  (select invite_token_hash from public.contacts where email = 'reject-fresh@test.local'),
+  null,
+  'reject_contact_invite: invalida el token — no se puede reusar'
+);
+select is(
+  (select count(*)::int from public.audit_log where action = 'contact.invite_rejected' and entity_id = (
+    select id from public.contacts where email = 'reject-fresh@test.local'
+  )),
+  1,
+  'reject_contact_invite: deja registro en audit_log'
+);
+
+-- El token ya rechazado no sirve para aceptar después — mismo motivo que
+-- "de un solo uso" en confirm_contact_invite: el hash quedó en null, no
+-- hay ninguna fila que matchee.
+set local role service_role;
+select throws_ok(
+  $$ select public.confirm_contact_invite(
+       (select raw_token from reject_invite_capture where label = 'fresh'),
+       '00000000-0000-0000-0000-000000000321'
+     ) $$,
+  'P0001',
+  null,
+  'reject_contact_invite: el token rechazado ya no sirve para aceptar después'
+);
+reset role;
+
+-- Rechazar dos veces el mismo token: la segunda vez ya no matchea nada
+-- (quedó en null tras la primera), ok = false, sin reventar.
+set local role anon;
+select is(
+  (select ok from public.reject_contact_invite((select raw_token from reject_invite_capture where label = 'fresh'))),
+  false,
+  'reject_contact_invite: rechazar el mismo token dos veces la segunda vez devuelve ok = false'
+);
+reset role;
+
+-- Reenviar limpia invite_rejected_at — mismo criterio que ya prueba
+-- role_conflict_at más arriba: un reenvío es un intento fresco de
+-- verdad, sin arrastrar el rechazo anterior.
+update public.contacts set invited_at = now() - interval '2 minutes' where email = 'reject-fresh@test.local';
+select pg_temp.login_as('00000000-0000-0000-0000-000000000301');
+select public.issue_contact_invite((select id from public.contacts where email = 'reject-fresh@test.local'));
+reset role;
+select is(
+  (select invite_rejected_at from public.contacts where email = 'reject-fresh@test.local'),
+  null,
+  'issue_contact_invite: reenviar limpia invite_rejected_at, es un intento fresco'
 );
 
 select * from finish();

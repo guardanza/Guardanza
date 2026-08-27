@@ -164,13 +164,17 @@ export async function resendContactInvite(formData: FormData) {
   if (!userRes.user) redirect("/login");
 
   const id = String(formData.get("id"));
+  // Preserva la pestaña activa de la página (Arrendadores / Arrendatarios /
+  // Corredores) en el redirect final — si no, se pierde el ?tab= y el
+  // contacto recién reenviado "desaparece" al saltar a la pestaña default.
+  const tab = String(formData.get("tab") || "arrendador") as RoleBucket;
 
   const { data: contact, error: contactError } = await supabase
     .from("contacts")
     .select("full_name, email, contact_role, organizations(name)")
     .eq("id", id)
     .single<{ full_name: string; email: string; contact_role: RoleBucket; organizations: { name: string } | { name: string }[] | null }>();
-  if (contactError || !contact) redirect(`/contacts?error=${encodeURIComponent("No se encontró el contacto.")}`);
+  if (contactError || !contact) redirect(`/contacts?tab=${tab}&error=${encodeURIComponent("No se encontró el contacto.")}`);
 
   const org = Array.isArray(contact.organizations) ? contact.organizations[0] : contact.organizations;
   const target_user_id = await findUserIdByEmail(contact.email);
@@ -188,12 +192,12 @@ export async function resendContactInvite(formData: FormData) {
   revalidatePath("/contacts");
 
   if ("failed" in outcome && outcome.failed) {
-    redirect(`/contacts?error=${encodeURIComponent(outcome.message)}`);
+    redirect(`/contacts?tab=${tab}&error=${encodeURIComponent(outcome.message)}`);
   }
   if (outcome.linked) {
-    redirect(`/contacts?linked=${encodeURIComponent(contact.full_name)}`);
+    redirect(`/contacts?tab=${tab}&linked=${encodeURIComponent(contact.full_name)}`);
   }
-  redirect("/contacts");
+  redirect(`/contacts?tab=${tab}`);
 }
 
 // Invitación rápida desde el estado "sin resultados" de la búsqueda de
