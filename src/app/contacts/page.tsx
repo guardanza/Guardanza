@@ -186,6 +186,7 @@ export default async function ContactsPage({
                     {r.status === "pendiente" && (
                       <form action={resendContactInvite}>
                         <input type="hidden" name="id" value={r.contactId} />
+                        <input type="hidden" name="tab" value={activeTab} />
                         <button
                           type="submit"
                           className={buttonVariants({ variant: "outline", size: "sm", className: "w-full sm:w-auto" })}
