@@ -57,6 +57,8 @@
   --color-brand-gold-foreground: var(--brand-gold-foreground);
   --color-brand-sand: var(--brand-sand);
   --color-brand-sand-foreground: var(--brand-sand-foreground);
+  --color-brand-forest: var(--brand-forest);
+  --color-brand-forest-foreground: var(--brand-forest-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -99,6 +101,13 @@
   --brand-gold-foreground: #fffaf0;
   --brand-sand: #d4a574;
   --brand-sand-foreground: #3a2a17;
+  /* Segundo verde de marca — el logo nuevo lo define: oscuro para
+     títulos/texto de marca (h1-h6, el wordmark del logo), reservado
+     nada más que para eso. --primary (#1f7a4d) sigue siendo el verde de
+     botones/acciones/acentos, sin cambios — los dos conviven a
+     propósito, nunca se mezclan. */
+  --brand-forest: #14432f;
+  --brand-forest-foreground: #cfe6da;
   --chart-1: #c8963e;
   --chart-2: #1f7a4d;
   --chart-3: #d4a574;
@@ -140,6 +149,8 @@
   --brand-gold-foreground: #241a06;
   --brand-sand: #d4a574;
   --brand-sand-foreground: #241a06;
+  --brand-forest: #cfe6da;
+  --brand-forest-foreground: #14432f;
   --chart-1: #d4a84e;
   --chart-2: #4a9c7f;
   --chart-3: #d4a574;
@@ -171,7 +182,11 @@
   h4,
   h5,
   h6 {
-    @apply font-heading font-bold text-primary;
+    /* text-brand-forest, no text-primary — títulos van con el verde
+       oscuro de marca (#14432f); --primary (#1f7a4d) queda reservado
+       para botones/acciones/acentos. Ver el comentario junto a
+       --brand-forest en :root. */
+    @apply font-heading font-bold text-brand-forest;
   }
 }
 
