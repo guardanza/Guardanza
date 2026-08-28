@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Users, Mail } from "lucide-react";
+import { Users, Mail, Plus, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getUnifiedContacts, type UnifiedContactRow } from "@/lib/contacts-unified";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
@@ -13,6 +13,7 @@ import { DeleteContactDialog } from "@/components/delete-contact-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContactStatusBadge } from "@/components/contact-status-badge";
+import { UserAvatar } from "@/components/user-avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -70,18 +71,27 @@ export default async function ContactsPage({
   const prefix = trimmedQuery ? sanitizePrefix(trimmedQuery) : "";
   const queryLooksLikeEmail = isValidEmail(trimmedQuery);
 
-  // Cambio 1: con búsqueda activa, se consultan las 3 pestañas (una
-  // persona puede existir con cualquier rol, sin importar en cuál estás
-  // parado) — sin búsqueda, se sigue navegando/filtrando por la pestaña
-  // activa nomás, como siempre.
-  let rows: RowWithRole[];
-  if (prefix) {
-    const perRole = await Promise.all(ALL_ROLES.map((role) => getUnifiedContacts(supabase, role, userRes.user.id)));
-    rows = ALL_ROLES.flatMap((role, i) => perRole[i].map((row) => ({ ...row, role })));
-  } else {
-    const activeRows = await getUnifiedContacts(supabase, activeTab, userRes.user.id);
-    rows = activeRows.map((row) => ({ ...row, role: activeTab }));
-  }
+  // Las 3 pestañas se consultan siempre, en PARALELO — antes solo se
+  // pedía la activa (salvo con búsqueda, que ya pedía las 3). Ahora hace
+  // falta el total de cada una para el contador de las pestañas, y ese
+  // número tiene que salir exactamente de la misma fuente que la lista:
+  // un contador que no cuadre con lo que se ve abajo es peor que no
+  // tenerlo. Contar por separado (ej. un count sobre `contacts`) daría
+  // un número distinto, porque la lista además incluye la capa vieja de
+  // organizaciones/arrendatarios que no vive en esa tabla.
+  //
+  // Promise.all, no en serie: el costo de reloj es el de la consulta más
+  // lenta, no la suma de las tres — el mismo patrón que ya usaba el
+  // camino de búsqueda.
+  const perRole = await Promise.all(ALL_ROLES.map((role) => getUnifiedContacts(supabase, role, userRes.user.id)));
+  const countByRole = Object.fromEntries(ALL_ROLES.map((role, i) => [role, perRole[i].length])) as Record<RoleBucket, number>;
+
+  // Con búsqueda activa se listan las 3 pestañas juntas (una persona
+  // puede existir con cualquier rol, sin importar en cuál estás parado);
+  // sin búsqueda, solo la activa, como siempre.
+  const rows: RowWithRole[] = prefix
+    ? ALL_ROLES.flatMap((role, i) => perRole[i].map((row) => ({ ...row, role })))
+    : perRole[ALL_ROLES.indexOf(activeTab)].map((row) => ({ ...row, role: activeTab }));
   const filtered = rows.filter((r) => matchesPrefix(r, prefix));
 
   // Si ya llegó un existingRole por redirect (un intento de invitar
@@ -125,33 +135,44 @@ export default async function ContactsPage({
           </AlertDescription>
         </Alert>
       )}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Contactos</h1>
           <p className="text-sm text-muted-foreground">Arrendadores, arrendatarios y corredoras con los que trabajas.</p>
         </div>
         {orgCount ? (
-          <Link href={`/contacts/new?role=${activeTab}`} className={buttonVariants()}>
-            + Nuevo contacto
+          <Link href={`/contacts/new?role=${activeTab}`} className={buttonVariants({ size: "sm", className: "shrink-0" })}>
+            <Plus className="size-3.5" />
+            Nuevo
           </Link>
         ) : null}
       </div>
 
-      <div className="flex gap-1.5 overflow-x-auto rounded-lg bg-muted p-1">
-        {TABS.map((t) => (
-          <Link
-            key={t.key}
-            href={`/contacts?tab=${t.key}`}
-            className={cn(
-              "flex-1 rounded-md px-3 py-1.5 text-center text-sm font-medium whitespace-nowrap transition-colors",
-              activeTab === t.key
-                ? "bg-card text-foreground shadow-sm ring-1 ring-inset ring-brand-gold/60"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {t.label}
-          </Link>
-        ))}
+      {/* grid-cols-3, no flex con overflow-x: las tres pestañas se
+          reparten el ancho en tercios exactos y se encogen juntas — nunca
+          aparece scroll horizontal. min-w-0 + truncate es lo que hace que
+          en una pantalla muy angosta el texto se recorte con elipsis en
+          vez de empujar el ancho. */}
+      <div className="grid grid-cols-3 gap-2">
+        {TABS.map((t) => {
+          const active = activeTab === t.key;
+          return (
+            <Link
+              key={t.key}
+              href={`/contacts?tab=${t.key}`}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "min-w-0 rounded-xl px-2 py-2 text-center transition-colors",
+                active ? "bg-primary text-primary-foreground shadow-sm" : "bg-surface-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span className="block truncate text-sm font-medium">{t.label}</span>
+              <span className={cn("block text-xs tabular-nums", active ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                {countByRole[t.key]}
+              </span>
+            </Link>
+          );
+        })}
       </div>
 
       <ContactsSearchField tab={activeTab} initialQuery={q ?? ""} />
@@ -169,22 +190,52 @@ export default async function ContactsPage({
           const expired = !rejected && !roleConflict && r.status === "pendiente" && !!r.inviteExpiresAt && new Date(r.inviteExpiresAt) < new Date();
           const displayStatus = rejected ? "invitacion_rechazada" : roleConflict ? "rol_distinto" : expired ? "expirada" : r.status;
           return (
-            <Card key={`${r.role}-${r.key}`}>
-              <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <Link href={`/contacts/${r.role}/${encodeURIComponent(r.key)}`} className="min-w-0 flex-1 space-y-1">
-                  <p className="truncate font-medium hover:underline">{r.fullName}</p>
-                  {(r.email || r.rut) && (
-                    <p className="truncate text-xs text-muted-foreground">{[r.email, r.rut].filter(Boolean).join(" · ")}</p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                    <Badge variant="outline">{roleBucketLabel(r.role)}</Badge>
-                    {displayStatus ? <ContactStatusBadge status={displayStatus} /> : <Badge variant="outline">Sin ficha en tu libreta</Badge>}
+            <Card key={`${r.role}-${r.key}`} className="transition-shadow hover:shadow-md">
+              <CardContent className="space-y-3">
+                {/* Toda la fila es el link al detalle, con el chevron
+                    cerrándola — por eso las acciones (Reenviar/Quitar)
+                    van en su propia fila abajo y no intercaladas: no se
+                    puede anidar un botón dentro de un <a>. */}
+                <Link href={`/contacts/${r.role}/${encodeURIComponent(r.key)}`} className="flex min-w-0 items-center gap-3">
+                  {/* size=44 no es solo el tamaño en pantalla: next/image
+                      pide al optimizador una miniatura de ese orden (~48/96px
+                      para retina), no el original de 400×400 que guarda el
+                      bucket. Sumado al loading="lazy" que ya trae UserAvatar,
+                      solo se descargan las fotos de las filas visibles. Las
+                      iniciales no cuestan red: se pintan al instante y cubren
+                      tanto a quien no tiene foto como el rato previo a que
+                      cargue. */}
+                  <UserAvatar avatarUrl={r.avatarUrl} name={r.fullName} size={44} />
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="truncate font-medium">{r.fullName}</p>
+                    {(r.email || r.rut) && <p className="truncate text-xs text-muted-foreground">{r.email ?? r.rut}</p>}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {/* El chip de rol solo cuando hay búsqueda: ahí la
+                          lista mezcla las 3 pestañas y sin él no se sabe
+                          de cuál viene cada fila. Sin búsqueda todas son
+                          del rol de la pestaña activa — repetirlo en cada
+                          tarjeta es ruido. */}
+                      {prefix && <Badge variant="outline">{roleBucketLabel(r.role)}</Badge>}
+                      {displayStatus ? (
+                        <ContactStatusBadge status={displayStatus} />
+                      ) : (
+                        <Badge variant="outline">Sin ficha en tu libreta</Badge>
+                      )}
+                    </div>
                   </div>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 </Link>
+                {/* Cada acción va envuelta en su propio flex-1 (mobile) /
+                    flex-none (desktop): los botones de adentro traen
+                    w-full, así que como hijos directos del flex tomaban
+                    el 100% del ANCHO DE LA FILA cada uno y se salían de
+                    la tarjeta. Con el wrapper, w-full es el 100% de su
+                    mitad — en mobile quedan repartidos, en desktop
+                    vuelven a su ancho natural, alineados a la derecha. */}
                 {r.contactId && (
-                  <div className="flex w-full gap-2 sm:w-auto">
+                  <div className="flex gap-2 border-t pt-3 sm:justify-end">
                     {r.status === "pendiente" && (
-                      <form action={resendContactInvite}>
+                      <form action={resendContactInvite} className="flex-1 sm:flex-none">
                         <input type="hidden" name="id" value={r.contactId} />
                         <input type="hidden" name="tab" value={activeTab} />
                         <button
@@ -195,13 +246,15 @@ export default async function ContactsPage({
                         </button>
                       </form>
                     )}
-                    <DeleteContactDialog
-                      action={deleteContact}
-                      contactId={r.contactId}
-                      fullName={r.fullName}
-                      status={r.status === "pendiente" ? "pendiente" : "confirmado"}
-                      tab={r.role}
-                    />
+                    <div className="flex-1 sm:flex-none">
+                      <DeleteContactDialog
+                        action={deleteContact}
+                        contactId={r.contactId}
+                        fullName={r.fullName}
+                        status={r.status === "pendiente" ? "pendiente" : "confirmado"}
+                        tab={r.role}
+                      />
+                    </div>
                   </div>
                 )}
               </CardContent>

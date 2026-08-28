@@ -62,6 +62,7 @@
   --color-primary-hover: var(--primary-hover);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-surface-muted: var(--surface-muted);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -106,6 +107,10 @@
   --secondary-foreground: #1f7a4d;
   --muted: #e8ebf0;
   --muted-foreground: #7a8fa0;
+  /* Superficie en reposo, un punto más clara que --muted — hoy la usan
+     las pestañas inactivas de Contactos. Vive acá y no como hex suelto
+     en el componente, por la misma razón que el resto de la paleta. */
+  --surface-muted: #eef1f4;
   --accent: #f7ecd6;
   --accent-foreground: #8a6820;
   --destructive: #d84c4c;
@@ -167,6 +172,7 @@
   --secondary-foreground: #e6c896;
   --muted: #1c2128;
   --muted-foreground: #8b96a3;
+  --surface-muted: #1c2128;
   --accent: #2a2416;
   --accent-foreground: #e0b060;
   --destructive: #e57070;
