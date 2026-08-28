@@ -16,6 +16,12 @@ export type UnifiedContactRow = {
   roleConflict: boolean;
   inviteExpiresAt: string | null;
   inviteRejectedAt: string | null;
+  // Foto de perfil de la persona detrás de la ficha, si ya tiene cuenta Y
+  // el visor puede verla (profiles_select_self_or_shared). null es un
+  // caso normal, no un error: una ficha pendiente todavía no tiene
+  // cuenta, y la UI cae a las iniciales — que es el placeholder por
+  // defecto, no un ícono gris.
+  avatarUrl: string | null;
   contactId: string | null; // presente si hay una ficha de libreta detrás (habilita reenviar/quitar)
   organizationId: string | null;
 };
@@ -42,10 +48,10 @@ async function getArrendatarios(supabase: Supa, myUserId: string): Promise<Unifi
   const [{ data: contacts }, { data: tenants }, { data: parties }] = await Promise.all([
     supabase
       .from("contacts")
-      .select("id, full_name, email, rut, status, user_id, role_conflict_at, invite_expires_at, invite_rejected_at")
+      .select("id, full_name, email, rut, status, user_id, role_conflict_at, invite_expires_at, invite_rejected_at, profiles!contacts_user_id_fkey(avatar_url)")
       .eq("contact_role", "arrendatario"),
-    supabase.from("property_tenants").select("user_id, profiles(full_name)"),
-    supabase.from("contract_parties").select("user_id, profiles(full_name)").eq("role", "arrendatario"),
+    supabase.from("property_tenants").select("user_id, profiles(full_name, avatar_url)"),
+    supabase.from("contract_parties").select("user_id, profiles(full_name, avatar_url)").eq("role", "arrendatario"),
   ]);
 
   const byUserId = new Map<string, UnifiedContactRow>();
@@ -61,6 +67,7 @@ async function getArrendatarios(supabase: Supa, myUserId: string): Promise<Unifi
       roleConflict: !!c.role_conflict_at,
       inviteExpiresAt: c.invite_expires_at,
       inviteRejectedAt: c.invite_rejected_at,
+      avatarUrl: one(c.profiles)?.avatar_url ?? null,
       contactId: c.id,
       organizationId: null,
     };
@@ -86,6 +93,7 @@ async function getArrendatarios(supabase: Supa, myUserId: string): Promise<Unifi
       roleConflict: false,
       inviteExpiresAt: null,
       inviteRejectedAt: null,
+      avatarUrl: profile?.avatar_url ?? null,
       contactId: null,
       organizationId: null,
     });
@@ -98,7 +106,7 @@ async function getOrgBackedRole(supabase: Supa, role: "arrendador" | "corredor",
   const [{ data: contacts }, { data: myAdminOrgs }, { data: properties }, { data: landlords }] = await Promise.all([
     supabase
       .from("contacts")
-      .select("id, full_name, email, rut, status, user_id, role_conflict_at, invite_expires_at, invite_rejected_at")
+      .select("id, full_name, email, rut, status, user_id, role_conflict_at, invite_expires_at, invite_rejected_at, profiles!contacts_user_id_fkey(avatar_url)")
       .eq("contact_role", role),
     supabase.from("memberships").select("organization_id").eq("user_id", myUserId).eq("role", "admin"),
     supabase.from("properties").select("id, organization_id, broker_organization_id"),
@@ -143,6 +151,7 @@ async function getOrgBackedRole(supabase: Supa, role: "arrendador" | "corredor",
       roleConflict: !!c.role_conflict_at,
       inviteExpiresAt: c.invite_expires_at,
       inviteRejectedAt: c.invite_rejected_at,
+      avatarUrl: one(c.profiles)?.avatar_url ?? null,
       contactId: c.id,
       organizationId: resolvedOrgId,
     });
@@ -159,6 +168,7 @@ async function getOrgBackedRole(supabase: Supa, role: "arrendador" | "corredor",
       roleConflict: !!c.role_conflict_at,
       inviteExpiresAt: c.invite_expires_at,
       inviteRejectedAt: c.invite_rejected_at,
+      avatarUrl: one(c.profiles)?.avatar_url ?? null,
       contactId: c.id,
       organizationId: null,
     });
@@ -177,6 +187,9 @@ async function getOrgBackedRole(supabase: Supa, role: "arrendador" | "corredor",
         roleConflict: false,
         inviteExpiresAt: null,
         inviteRejectedAt: null,
+        // Una organización de la capa vieja no tiene foto de perfil —
+        // cae a iniciales, igual que cualquier ficha sin cuenta.
+        avatarUrl: null,
         contactId: null,
         organizationId: o.id,
       });
