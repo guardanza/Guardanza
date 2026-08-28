@@ -7,7 +7,14 @@ import { cn } from "@/lib/utils";
 // once settled, red once it's a real dispute. Matches the Seguranza design
 // system's per-status badge table.
 const STATUS_STYLES: Record<string, string> = {
-  pendiente: "bg-muted text-primary",
+  // text-foreground, no text-primary — "pendiente" es justo el caso que
+  // este archivo documenta como "gray/neutral while waiting". Antes
+  // funcionaba por accidente: --primary era un verde tan oscuro
+  // (#0f3d2e) que se leía casi como un gris oscuro. Con el verde de marca
+  // renovado (#1f7a4d, con más presencia) ese mismo texto empezaba a
+  // leerse como un chip verde de "confirmado" — justo lo que la regla de
+  // este proyecto prohíbe para un estado pendiente.
+  pendiente: "bg-muted text-foreground",
   pendiente_firma_arrendador: "bg-accent text-accent-foreground",
   pendiente_firma_arrendatario: "bg-accent text-accent-foreground",
   pendiente_deposito: "bg-accent text-accent-foreground",
