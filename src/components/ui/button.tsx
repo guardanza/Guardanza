@@ -11,13 +11,13 @@ const buttonVariants = cva(
         // Fine gold line along the top edge on hover — Seguranza's signature
         // "valor en movimiento" detail on the primary action.
         //
-        // hover/shadow are hand-picked derivatives of --primary (#1f7a4d),
-        // not the token itself — arbitrary Tailwind values can't reference
-        // a CSS var's computed value to darken it, so these are recomputed
-        // by hand whenever --primary changes. hover: ~15% darker
-        // (#1a6841); shadow: same rgb as --primary, alpha unchanged.
+        // hover y sombras salen de tokens (--color-primary-hover,
+        // --shadow-brand-*), no de valores a mano — antes eran hex/rgba
+        // recalculados cada vez que cambiaba --primary, y justamente por
+        // eso el shadow del tamaño xl (más abajo) se quedó con el verde
+        // viejo cuando el resto se actualizó. Ver globals.css.
         default:
-          "bg-primary text-primary-foreground shadow-[0_4px_12px_rgba(31,122,77,0.15)] before:absolute before:inset-x-2 before:top-0 before:h-px before:origin-center before:scale-x-0 before:bg-brand-gold before:transition-transform before:duration-200 hover:bg-[#1a6841] hover:shadow-[0_8px_20px_rgba(31,122,77,0.25)] hover:before:scale-x-100",
+          "bg-primary text-primary-foreground shadow-[0_4px_12px_var(--shadow-brand-md)] before:absolute before:inset-x-2 before:top-0 before:h-px before:origin-center before:scale-x-0 before:bg-brand-gold before:transition-transform before:duration-200 hover:bg-primary-hover hover:shadow-[0_8px_20px_var(--shadow-brand-lg)] hover:before:scale-x-100",
         outline:
           "border-brand-sand/60 bg-transparent text-brand-sand-foreground hover:border-brand-sand hover:bg-brand-sand/8 aria-expanded:bg-brand-sand/8 dark:text-brand-sand dark:hover:bg-brand-sand/10",
         secondary:
@@ -50,7 +50,7 @@ const buttonVariants = cva(
       {
         variant: "default",
         size: "xl",
-        class: "shadow-[0_8px_24px_rgba(15,61,46,0.25)] hover:shadow-[0_16px_40px_rgba(15,61,46,0.35)]",
+        class: "shadow-[0_8px_24px_var(--shadow-brand-xl)] hover:shadow-[0_16px_40px_var(--shadow-brand-2xl)]",
       },
     ],
     defaultVariants: {

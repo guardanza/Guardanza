@@ -45,7 +45,7 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {dispute.status === "escalada" && dispute.motivo_rechazo && (
-        <Card className="border-red-200 dark:border-red-900/50">
+        <Card className="border-destructive/30">
           <CardHeader>
             <CardTitle className="text-sm">Motivo del rechazo</CardTitle>
           </CardHeader>
@@ -56,7 +56,7 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
       )}
 
       {dispute.status === "escalada" && isPlatformAdmin && guarantee && (
-        <Card className="border-amber-200 dark:border-amber-900/50">
+        <Card className="border-brand-gold/40">
           <CardHeader>
             <CardTitle className="text-sm">Resolver como administrador</CardTitle>
             <CardDescription>

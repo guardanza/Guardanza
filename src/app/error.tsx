@@ -10,8 +10,8 @@ export default function GlobalError({
   return (
     <div className="mx-auto max-w-md space-y-4 p-8">
       <h1 className="text-xl font-semibold">Algo salió mal</h1>
-      <p className="text-sm text-red-600">{error.message || "Ocurrió un error inesperado."}</p>
-      <button onClick={() => reset()} className="bg-black p-2 text-white">
+      <p className="text-sm text-destructive">{error.message || "Ocurrió un error inesperado."}</p>
+      <button onClick={() => reset()} className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">
         Reintentar
       </button>
     </div>
