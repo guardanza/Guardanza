@@ -57,6 +57,11 @@
   --color-brand-gold-foreground: var(--brand-gold-foreground);
   --color-brand-sand: var(--brand-sand);
   --color-brand-sand-foreground: var(--brand-sand-foreground);
+  --color-brand-forest: var(--brand-forest);
+  --color-brand-forest-foreground: var(--brand-forest-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -83,6 +88,20 @@
      significado, no marca. */
   --primary: #1f7a4d;
   --primary-foreground: #fafbfc;
+  /* Derivados de --primary que antes vivían a mano en button.tsx: el
+     hover (~15% más oscuro) y las sombras tintadas con su mismo RGB.
+     Viven acá porque un valor arbitrario de Tailwind no puede oscurecer
+     ni extraer el RGB de una variable CSS en tiempo de compilación —
+     así, cuando cambie --primary, se actualizan todos desde un solo
+     lugar en vez de quedarse desincronizados (que es justo lo que le
+     pasó al shadow del botón xl). */
+  --primary-hover: #1a6841;
+  --shadow-brand-subtle: rgba(31, 122, 77, 0.04);
+  --shadow-brand-soft: rgba(31, 122, 77, 0.08);
+  --shadow-brand-md: rgba(31, 122, 77, 0.15);
+  --shadow-brand-lg: rgba(31, 122, 77, 0.25);
+  --shadow-brand-xl: rgba(31, 122, 77, 0.25);
+  --shadow-brand-2xl: rgba(31, 122, 77, 0.35);
   --secondary: #f5ead9;
   --secondary-foreground: #1f7a4d;
   --muted: #e8ebf0;
@@ -92,6 +111,12 @@
   --destructive: #d84c4c;
   --success: #1f7a4d;
   --success-foreground: #0b3d1c;
+  /* Cuarto color semántico, para "hay algo sobre la mesa" (hoy solo
+     propuesta_termino en status-badge.tsx) — distinto de rojo/dorado/
+     verde a propósito. Los valores son los mismos que ya tenía ese chip
+     escritos a mano en Tailwind crudo (blue-100/blue-700). */
+  --info: #dbeafe;
+  --info-foreground: #1d4ed8;
   --border: #e8ebf0;
   --input: #e8ebf0;
   --ring: #1f7a4d;
@@ -99,6 +124,13 @@
   --brand-gold-foreground: #fffaf0;
   --brand-sand: #d4a574;
   --brand-sand-foreground: #3a2a17;
+  /* Segundo verde de marca — el logo nuevo lo define: oscuro para
+     títulos/texto de marca (h1-h6, el wordmark del logo), reservado
+     nada más que para eso. --primary (#1f7a4d) sigue siendo el verde de
+     botones/acciones/acentos, sin cambios — los dos conviven a
+     propósito, nunca se mezclan. */
+  --brand-forest: #14432f;
+  --brand-forest-foreground: #cfe6da;
   --chart-1: #c8963e;
   --chart-2: #1f7a4d;
   --chart-3: #d4a574;
@@ -124,6 +156,13 @@
   --popover-foreground: #e6e7eb;
   --primary: #4a9c7f;
   --primary-foreground: #0a1f17;
+  --primary-hover: #3f8a6f;
+  --shadow-brand-subtle: rgba(74, 156, 127, 0.04);
+  --shadow-brand-soft: rgba(74, 156, 127, 0.08);
+  --shadow-brand-md: rgba(74, 156, 127, 0.15);
+  --shadow-brand-lg: rgba(74, 156, 127, 0.25);
+  --shadow-brand-xl: rgba(74, 156, 127, 0.25);
+  --shadow-brand-2xl: rgba(74, 156, 127, 0.35);
   --secondary: #2a2116;
   --secondary-foreground: #e6c896;
   --muted: #1c2128;
@@ -133,6 +172,10 @@
   --destructive: #e57070;
   --success: #6cc98c;
   --success-foreground: #0b2b16;
+  /* Mismos valores que ya tenía el chip en Tailwind crudo para modo
+     oscuro (blue-900/40 sobre blue-300). */
+  --info: rgba(30, 58, 138, 0.4);
+  --info-foreground: #93c5fd;
   --border: #30363d;
   --input: #30363d;
   --ring: #4a9c7f;
@@ -140,6 +183,8 @@
   --brand-gold-foreground: #241a06;
   --brand-sand: #d4a574;
   --brand-sand-foreground: #241a06;
+  --brand-forest: #cfe6da;
+  --brand-forest-foreground: #14432f;
   --chart-1: #d4a84e;
   --chart-2: #4a9c7f;
   --chart-3: #d4a574;
@@ -171,7 +216,11 @@
   h4,
   h5,
   h6 {
-    @apply font-heading font-bold text-primary;
+    /* text-brand-forest, no text-primary — títulos van con el verde
+       oscuro de marca (#14432f); --primary (#1f7a4d) queda reservado
+       para botones/acciones/acentos. Ver el comentario junto a
+       --brand-forest en :root. */
+    @apply font-heading font-bold text-brand-forest;
   }
 }
 

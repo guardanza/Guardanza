@@ -22,12 +22,18 @@ export function contactInviteEmailHtml(message: ContactInviteEmail): string {
   // hardcodeado, así que funciona igual en local y en producción sin
   // tocar nada acá.
   //
-  // Acá SIEMPRE va la versión blanca (logo-shield-white.png), no la verde
-  // que usa el resto de la app — el escudo verde original queda invisible
-  // sobre el verde del encabezado. Es un asset separado (mismo trazo,
-  // alpha recalculado a blanco), no un filtro CSS: los clientes de correo
-  // (sobre todo Outlook de escritorio) no soportan filter/invert de forma
+  // Acá SIEMPRE va la versión invertida (logo-shield-white.png: blanco +
+  // verde claro #cfe6da), no la de color que usa el resto de la app — el
+  // escudo a color queda invisible sobre el verde oscuro del encabezado.
+  // Es un PNG rasterizado aparte del mismo SVG (src/components/logo.tsx
+  // tiene el original), no un filtro CSS: los clientes de correo (sobre
+  // todo Outlook de escritorio) no soportan filter/invert de forma
   // confiable.
+  //
+  // Encabezado en #14432f (verde oscuro de marca) a propósito, distinto
+  // del botón más abajo (#1f7a4d, verde de acción) — mismo criterio que
+  // el resto de la app: oscuro para el momento de marca, medio para la
+  // acción.
   const origin = new URL(message.acceptUrl).origin;
   const logoUrl = `${origin}/logo-shield-white.png`;
   const expiresLabel = formatExpiry(message.expiresAt);
@@ -55,8 +61,8 @@ export function contactInviteEmailHtml(message: ContactInviteEmail): string {
         <td align="center">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border-radius:16px;overflow:hidden;">
             <tr>
-              <td align="center" style="background-color:#1f7a4d;padding:28px 24px;">
-                <img src="${logoUrl}" width="48" height="60" alt="Guardanza" style="display:block;margin:0 auto 8px;border:0;" />
+              <td align="center" style="background-color:#14432f;padding:28px 24px;">
+                <img src="${logoUrl}" width="48" height="51" alt="Guardanza" style="display:block;margin:0 auto 8px;border:0;" />
                 <span style="color:#fafbfc;font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Guardanza</span>
               </td>
             </tr>

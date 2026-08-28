@@ -24,7 +24,7 @@ const STATUS_STYLES: Record<string, string> = {
   activo: "bg-success/15 text-success",
   en_custodia: "bg-success/15 text-success",
   confirmado: "bg-success/15 text-success",
-  propuesta_termino: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  propuesta_termino: "bg-info text-info-foreground",
   abierta: "bg-destructive/10 text-destructive",
   negociando: "bg-destructive/10 text-destructive",
   en_disputa: "bg-destructive/10 text-destructive",
