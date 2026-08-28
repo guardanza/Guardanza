@@ -10,8 +10,14 @@ const buttonVariants = cva(
       variant: {
         // Fine gold line along the top edge on hover — Seguranza's signature
         // "valor en movimiento" detail on the primary action.
+        //
+        // hover/shadow are hand-picked derivatives of --primary (#1f7a4d),
+        // not the token itself — arbitrary Tailwind values can't reference
+        // a CSS var's computed value to darken it, so these are recomputed
+        // by hand whenever --primary changes. hover: ~15% darker
+        // (#1a6841); shadow: same rgb as --primary, alpha unchanged.
         default:
-          "bg-primary text-primary-foreground shadow-[0_4px_12px_rgba(15,61,46,0.15)] before:absolute before:inset-x-2 before:top-0 before:h-px before:origin-center before:scale-x-0 before:bg-brand-gold before:transition-transform before:duration-200 hover:bg-[#0a2b1e] hover:shadow-[0_8px_20px_rgba(15,61,46,0.25)] hover:before:scale-x-100",
+          "bg-primary text-primary-foreground shadow-[0_4px_12px_rgba(31,122,77,0.15)] before:absolute before:inset-x-2 before:top-0 before:h-px before:origin-center before:scale-x-0 before:bg-brand-gold before:transition-transform before:duration-200 hover:bg-[#1a6841] hover:shadow-[0_8px_20px_rgba(31,122,77,0.25)] hover:before:scale-x-100",
         outline:
           "border-brand-sand/60 bg-transparent text-brand-sand-foreground hover:border-brand-sand hover:bg-brand-sand/8 aria-expanded:bg-brand-sand/8 dark:text-brand-sand dark:hover:bg-brand-sand/10",
         secondary:

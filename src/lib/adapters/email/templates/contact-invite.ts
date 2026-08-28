@@ -41,14 +41,21 @@ export function contactInviteEmailHtml(message: ContactInviteEmail): string {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Te invitaron a Guardanza</title>
+    <!-- Montserrat solo se ve en los clientes de correo que sí cargan
+         fuentes web (Apple Mail, Gmail web, entre otros) — el resto
+         (sobre todo Outlook de escritorio) cae directo al fallback
+         Helvetica/Arial del font-family de abajo, sin romper nada. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
   </head>
-  <body style="margin:0;padding:0;background-color:#f5ead9;font-family:Helvetica,Arial,sans-serif;">
+  <body style="margin:0;padding:0;background-color:#f5ead9;font-family:'Montserrat',Helvetica,Arial,sans-serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5ead9;padding:24px 12px;">
       <tr>
         <td align="center">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border-radius:16px;overflow:hidden;">
             <tr>
-              <td align="center" style="background-color:#0f3d2e;padding:28px 24px;">
+              <td align="center" style="background-color:#1f7a4d;padding:28px 24px;">
                 <img src="${logoUrl}" width="48" height="60" alt="Guardanza" style="display:block;margin:0 auto 8px;border:0;" />
                 <span style="color:#fafbfc;font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Guardanza</span>
               </td>
@@ -77,7 +84,7 @@ export function contactInviteEmailHtml(message: ContactInviteEmail): string {
               <td align="center" style="padding:0 28px 8px;">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td align="center" style="background-color:#0f3d2e;border-radius:10px;">
+                    <td align="center" style="background-color:#1f7a4d;border-radius:10px;">
                       <a
                         href="${message.acceptUrl}"
                         style="display:inline-block;padding:14px 40px;font-size:16px;font-weight:600;color:#fafbfc;text-decoration:none;"

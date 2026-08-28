@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Montserrat, JetBrains_Mono } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/auth";
 import { getProfileTypeLabel } from "@/lib/profile-label";
@@ -13,9 +13,14 @@ import { UserAvatar } from "@/components/user-avatar";
 import { METADATA_DESCRIPTION } from "@/lib/copy";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+// Pesos explícitos (no "variable" completo) — 400/500/600/700 son
+// exactamente los que usa la app hoy (font-normal/medium/semibold/bold,
+// nada de extrabold/black), así que cargar solo esos cuatro mantiene el
+// peso de página bajo en vez de traer el rango variable completo.
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -42,7 +47,7 @@ export default async function RootLayout({
     : { data: null };
 
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${montserrat.variable} ${jetbrainsMono.variable} h-full antialiased`}>
       <body className="min-h-full bg-muted/40">
         {userRes.user ? (
           <div className="flex min-h-full">
