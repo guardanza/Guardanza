@@ -9,7 +9,7 @@ import { isValidEmail } from "@/lib/email";
 import { findAccountRoleByEmail } from "@/lib/supabase/find-user-by-email";
 import { ContactsSearchField } from "@/components/contacts-search-field";
 import { QuickInviteButton } from "@/components/quick-invite-role-sheet";
-import { DeleteContactDialog } from "@/components/delete-contact-dialog";
+import { ContactRowMenu } from "@/components/contact-row-menu";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContactStatusBadge } from "@/components/contact-status-badge";
@@ -191,12 +191,19 @@ export default async function ContactsPage({
           const displayStatus = rejected ? "invitacion_rechazada" : roleConflict ? "rol_distinto" : expired ? "expirada" : r.status;
           return (
             <Card key={`${r.role}-${r.key}`} className="transition-shadow hover:shadow-md">
-              <CardContent className="space-y-3">
-                {/* Toda la fila es el link al detalle, con el chevron
-                    cerrándola — por eso las acciones (Reenviar/Quitar)
-                    van en su propia fila abajo y no intercaladas: no se
-                    puede anidar un botón dentro de un <a>. */}
-                <Link href={`/contacts/${r.role}/${encodeURIComponent(r.key)}`} className="flex min-w-0 items-center gap-3">
+              <CardContent className="flex items-center gap-2">
+                {/* after:absolute after:inset-0 ("stretched link"): el <a>
+                    solo envuelve avatar+texto, pero su pseudo-elemento
+                    cubre toda la tarjeta (Card ya es relative), así que
+                    el área tocable es la fila entera — blanco más grande,
+                    que es lo que conviene acá. El menú va como hermano
+                    con z-10 para quedar por encima de esa capa y seguir
+                    siendo clickeable; no puede ir dentro del <a> porque
+                    no se anida un botón en un enlace. */}
+                <Link
+                  href={`/contacts/${r.role}/${encodeURIComponent(r.key)}`}
+                  className="flex min-w-0 flex-1 items-center gap-3 after:absolute after:inset-0"
+                >
                   {/* size=44 no es solo el tamaño en pantalla: next/image
                       pide al optimizador una miniatura de ese orden (~48/96px
                       para retina), no el original de 400×400 que guarda el
@@ -223,40 +230,20 @@ export default async function ContactsPage({
                       )}
                     </div>
                   </div>
-                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 </Link>
-                {/* Cada acción va envuelta en su propio flex-1 (mobile) /
-                    flex-none (desktop): los botones de adentro traen
-                    w-full, así que como hijos directos del flex tomaban
-                    el 100% del ANCHO DE LA FILA cada uno y se salían de
-                    la tarjeta. Con el wrapper, w-full es el 100% de su
-                    mitad — en mobile quedan repartidos, en desktop
-                    vuelven a su ancho natural, alineados a la derecha. */}
                 {r.contactId && (
-                  <div className="flex gap-2 border-t pt-3 sm:justify-end">
-                    {r.status === "pendiente" && (
-                      <form action={resendContactInvite} className="flex-1 sm:flex-none">
-                        <input type="hidden" name="id" value={r.contactId} />
-                        <input type="hidden" name="tab" value={activeTab} />
-                        <button
-                          type="submit"
-                          className={buttonVariants({ variant: "outline", size: "sm", className: "w-full sm:w-auto" })}
-                        >
-                          Reenviar
-                        </button>
-                      </form>
-                    )}
-                    <div className="flex-1 sm:flex-none">
-                      <DeleteContactDialog
-                        action={deleteContact}
-                        contactId={r.contactId}
-                        fullName={r.fullName}
-                        status={r.status === "pendiente" ? "pendiente" : "confirmado"}
-                        tab={r.role}
-                      />
-                    </div>
+                  <div className="relative z-10 shrink-0">
+                    <ContactRowMenu
+                      contactId={r.contactId}
+                      fullName={r.fullName}
+                      status={r.status === "pendiente" ? "pendiente" : "confirmado"}
+                      tab={r.role}
+                      deleteAction={deleteContact}
+                      resendAction={resendContactInvite}
+                    />
                   </div>
                 )}
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               </CardContent>
             </Card>
           );
