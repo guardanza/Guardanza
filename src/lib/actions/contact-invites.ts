@@ -51,7 +51,7 @@ export async function linkExistingAccountInvite(formData: FormData) {
     .rpc("confirm_contact_invite", { p_token: token, p_target_user_id: target_user_id })
     .single<{ ok: boolean }>();
 
-  if (error) return inviteFail(token, "Esta invitación ya no es válida — pedile a quien te invitó que la reenvíe.");
+  if (error) return inviteFail(token, "Esta invitación ya no es válida — pídele a quien te invitó que la reenvíe.");
   if (!data.ok) {
     return inviteFail(token, "Ya tienes una cuenta de Guardanza con otro rol — no te podemos vincular a esta invitación.");
   }
@@ -86,7 +86,7 @@ export async function acceptContactInvite(formData: FormData) {
   const { data: invite } = await supabase
     .rpc("resolve_contact_invite", { p_token: token })
     .maybeSingle<{ contact_role: RoleBucket }>();
-  if (!invite) return inviteFail(token, "Esta invitación ya no es válida — pedile a quien te invitó que la reenvíe.");
+  if (!invite) return inviteFail(token, "Esta invitación ya no es válida — pídele a quien te invitó que la reenvíe.");
 
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
@@ -140,10 +140,10 @@ export async function acceptContactInvite(formData: FormData) {
   // confirmación de acá para abajo — no la deshacemos, la persona puede
   // seguir usando Guardanza normalmente, solo no queda vinculada a esta
   // ficha.
-  if (confirmError) return inviteFail(token, "Esta invitación ya no es válida — pedile a quien te invitó que la reenvíe.");
+  if (confirmError) return inviteFail(token, "Esta invitación ya no es válida — pídele a quien te invitó que la reenvíe.");
   if (!data.ok) {
     return inviteFail(token, "Ya tienes una cuenta de Guardanza con otro rol — no te podemos vincular a esta invitación.");
   }
 
-  redirect("/");
+  redirect("/bienvenida");
 }

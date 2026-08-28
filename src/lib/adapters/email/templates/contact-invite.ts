@@ -21,8 +21,15 @@ export function contactInviteEmailHtml(message: ContactInviteEmail): string {
   // aceptar (siteOrigin(), armado en issueInviteOrLink) — nunca un dominio
   // hardcodeado, así que funciona igual en local y en producción sin
   // tocar nada acá.
+  //
+  // Acá SIEMPRE va la versión blanca (logo-shield-white.png), no la verde
+  // que usa el resto de la app — el escudo verde original queda invisible
+  // sobre el verde del encabezado. Es un asset separado (mismo trazo,
+  // alpha recalculado a blanco), no un filtro CSS: los clientes de correo
+  // (sobre todo Outlook de escritorio) no soportan filter/invert de forma
+  // confiable.
   const origin = new URL(message.acceptUrl).origin;
-  const logoUrl = `${origin}/logo-shield.png`;
+  const logoUrl = `${origin}/logo-shield-white.png`;
   const expiresLabel = formatExpiry(message.expiresAt);
   const name = escapeHtml(message.contactFullName);
   const org = escapeHtml(message.organizationName);
@@ -74,7 +81,7 @@ export function contactInviteEmailHtml(message: ContactInviteEmail): string {
                       <a
                         href="${message.acceptUrl}"
                         style="display:inline-block;padding:14px 40px;font-size:16px;font-weight:600;color:#fafbfc;text-decoration:none;"
-                        >Aceptar invitación</a
+                        >Abrir invitación</a
                       >
                     </td>
                   </tr>
@@ -119,7 +126,7 @@ export function contactInviteEmailText(message: ContactInviteEmail): string {
     ``,
     `Te invitaron como ${message.contactRoleLabel}.`,
     ``,
-    `Acepta la invitación acá: ${message.acceptUrl}`,
+    `Abre la invitación acá: ${message.acceptUrl}`,
     ``,
     `Este link vence el ${expiresLabel}. Si prefieres no aceptar, puedes entrar al link y rechazar la invitación ahí mismo.`,
     ``,
