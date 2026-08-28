@@ -51,7 +51,7 @@ export async function linkExistingAccountInvite(formData: FormData) {
     .rpc("confirm_contact_invite", { p_token: token, p_target_user_id: target_user_id })
     .single<{ ok: boolean }>();
 
-  if (error) return inviteFail(token, "Esta invitación ya no es válida — pedile a quien te invitó que la reenvíe.");
+  if (error) return inviteFail(token, "Esta invitación ya no es válida — pídele a quien te invitó que la reenvíe.");
   if (!data.ok) {
     return inviteFail(token, "Ya tienes una cuenta de Guardanza con otro rol — no te podemos vincular a esta invitación.");
   }
@@ -59,14 +59,32 @@ export async function linkExistingAccountInvite(formData: FormData) {
   redirect("/login?confirmed=1");
 }
 
-// El camino "sin cuenta todavía" — crea la cuenta (signUp normal, misma
-// política de contraseña que el resto del signup) y recién ahí confirma.
+// El camino "sin cuenta todavía" — crea la cuenta y recién ahí confirma.
 // El nombre y el RUT los define la PERSONA acá, no lo que tipeó quien
-// cargó la ficha originalmente — email es lo único que no se puede tocar,
-// es la identidad que ancla el token.
+// cargó la ficha originalmente.
+//
+// El email NUNCA se toma del formulario (formData.get("email") es un
+// input oculto — el navegador lo pre-llena con el valor correcto, pero
+// nada impide que alguien lo altere antes de enviar). Se usa el que
+// devuelve resolve_contact_invite(token) — el único email que el propio
+// token demostró que la persona controla (le llegó el link ahí). Antes
+// de este cambio daba lo mismo, porque igual hacía falta confirmar por
+// correo; ahora que la cuenta nace confirmada (ver abajo), este sí sería
+// un hueco real si se siguiera confiando en el campo del formulario.
+//
+// Admin API en vez de signUp() público: createUser({ email_confirm: true })
+// deja la cuenta ya confirmada — el token de invitación YA es la prueba
+// de que esta persona controla ese email, así que pedirle además que
+// confirme por correo es redundante (y es exactamente el correo extra de
+// Supabase que este cambio elimina). No toca el toggle "Confirm email"
+// del proyecto — /signup normal (signUpWithRole, Google) sigue usando
+// signUp() público tal cual, sigue pidiendo confirmación como siempre.
+// createUser() no manda ningún correo de confirmación (documentado así
+// en el SDK) y tampoco deja sesión en el navegador — por eso el
+// signInWithPassword() de abajo, con el cliente normal, para que la
+// persona quede realmente logueada al llegar a /bienvenida.
 export async function acceptContactInvite(formData: FormData) {
   const token = String(formData.get("token") || "");
-  const email = String(formData.get("email") || "");
   const full_name = String(formData.get("full_name") || "").trim();
   const rutInput = String(formData.get("rut") || "").trim();
   const password = String(formData.get("password") || "");
@@ -79,27 +97,37 @@ export async function acceptContactInvite(formData: FormData) {
 
   const supabase = await createClient();
 
-  // contact_role se resuelve del propio token (mismo RPC anon-safe que ya
-  // usa la pantalla para mostrarlo) — nunca de un campo que viniera del
-  // formulario, para no confiar en nada que alguien pudiera manipular
-  // antes del signUp.
+  // contact_role Y email se resuelven del propio token (mismo RPC
+  // anon-safe que ya usa la pantalla para mostrarlos) — nunca de un
+  // campo que viniera del formulario, para no confiar en nada que
+  // alguien pudiera manipular antes de crear la cuenta.
   const { data: invite } = await supabase
     .rpc("resolve_contact_invite", { p_token: token })
-    .maybeSingle<{ contact_role: RoleBucket }>();
-  if (!invite) return inviteFail(token, "Esta invitación ya no es válida — pedile a quien te invitó que la reenvíe.");
+    .maybeSingle<{ contact_role: RoleBucket; email: string }>();
+  if (!invite) return inviteFail(token, "Esta invitación ya no es válida — pídele a quien te invitó que la reenvíe.");
 
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email,
+  const admin = createServiceRoleClient();
+  const { data: createData, error: createError } = await admin.auth.admin.createUser({
+    email: invite.email,
     password,
-    options: { data: { full_name } },
+    email_confirm: true,
+    user_metadata: { full_name },
   });
-  if (signUpError) return inviteFail(token, signUpError.message);
-  if (!signUpData.user) return inviteFail(token, "No se pudo crear la cuenta.");
+  if (createError) return inviteFail(token, createError.message);
+  if (!createData.user) return inviteFail(token, "No se pudo crear la cuenta.");
+  const newUser = createData.user;
+
+  // La cuenta ya existe y está confirmada — createUser() no deja sesión
+  // en el navegador (es una llamada de servidor a servidor), así que se
+  // inicia sesión de verdad con la contraseña recién definida, ahora sí
+  // con el cliente normal (el que escribe las cookies de sesión).
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email: invite.email, password });
+  if (signInError) return inviteFail(token, signInError.message);
 
   const { error: profileError } = await supabase
     .from("profiles")
     .update({ full_name, rut: formatRut(rutInput) })
-    .eq("id", signUpData.user.id);
+    .eq("id", newUser.id);
   if (profileError) {
     if (profileError.code === "23505") return inviteFail(token, "Ese RUT ya está registrado en otra cuenta de Guardanza.");
     return inviteFail(token, profileError.message);
@@ -119,7 +147,7 @@ export async function acceptContactInvite(formData: FormData) {
   // (particular)").
   if (invite.contact_role === "arrendador" || invite.contact_role === "corredor") {
     const { error: roleAssignError } = await assignRoleIfNone({
-      userId: signUpData.user.id,
+      userId: newUser.id,
       role: invite.contact_role,
       legalForm: invite.contact_role === "corredor" ? "persona_natural" : undefined,
       companyName: invite.contact_role === "corredor" ? `${full_name} (corredor)` : undefined,
@@ -127,23 +155,22 @@ export async function acceptContactInvite(formData: FormData) {
       fallbackName: full_name,
     });
     if (roleAssignError) {
-      console.error(`[contact-invites] no se pudo crear la organización para ${signUpData.user.id}: ${roleAssignError}`);
+      console.error(`[contact-invites] no se pudo crear la organización para ${newUser.id}: ${roleAssignError}`);
     }
   }
 
-  const admin = createServiceRoleClient();
   const { data, error: confirmError } = await admin
-    .rpc("confirm_contact_invite", { p_token: token, p_target_user_id: signUpData.user.id })
+    .rpc("confirm_contact_invite", { p_token: token, p_target_user_id: newUser.id })
     .single<{ ok: boolean }>();
 
   // La cuenta ya quedó creada (con sesión activa) aunque falle la
   // confirmación de acá para abajo — no la deshacemos, la persona puede
   // seguir usando Guardanza normalmente, solo no queda vinculada a esta
   // ficha.
-  if (confirmError) return inviteFail(token, "Esta invitación ya no es válida — pedile a quien te invitó que la reenvíe.");
+  if (confirmError) return inviteFail(token, "Esta invitación ya no es válida — pídele a quien te invitó que la reenvíe.");
   if (!data.ok) {
     return inviteFail(token, "Ya tienes una cuenta de Guardanza con otro rol — no te podemos vincular a esta invitación.");
   }
 
-  redirect("/");
+  redirect("/bienvenida");
 }
