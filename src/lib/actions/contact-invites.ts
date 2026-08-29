@@ -6,6 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { findUserIdByEmail } from "@/lib/supabase/find-user-by-email";
 import { validateRut, formatRut } from "@/lib/rut";
 import { assignRoleIfNone } from "@/lib/auth/role-assignment";
+import { ensureReciprocalContact } from "@/lib/reciprocal-contact";
 import type { RoleBucket } from "@/lib/role-bucket";
 
 function inviteFail(token: string, message: string): never {
@@ -49,12 +50,14 @@ export async function linkExistingAccountInvite(formData: FormData) {
   const admin = createServiceRoleClient();
   const { data, error } = await admin
     .rpc("confirm_contact_invite", { p_token: token, p_target_user_id: target_user_id })
-    .single<{ ok: boolean }>();
+    .single<{ ok: boolean; contact: { id: string } }>();
 
   if (error) return inviteFail(token, "Esta invitación ya no es válida — pídele a quien te invitó que la reenvíe.");
   if (!data.ok) {
     return inviteFail(token, "Ya tienes una cuenta de Guardanza con otro rol — no te podemos vincular a esta invitación.");
   }
+
+  await ensureReciprocalContact(data.contact.id);
 
   redirect("/login?confirmed=1");
 }
@@ -161,7 +164,7 @@ export async function acceptContactInvite(formData: FormData) {
 
   const { data, error: confirmError } = await admin
     .rpc("confirm_contact_invite", { p_token: token, p_target_user_id: newUser.id })
-    .single<{ ok: boolean }>();
+    .single<{ ok: boolean; contact: { id: string } }>();
 
   // La cuenta ya quedó creada (con sesión activa) aunque falle la
   // confirmación de acá para abajo — no la deshacemos, la persona puede
@@ -171,6 +174,12 @@ export async function acceptContactInvite(formData: FormData) {
   if (!data.ok) {
     return inviteFail(token, "Ya tienes una cuenta de Guardanza con otro rol — no te podemos vincular a esta invitación.");
   }
+
+  // Va DESPUÉS de assignRoleIfNone (más arriba): si el rol es
+  // arrendador/corredor, la organización propia de quien acaba de
+  // aceptar ya existe para este punto — ensure_reciprocal_contact la
+  // encuentra y ahí entra quien invitó, como contacto confirmado.
+  await ensureReciprocalContact(data.contact.id);
 
   redirect("/bienvenida");
 }
