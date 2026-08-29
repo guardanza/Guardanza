@@ -91,6 +91,14 @@ function safeNext(next: string): string | null {
   return /^\/(?!\/)/.test(next) ? next : null;
 }
 
+// Agrega query params a una URL que puede o no traer ya un "?" (la lista
+// siempre lo trae, "?tab=X"; una ficha de detalle nunca lo trae) — evita
+// tener que repetir la lógica de "&" vs "?" en cada redirect de más abajo.
+function withParam(url: string, params: Record<string, string>): string {
+  const usp = new URLSearchParams(params);
+  return `${url}${url.includes("?") ? "&" : "?"}${usp.toString()}`;
+}
+
 export async function createContact(formData: FormData) {
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -169,17 +177,26 @@ export async function resendContactInvite(formData: FormData) {
   if (!userRes.user) redirect("/login");
 
   const id = String(formData.get("id"));
-  // Preserva la pestaña activa de la página (Arrendadores / Arrendatarios /
-  // Corredores) en el redirect final — si no, se pierde el ?tab= y el
-  // contacto recién reenviado "desaparece" al saltar a la pestaña default.
+  // Preserva la pestaña activa (Arrendadores / Arrendatarios / Corredores)
+  // en el redirect final — si no, se pierde el ?tab= y el contacto recién
+  // reenviado "desaparece" al saltar a la pestaña default. Sigue haciendo
+  // falta aunque haya returnTo: es el fallback cuando no lo hay, y
+  // withParam lo necesita para saber a qué pestaña volver si el envío
+  // falla desde un origen que no lo trae.
   const tab = String(formData.get("tab") || "arrendador") as RoleBucket;
+  // Reenviar puede dispararse desde la ficha de detalle de un contacto
+  // (/contacts/[role]/[key]) — vuelve ahí mismo en vez de saltar a la
+  // lista, así la persona ve el estado actualizado (token renovado, o
+  // "En Guardanza" si resultó que ya tenía cuenta) sin perder su lugar.
+  // Sin returnTo, cae al comportamiento de siempre: la lista.
+  const returnTo = safeNext(String(formData.get("returnTo") || "")) ?? `/contacts?tab=${tab}`;
 
   const { data: contact, error: contactError } = await supabase
     .from("contacts")
     .select("full_name, email, contact_role, organizations(name)")
     .eq("id", id)
     .single<{ full_name: string; email: string; contact_role: RoleBucket; organizations: { name: string } | { name: string }[] | null }>();
-  if (contactError || !contact) redirect(`/contacts?tab=${tab}&error=${encodeURIComponent("No se encontró el contacto.")}`);
+  if (contactError || !contact) redirect(withParam(returnTo, { error: "No se encontró el contacto." }));
 
   const org = Array.isArray(contact.organizations) ? contact.organizations[0] : contact.organizations;
   const target_user_id = await findUserIdByEmail(contact.email);
@@ -195,14 +212,15 @@ export async function resendContactInvite(formData: FormData) {
   );
 
   revalidatePath("/contacts");
+  revalidatePath(returnTo);
 
   if ("failed" in outcome && outcome.failed) {
-    redirect(`/contacts?tab=${tab}&error=${encodeURIComponent(outcome.message)}`);
+    redirect(withParam(returnTo, { error: outcome.message }));
   }
   if (outcome.linked) {
-    redirect(`/contacts?tab=${tab}&linked=${encodeURIComponent(contact.full_name)}`);
+    redirect(withParam(returnTo, { linked: contact.full_name }));
   }
-  redirect(`/contacts?tab=${tab}`);
+  redirect(returnTo);
 }
 
 // Invitación rápida desde el estado "sin resultados" de la búsqueda de

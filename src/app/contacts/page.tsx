@@ -4,12 +4,11 @@ import { Users, Mail, Plus, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getUnifiedContacts, type UnifiedContactRow } from "@/lib/contacts-unified";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
-import { deleteContact, resendContactInvite, quickInviteContact } from "@/lib/actions/contacts";
+import { quickInviteContact } from "@/lib/actions/contacts";
 import { isValidEmail } from "@/lib/email";
 import { findAccountRoleByEmail } from "@/lib/supabase/find-user-by-email";
 import { ContactsSearchField } from "@/components/contacts-search-field";
 import { QuickInviteButton } from "@/components/quick-invite-role-sheet";
-import { ContactRowMenu } from "@/components/contact-row-menu";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContactStatusBadge } from "@/components/contact-status-badge";
@@ -231,18 +230,12 @@ export default async function ContactsPage({
                     </div>
                   </div>
                 </Link>
-                {r.contactId && (
-                  <div className="relative z-10 shrink-0">
-                    <ContactRowMenu
-                      contactId={r.contactId}
-                      fullName={r.fullName}
-                      status={r.status === "pendiente" ? "pendiente" : "confirmado"}
-                      tab={r.role}
-                      deleteAction={deleteContact}
-                      resendAction={resendContactInvite}
-                    />
-                  </div>
-                )}
+                {/* Sin menú de acciones acá — "Quitar"/"Reenviar" viven
+                    en la ficha de detalle (la flechita lleva ahí). Que
+                    haga falta entrar al contacto para encontrar "Quitar"
+                    es el punto: un paso más de intención antes de una
+                    acción destructiva, sin depender de un menú que igual
+                    había que abrir. */}
                 <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               </CardContent>
             </Card>
