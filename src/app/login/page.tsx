@@ -90,6 +90,16 @@ export default async function LoginPage({
             Regístrate
           </Link>
         </p>
+
+        <p className="text-center text-xs text-muted-foreground">
+          <Link href="/terminos" className="underline underline-offset-4 hover:text-foreground">
+            Términos de servicio
+          </Link>{" "}
+          ·{" "}
+          <Link href="/privacidad" className="underline underline-offset-4 hover:text-foreground">
+            Privacidad
+          </Link>
+        </p>
       </div>
     </div>
   );

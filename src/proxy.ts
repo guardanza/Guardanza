@@ -50,6 +50,15 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
+// terminos/privacidad quedan afuera del gate a propósito: tienen que ser
+// legibles siempre, sin clave y sin sesión — Google las pide para la
+// verificación de OAuth, y cualquier persona debe poder leerlas antes de
+// registrarse. GATE_PASSWORD hoy está desactivado en producción, pero el
+// comentario de checkGate ya dice que existe "mientras está en
+// construcción" — si se reactiva más adelante (otra etapa privada, por
+// ejemplo), estas dos rutas no pueden quedar bloqueadas con el resto.
 export const config = {
-  matcher: ["/((?!gate|_next/static|_next/image|favicon.ico|apple-icon.png|icon.png|robots.txt|sitemap.xml).*)"],
+  matcher: [
+    "/((?!gate|_next/static|_next/image|favicon.ico|apple-icon.png|icon.png|robots.txt|sitemap.xml|terminos|privacidad).*)",
+  ],
 };

@@ -2,9 +2,6 @@ import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { FOOTER_TAGLINE } from "@/lib/copy";
 
-// No Legal/Contacto links to real pages or addresses we don't actually
-// have yet (Términos, Privacidad, support email) — a dead link or a
-// fabricated contact channel is worse than not showing one.
 export function Footer() {
   return (
     <footer className="border-t bg-card">
@@ -53,9 +50,17 @@ export function Footer() {
 
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary uppercase">Legal</p>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground/60">
-            <li>Términos de servicio (próximamente)</li>
-            <li>Privacidad (próximamente)</li>
+          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+            <li>
+              <Link href="/terminos" className="hover:text-foreground">
+                Términos de servicio
+              </Link>
+            </li>
+            <li>
+              <Link href="/privacidad" className="hover:text-foreground">
+                Privacidad
+              </Link>
+            </li>
           </ul>
         </div>
       </div>
