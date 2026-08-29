@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,18 @@ export default async function SignupPage({
           <SignupWizard initialRole={role} initialLegalForm={legal_form} />
         </CardContent>
       </Card>
+
+      <p className="text-center text-xs text-muted-foreground">
+        Al crear tu cuenta aceptas nuestros{" "}
+        <Link href="/terminos" className="underline underline-offset-4 hover:text-foreground">
+          Términos de Servicio
+        </Link>{" "}
+        y nuestra{" "}
+        <Link href="/privacidad" className="underline underline-offset-4 hover:text-foreground">
+          Política de Privacidad
+        </Link>
+        .
+      </p>
     </div>
   );
 }
