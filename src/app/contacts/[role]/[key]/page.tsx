@@ -5,22 +5,28 @@ import { createClient } from "@/lib/supabase/server";
 import { getPersonDetail } from "@/lib/contacts-unified";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
 import { formatMoney } from "@/lib/money";
+import { deleteContact, resendContactInvite } from "@/lib/actions/contacts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { StatusBadge } from "@/components/status-badge";
 import { ContactStatusBadge } from "@/components/contact-status-badge";
+import { ContactDetailActions } from "@/components/contact-detail-actions";
 
 const VALID_ROLES: RoleBucket[] = ["arrendador", "arrendatario", "corredor"];
 
 export default async function ContactDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ role: string; key: string }>;
+  searchParams: Promise<{ error?: string; linked?: string }>;
 }) {
   const { role: roleParam, key: keyParam } = await params;
   if (!VALID_ROLES.includes(roleParam as RoleBucket)) notFound();
   const role = roleParam as RoleBucket;
   const key = decodeURIComponent(keyParam);
+  const { error, linked } = await searchParams;
 
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -30,6 +36,7 @@ export default async function ContactDetailPage({
   if (!detail) notFound();
 
   const { row, properties, contracts } = detail;
+  const returnTo = `/contacts/${role}/${encodeURIComponent(key)}`;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6 md:py-10">
@@ -37,6 +44,19 @@ export default async function ContactDetailPage({
         <ChevronLeft className="size-4" />
         Contactos
       </Link>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {linked && (
+        <Alert>
+          <AlertDescription>
+            <strong>{linked}</strong> ya está en Guardanza — quedó vinculado de inmediato, sin necesidad de invitación.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div>
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{row.fullName}</h1>
@@ -105,6 +125,18 @@ export default async function ContactDetailPage({
             )}
           </Card>
         </>
+      )}
+
+      {row.contactId && (
+        <ContactDetailActions
+          contactId={row.contactId}
+          fullName={row.fullName}
+          status={row.status === "pendiente" ? "pendiente" : "confirmado"}
+          role={role}
+          returnTo={returnTo}
+          deleteAction={deleteContact}
+          resendAction={resendContactInvite}
+        />
       )}
     </div>
   );
