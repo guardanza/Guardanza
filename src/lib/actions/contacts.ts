@@ -10,6 +10,7 @@ import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
 import { siteOrigin } from "@/lib/actions/auth";
 import { emailProvider } from "@/lib/adapters/email";
 import { isValidEmail, deriveNameFromEmail } from "@/lib/email";
+import { ensureReciprocalContact } from "@/lib/reciprocal-contact";
 
 type InviteOutcome = { linked: true } | { linked: false } | { linked: false; failed: true; message: string };
 
@@ -50,7 +51,10 @@ export async function issueInviteOrLink(
     return { linked: false, failed: true, message: error?.message ?? "No se pudo procesar la invitación." };
   }
 
-  if (invite.linked) return { linked: true };
+  if (invite.linked) {
+    await ensureReciprocalContact(contactId);
+    return { linked: true };
+  }
 
   const origin = await siteOrigin();
   const acceptUrl = `${origin}/invite/${invite.raw_token}`;
@@ -136,6 +140,7 @@ export async function createContact(formData: FormData) {
   if (next) revalidatePath(next);
 
   if (contact?.status === "confirmado") {
+    await ensureReciprocalContact(contact.id);
     redirect(next ?? `/contacts?linked=${encodeURIComponent(full_name)}`);
   }
 
@@ -268,6 +273,7 @@ export async function quickInviteContact(formData: FormData) {
   revalidatePath("/contacts");
 
   if (contact?.status === "confirmado") {
+    await ensureReciprocalContact(contact.id);
     redirect(`/contacts?tab=${tab}&linked=${encodeURIComponent(full_name)}`);
   }
 
