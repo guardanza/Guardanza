@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { updateProperty, addPropertyLandlord, removePropertyLandlord, setPropertyBroker } from "@/lib/actions/properties";
+import { updatePropertyDocumentPolicy, removePropertyDocumentPolicy } from "@/lib/actions/document-policy";
+import { policyRowsToMap } from "@/lib/candidate-documents";
 import { one } from "@/lib/supabase/one";
 import { stripParticularSuffix } from "@/lib/labels";
 import { getRegionsWithCommunes } from "@/lib/supabase/regions";
@@ -18,16 +20,17 @@ import { BrokerSearchField } from "@/components/broker-search-field";
 import { LandlordSearchField } from "@/components/landlord-search-field";
 import { PropertyDetailsForm } from "@/components/property-details-form";
 import { WizardSteps } from "@/components/wizard-steps";
+import { DocumentPolicyChecklist } from "@/components/document-policy-checklist";
 
 export default async function EditPropertyPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, success } = await searchParams;
   const supabase = await createClient();
 
   const { data: property, error: fetchError } = await supabase
@@ -221,6 +224,22 @@ export default async function EditPropertyPage({
     );
   }
 
+  // Evaluación de papeles, Etapa 1 (capa 2) — solo se consulta acá, no
+  // en los pasos del wizard de arriba: una propiedad en 'borrador'
+  // todavía no recibe candidatos, no tiene sentido preguntarle esto
+  // antes de que exista un arrendador y esté activa. El fallback al
+  // prellenar es la política de la corredora delegada si existe (es
+  // quien de verdad suele definir esto), y si no, la de la propia
+  // organización dueña.
+  const fallbackOrgId = property.broker_organization_id ?? property.organization_id;
+  const [{ data: propertyPolicyRows }, { data: orgPolicyRows }] = await Promise.all([
+    supabase.from("property_document_policy").select("income_type, document_type, required").eq("property_id", id),
+    supabase.from("org_document_policy").select("income_type, document_type, required").eq("organization_id", fallbackOrgId),
+  ]);
+  const propertyPolicyMap = policyRowsToMap(propertyPolicyRows);
+  const orgPolicyMap = policyRowsToMap(orgPolicyRows);
+  const hasPropertyPolicyOverride = propertyPolicyMap.size > 0;
+
   // Propiedad ya activa: la vista de edición de siempre, todo junto —
   // sin el selector "Arrendador" (era en realidad quién administra la
   // ficha, mostraba las propias corredoras del usuario — bug, retirado
@@ -230,6 +249,13 @@ export default async function EditPropertyPage({
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {success && (
+        <Alert variant="success">
+          <AlertDescription>
+            {success === "document_policy_removed" ? "Se quitó la personalización — vuelve a usar la política general." : "Ajuste de documentos guardado."}
+          </AlertDescription>
         </Alert>
       )}
 
@@ -312,6 +338,44 @@ export default async function EditPropertyPage({
             <input type="hidden" name="property_id" value={id} />
             <BrokerSearchField />
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Documentos que exige esta propiedad</CardTitle>
+          <CardDescription>
+            Por defecto usa la política general de tu organización. Ajusta acá solo si esta propiedad puntual
+            necesita algo distinto — por ejemplo, un arriendo alto.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* <details> nativo, sin JS: colapsado por default salvo que ya
+              haya un ajuste guardado — ahí conviene que se vea de
+              entrada, no esconder que esta propiedad es distinta a la
+              política general. */}
+          <details open={hasPropertyPolicyOverride}>
+            <summary className="cursor-pointer text-sm font-medium text-primary">
+              {hasPropertyPolicyOverride ? "Personalizado para esta propiedad" : "Personalizar para esta propiedad"}
+            </summary>
+            <div className="mt-4 space-y-4">
+              <form action={updatePropertyDocumentPolicy} className="space-y-4">
+                <input type="hidden" name="property_id" value={id} />
+                <DocumentPolicyChecklist layers={[propertyPolicyMap, orgPolicyMap]} idPrefix="property" />
+                <Button type="submit" className="w-full">
+                  Guardar ajuste para esta propiedad
+                </Button>
+              </form>
+              {hasPropertyPolicyOverride && (
+                <form action={removePropertyDocumentPolicy}>
+                  <input type="hidden" name="property_id" value={id} />
+                  <Button type="submit" variant="outline" className="w-full">
+                    Quitar personalización, volver a la política general
+                  </Button>
+                </form>
+              )}
+            </div>
+          </details>
         </CardContent>
       </Card>
     </div>
