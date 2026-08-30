@@ -65,7 +65,11 @@ export default async function LoginPage({
       <div className="flex flex-col gap-4">
         {confirmed && (
           <Alert>
-            <AlertDescription>Tu cuenta quedó vinculada al contacto que te invitó. Inicia sesión para continuar.</AlertDescription>
+            <AlertDescription>
+              {confirmed === "evaluacion"
+                ? "Tu cuenta quedó vinculada a esta postulación. Inicia sesión para continuar."
+                : "Tu cuenta quedó vinculada al contacto que te invitó. Inicia sesión para continuar."}
+            </AlertDescription>
           </Alert>
         )}
         {error && (
