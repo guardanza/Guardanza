@@ -7,7 +7,9 @@ import { getAuthProvider } from "@/lib/auth-provider";
 import { updateProfile } from "@/lib/actions/profile";
 import { changePassword } from "@/lib/actions/settings";
 import { updateSystemConfig } from "@/lib/actions/system-config";
+import { updateOrgDocumentPolicy } from "@/lib/actions/document-policy";
 import { requestRoleChange } from "@/lib/actions/role-change";
+import { policyRowsToMap } from "@/lib/candidate-documents";
 import { labelToRoleBucket, roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
 import { one } from "@/lib/supabase/one";
 import { orgTypeLabel, stripParticularSuffix } from "@/lib/labels";
@@ -24,6 +26,7 @@ import { RoleChangeRequestDialog } from "@/components/role-change-request-dialog
 import { RoleChip } from "@/components/role-chip";
 import { StatusBadge } from "@/components/status-badge";
 import { GoogleIcon } from "@/components/icons/google-icon";
+import { DocumentPolicyChecklist } from "@/components/document-policy-checklist";
 
 const ESTADO_SOLICITUD_LABELS: Record<string, string> = {
   pendiente: "Pendiente",
@@ -73,6 +76,14 @@ export default async function ProfilePage({
   const myOrgMembership = (memberships ?? []).find((m) => m.role === "admin");
   const myOrg = myOrgMembership ? one(myOrgMembership.organizations) : null;
 
+  // Evaluación de papeles, Etapa 1: la política general vive acá, no
+  // atada al rol (corredor vs arrendador) — cualquier organización que
+  // administra candidatos puede definir qué documentos exige.
+  const { data: orgPolicyRows } = myOrg
+    ? await supabase.from("org_document_policy").select("income_type, document_type, required").eq("organization_id", myOrg.id)
+    : { data: null };
+  const orgPolicyMap = policyRowsToMap(orgPolicyRows);
+
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-10">
       {error && (
@@ -87,7 +98,9 @@ export default async function ProfilePage({
               ? "Parámetros del sistema actualizados."
               : success === "solicitud"
                 ? "Tu solicitud de cambio de rol fue enviada. Te avisamos acá cuando la revisen."
-                : "Contraseña actualizada."}
+                : success === "document_policy"
+                  ? "Política de documentos actualizada."
+                  : "Contraseña actualizada."}
           </AlertDescription>
         </Alert>
       )}
@@ -226,6 +239,27 @@ export default async function ProfilePage({
           </CardHeader>
           <CardContent>
             <ChangePasswordForm action={changePassword} />
+          </CardContent>
+        </Card>
+      )}
+
+      {myOrg && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Política de documentos</CardTitle>
+            <CardDescription>
+              Qué le pides a cada candidato según su tipo de ingreso, para las postulaciones a tus propiedades. Una
+              propiedad puntual puede tener su propio ajuste, desde su ficha de edición.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={updateOrgDocumentPolicy} className="space-y-4">
+              <input type="hidden" name="organization_id" value={myOrg.id} />
+              <DocumentPolicyChecklist layers={[orgPolicyMap]} idPrefix="org" />
+              <Button type="submit" className="w-full">
+                Guardar política
+              </Button>
+            </form>
           </CardContent>
         </Card>
       )}
