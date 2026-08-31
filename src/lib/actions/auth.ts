@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { validateRut, formatRut } from "@/lib/rut";
 import { assignRoleIfNone, type AssignableRole } from "@/lib/auth/role-assignment";
 import { crossMethodMessage } from "@/lib/auth/cross-method";
+import { safeNext } from "@/lib/safe-next";
 
 // Works out this deployment's own origin from the incoming request instead
 // of a hardcoded env var, so the same code redirects correctly whether it's
@@ -20,6 +21,13 @@ export async function siteOrigin() {
 export async function signIn(formData: FormData) {
   const email = String(formData.get("email"));
   const password = String(formData.get("password"));
+  // next: hoy solo lo usa /evaluacion/postulacion/[id] (Etapa 3) —
+  // alguien con cuenta existente confirma su postulación sin sesión
+  // (mismo modelo de confianza que contacts, el token es la prueba de
+  // identidad) y necesita loguearse antes de poder verla; sin esto
+  // quedaría varado en el dashboard, sin cómo volver. safeNext: solo
+  // rutas propias, nunca un valor que saque del sitio.
+  const next = safeNext(String(formData.get("next") || ""));
   const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -29,9 +37,10 @@ export async function signIn(formData: FormData) {
     // alguien que solo tiene cuenta de Google le queda la impresión de que
     // escribió mal su contraseña, cuando en realidad nunca tuvo una.
     const crossMethod = await crossMethodMessage(email, "email");
-    redirect(`/login?error=${encodeURIComponent(crossMethod ?? error.message)}`);
+    const nextParam = next ? `&next=${encodeURIComponent(next)}` : "";
+    redirect(`/login?error=${encodeURIComponent(crossMethod ?? error.message)}${nextParam}`);
   }
-  redirect("/");
+  redirect(next ?? "/");
 }
 
 export async function signUp(formData: FormData) {

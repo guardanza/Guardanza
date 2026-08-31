@@ -7,6 +7,7 @@
 // desde la base (database.types.ts sigue siendo un placeholder).
 export type CandidateDocumentType =
   | "cedula_identidad"
+  | "cedula_identidad_reverso"
   | "pasaporte"
   | "visa_permanencia_definitiva"
   | "liquidaciones_sueldo"
@@ -21,6 +22,13 @@ export type CandidateDocumentType =
 
 export type CandidateIncomeType = "dependiente" | "independiente" | "pensionado";
 
+// Mirror de candidate_identity_doc_type (Etapa 0) — el documento con el
+// que la persona se identifica, no un tipo de ingreso. Determina cuántas
+// capturas hacen falta en la Etapa 3 (cédula: frontal + reverso;
+// pasaporte: una sola) y, en la Etapa 4, si aplica pedir visa/
+// permanencia definitiva además de lo del tipo de ingreso.
+export type CandidateIdentityDocType = "cedula_chilena" | "pasaporte_extranjero";
+
 export const INCOME_TYPE_LABELS: Record<CandidateIncomeType, string> = {
   dependiente: "Trabajador dependiente",
   independiente: "Trabajador independiente",
@@ -28,7 +36,8 @@ export const INCOME_TYPE_LABELS: Record<CandidateIncomeType, string> = {
 };
 
 export const DOCUMENT_TYPE_LABELS: Record<CandidateDocumentType, string> = {
-  cedula_identidad: "Cédula de identidad",
+  cedula_identidad: "Cédula de identidad (frontal)",
+  cedula_identidad_reverso: "Cédula de identidad (reverso)",
   pasaporte: "Pasaporte",
   visa_permanencia_definitiva: "Visa o permanencia definitiva vigente",
   liquidaciones_sueldo: "Últimas 3 liquidaciones de sueldo",

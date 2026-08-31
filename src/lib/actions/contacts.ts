@@ -11,6 +11,7 @@ import { siteOrigin } from "@/lib/actions/auth";
 import { emailProvider } from "@/lib/adapters/email";
 import { isValidEmail, deriveNameFromEmail } from "@/lib/email";
 import { ensureReciprocalContact } from "@/lib/reciprocal-contact";
+import { safeNext } from "@/lib/safe-next";
 
 type InviteOutcome = { linked: true } | { linked: false } | { linked: false; failed: true; message: string };
 
@@ -84,12 +85,8 @@ export async function issueInviteOrLink(
 // next (wizard de alta de propiedad): cuando se llega acá desde "¿No está
 // en tu libreta? Invítalo primero" del buscador de arrendadores, vuelve
 // ahí en vez de a /contacts al terminar — el resto del flujo (load_contact,
-// la invitación real) no cambia en nada. Solo rutas propias (empieza con
-// "/", nunca "//" — protocol-relative sería salir del sitio) para no abrir
-// un open-redirect con un valor que viene de la URL.
-function safeNext(next: string): string | null {
-  return /^\/(?!\/)/.test(next) ? next : null;
-}
+// la invitación real) no cambia en nada. safeNext (lib/safe-next.ts) es
+// la misma validación que ahora también usa signIn (auth.ts).
 
 // Agrega query params a una URL que puede o no traer ya un "?" (la lista
 // siempre lo trae, "?tab=X"; una ficha de detalle nunca lo trae) — evita

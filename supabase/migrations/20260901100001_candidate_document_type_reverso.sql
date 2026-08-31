@@ -1,0 +1,11 @@
+-- Evaluación de papeles, Etapa 3: la cédula chilena necesita 2 capturas
+-- (frontal/reverso, spec sección 10) — el catálogo cerrado de
+-- documentos (Etapa 1) solo tenía 'cedula_identidad'. Se agrega
+-- 'cedula_identidad_reverso' como un valor más del mismo enum, no una
+-- columna nueva — sigue siendo "un documento, un document_type",
+-- coherente con cómo ya se modela todo lo demás.
+--
+-- ALTER TYPE ... ADD VALUE en su propia migración, sin usarlo en el
+-- mismo archivo: Postgres no deja usar un valor de enum recién
+-- agregado dentro de la misma transacción en que se agregó.
+alter type public.candidate_document_type add value 'cedula_identidad_reverso';

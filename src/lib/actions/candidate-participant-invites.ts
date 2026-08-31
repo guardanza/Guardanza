@@ -25,14 +25,18 @@ export async function linkExistingAccountCandidateParticipant(formData: FormData
   const admin = createServiceRoleClient();
   const { data, error } = await admin
     .rpc("confirm_candidate_participant_invite", { p_token: token, p_target_user_id: target_user_id })
-    .single<{ ok: boolean }>();
+    .single<{ ok: boolean; candidate_participant: { id: string } }>();
 
   if (error) return inviteFail(token, "Este link ya no es válido — pídele a quien te invitó que te lo reenvíe.");
   if (!data.ok) {
     return inviteFail(token, "Esta cuenta no puede vincularse a esta postulación.");
   }
 
-  redirect("/login?confirmed=evaluacion");
+  // Esta acción nunca abre sesión (mismo modelo de confianza que
+  // contacts: el token ya probó la identidad, no hace falta la
+  // contraseña para CONFIRMAR) — pero para VER la postulación después
+  // sí hace falta sesión. next lleva de vuelta ahí apenas inicie sesión.
+  redirect(`/login?confirmed=evaluacion&next=${encodeURIComponent(`/evaluacion/postulacion/${data.candidate_participant.id}`)}`);
 }
 
 // El camino "sin cuenta todavía" — crea la cuenta y recién ahí confirma,
@@ -85,7 +89,7 @@ export async function acceptCandidateParticipantInvite(formData: FormData) {
 
   const { data, error: confirmError } = await admin
     .rpc("confirm_candidate_participant_invite", { p_token: token, p_target_user_id: newUser.id })
-    .single<{ ok: boolean }>();
+    .single<{ ok: boolean; candidate_participant: { id: string } }>();
 
   // La cuenta ya quedó creada (con sesión activa) aunque falle la
   // confirmación de acá para abajo — no la deshacemos, mismo criterio
@@ -95,9 +99,7 @@ export async function acceptCandidateParticipantInvite(formData: FormData) {
     return inviteFail(token, "Esta cuenta no puede vincularse a esta postulación.");
   }
 
-  // Ruta ESTÁTICA aparte (no /evaluacion/[token]/algo): Next.js prioriza
-  // una ruta estática exacta sobre la dinámica del mismo nivel, así que
-  // "listo" nunca compite con un token real (siempre hex de 64
-  // caracteres, jamás calzaría igual).
-  redirect("/evaluacion/listo");
+  // Ya quedó con sesión activa (signInWithPassword más arriba) — directo
+  // al flujo guiado, sin pasar por /login.
+  redirect(`/evaluacion/postulacion/${data.candidate_participant.id}`);
 }

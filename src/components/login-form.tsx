@@ -15,7 +15,7 @@ import { GoogleIcon } from "@/components/icons/google-icon";
 // when there's already a login error to show (redirected back from a
 // failed email attempt), so the user isn't stuck looking at a collapsed
 // form they just submitted.
-export function LoginForm({ startExpanded = false }: { startExpanded?: boolean }) {
+export function LoginForm({ startExpanded = false, next }: { startExpanded?: boolean; next?: string }) {
   const [showEmailForm, setShowEmailForm] = useState(startExpanded);
 
   return (
@@ -42,6 +42,7 @@ export function LoginForm({ startExpanded = false }: { startExpanded?: boolean }
 
       {showEmailForm && (
         <form action={signIn} className="animate-fade-in-up space-y-3 border-t pt-3">
+          {next && <input type="hidden" name="next" value={next} />}
           <div className="space-y-1.5">
             <Label htmlFor="signin-email">Email</Label>
             <Input id="signin-email" name="email" type="email" required autoFocus />
