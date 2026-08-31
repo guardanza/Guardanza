@@ -2,7 +2,7 @@ import { mockEmailProvider } from "./mock";
 import { resendEmailProvider } from "./resend";
 import type { EmailProvider } from "./types";
 
-export type { EmailProvider, ContactInviteEmail } from "./types";
+export type { EmailProvider, ContactInviteEmail, CandidateParticipantInviteEmail } from "./types";
 
 // Single seam for swapping the email sender later (Resend). Every caller
 // imports `emailProvider` from here — never mock.ts/resend.ts directamente.

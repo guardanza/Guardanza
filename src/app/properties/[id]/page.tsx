@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { deleteProperty, deactivateProperty, reactivateProperty } from "@/lib/actions/properties";
 import { addPropertyCandidate, markCandidateNotSelected, reactivateCandidate, inviteCandidateByEmail } from "@/lib/actions/candidates";
+import { startCandidateEvaluation } from "@/lib/actions/candidate-participants";
 import { stripParticularSuffix } from "@/lib/labels";
 import { formatMoney, type MoneyCurrency } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -30,10 +31,10 @@ export default async function PropertyDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; focus?: string }>;
+  searchParams: Promise<{ error?: string; focus?: string; invited?: string }>;
 }) {
   const { id } = await params;
-  const { error, focus } = await searchParams;
+  const { error, focus, invited } = await searchParams;
   const focusCandidatos = focus === "candidatos";
   const supabase = await createClient();
 
@@ -113,11 +114,34 @@ export default async function PropertyDetailPage({
     .map((c) => ({ id: c.id, fullName: c.contact.full_name }));
   const hasReadyCandidate = readyCandidates.length > 0;
 
+  // Evaluación de papeles, Etapa 2: estado del titular por candidatura,
+  // si ya se le envió el link — consulta aparte en vez de un embed
+  // porque hace falta filtrar por participant_type='titular' antes de
+  // cruzar, y un embed simple de Supabase no filtra la tabla hija.
+  const { data: participantRows } = candidates.length
+    ? await supabase
+        .from("candidate_participants")
+        .select("property_candidate_id, status")
+        .eq("participant_type", "titular")
+        .in(
+          "property_candidate_id",
+          candidates.map((c) => c.id)
+        )
+    : { data: [] };
+  const evaluationStatusByCandidate = new Map((participantRows ?? []).map((p) => [p.property_candidate_id, p.status]));
+
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:px-6 md:py-10">
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {invited && (
+        <Alert variant="success">
+          <AlertDescription>
+            Le enviamos a <strong>{invited}</strong> el link para presentar sus papeles.
+          </AlertDescription>
         </Alert>
       )}
 
@@ -254,12 +278,36 @@ export default async function PropertyDetailPage({
                       {c.status === "en_evaluacion" && (
                         <>
                           {c.contact.status === "confirmado" ? (
-                            <AdjudicateCandidateSheet
-                              href={`/contracts/new?property_id=${id}&candidate_id=${c.id}`}
-                              fullName={c.contact.full_name}
-                              hasLandlord={hasLandlord}
-                              propertyId={id}
-                            />
+                            <>
+                              {/* Evaluación de papeles, Etapa 2 — único
+                                  punto de entrada de esta etapa: enviar
+                                  (o reenviar, mientras siga 'invitado')
+                                  el link al TITULAR. "En curso" cuando
+                                  ya confirmó y avanza en el flujo
+                                  guiado (Etapa 3, todavía sin construir
+                                  del todo). */}
+                              {(() => {
+                                const evalStatus = evaluationStatusByCandidate.get(c.id);
+                                if (!evalStatus || evalStatus === "invitado") {
+                                  return (
+                                    <form action={startCandidateEvaluation}>
+                                      <input type="hidden" name="property_candidate_id" value={c.id} />
+                                      <input type="hidden" name="property_id" value={id} />
+                                      <Button type="submit" variant="outline" size="sm">
+                                        {evalStatus === "invitado" ? "Reenviar evaluación" : "Enviar evaluación de papeles"}
+                                      </Button>
+                                    </form>
+                                  );
+                                }
+                                return <Badge variant="outline">Evaluación en curso</Badge>;
+                              })()}
+                              <AdjudicateCandidateSheet
+                                href={`/contracts/new?property_id=${id}&candidate_id=${c.id}`}
+                                fullName={c.contact.full_name}
+                                hasLandlord={hasLandlord}
+                                propertyId={id}
+                              />
+                            </>
                           ) : (
                             <ContactStatusBadge status="pendiente" />
                           )}

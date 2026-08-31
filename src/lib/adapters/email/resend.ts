@@ -1,7 +1,8 @@
 import "server-only";
 import { Resend } from "resend";
-import type { EmailProvider, ContactInviteEmail } from "./types";
+import type { EmailProvider, ContactInviteEmail, CandidateParticipantInviteEmail } from "./types";
 import { contactInviteEmailHtml, contactInviteEmailText } from "./templates/contact-invite";
+import { candidateParticipantInviteEmailHtml, candidateParticipantInviteEmailText } from "./templates/candidate-participant-invite";
 
 // Envío real vía Resend — dominio guardanza.app ya verificado ahí.
 // `server-only` (mismo guardia que usa service-role.ts para
@@ -27,6 +28,18 @@ export const resendEmailProvider: EmailProvider = {
       subject: `${message.organizationName} te invitó a Guardanza`,
       html: contactInviteEmailHtml(message),
       text: contactInviteEmailText(message),
+    });
+    if (error) throw new Error(`Resend: ${error.message}`);
+  },
+
+  async sendCandidateParticipantInvite(message: CandidateParticipantInviteEmail): Promise<void> {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({
+      from: "Guardanza <no-responder@guardanza.app>",
+      to: message.to,
+      subject: "Guardanza — evaluación de papeles",
+      html: candidateParticipantInviteEmailHtml(message),
+      text: candidateParticipantInviteEmailText(message),
     });
     if (error) throw new Error(`Resend: ${error.message}`);
   },
