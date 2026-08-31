@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Landmark, FileText, AlertTriangle, CalendarClock, ShieldCheck, Percent } from "lucide-react";
+import { Landmark, FileText, AlertTriangle, CalendarClock, ShieldCheck, Percent, ClipboardList } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { MarketingHome } from "@/components/marketing-home";
+import { getPendingCandidateEvaluations } from "@/lib/candidate-evaluations-pending";
+import { participantInviteTitle } from "@/lib/candidate-participant-messaging";
 import { DashboardCardsSkeleton } from "@/components/skeletons/dashboard-cards-skeleton";
 import { DashboardDetailsSkeleton } from "@/components/skeletons/dashboard-details-skeleton";
 import { StaggerGroup, StaggerItem } from "@/components/motion/stagger";
@@ -43,7 +45,7 @@ export default async function DashboardPage() {
       </Suspense>
 
       <Suspense fallback={<DashboardDetailsSkeleton />}>
-        <DashboardDetails />
+        <DashboardDetails userId={userRes.user.id} />
       </Suspense>
     </div>
   );
@@ -167,12 +169,13 @@ async function SummaryCards({ userId, isPlatformAdmin }: { userId: string; isPla
   );
 }
 
-async function DashboardDetails() {
+async function DashboardDetails({ userId }: { userId: string }) {
   const supabase = await createClient();
 
-  const [{ data: contracts }, { data: disputes }] = await Promise.all([
+  const [{ data: contracts }, { data: disputes }, pendingEvaluations] = await Promise.all([
     supabase.from("contracts").select("id, status, end_date, properties(address)").order("end_date", { ascending: true }),
     supabase.from("disputes").select("id, status"),
+    getPendingCandidateEvaluations(supabase, userId),
   ]);
 
   const contractsByStatus = new Map<string, number>();
@@ -247,6 +250,31 @@ async function DashboardDetails() {
           )}
         </Card>
       </div>
+
+      {/* Lo mismo que la campanita del header (misma consulta,
+          getPendingCandidateEvaluations) — acá con más espacio para el
+          detalle de cada una, en vez de solo el conteo. */}
+      {pendingEvaluations.length > 0 && (
+        <Card className="mt-6 p-0">
+          <div className="flex items-center gap-1.5 border-b px-4 py-3">
+            <ClipboardList className="size-3.5 text-muted-foreground" strokeWidth={2} />
+            <h2 className="text-sm font-medium">Evaluaciones</h2>
+          </div>
+          <StaggerGroup as="div" className="divide-y">
+            {pendingEvaluations.map((ev) => (
+              <StaggerItem as="div" key={ev.id}>
+                <Link href={`/evaluacion/postulacion/${ev.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{participantInviteTitle(ev.participantType)}</p>
+                    <p className="truncate text-xs text-muted-foreground">{ev.propertyAddress}</p>
+                  </div>
+                  <StatusBadge status="en_progreso" label="En progreso" />
+                </Link>
+              </StaggerItem>
+            ))}
+          </StaggerGroup>
+        </Card>
+      )}
 
       {openDisputes.length > 0 && (
         <Card className="mt-6 p-0">
