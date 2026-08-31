@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { IdCard, BookUser } from "lucide-react";
 import { uploadCandidateIdentityPhoto } from "@/lib/actions/candidate-evaluation";
 import { IdentityCameraCapture } from "@/components/identity-camera-capture";
@@ -34,7 +33,6 @@ export function IdentityScreen({
   hasFrontal: boolean;
   hasReverso: boolean;
 }) {
-  const router = useRouter();
   const [docType, setDocType] = useState<CandidateIdentityDocType | null>(initialIdentityDocType);
   // Cámara por default en mobile, archivo/arrastre por default en
   // desktop (spec sección 9) — pero siempre hay un link visible para
@@ -42,6 +40,17 @@ export function IdentityScreen({
   // toca, el resto del estado no se pierde.
   const [useCamera, setUseCamera] = useState(isMobile);
   const [error, setError] = useState<string | null>(null);
+  // Encontrado en un Android real: tras subir la reverso, esto pasaba a
+  // "listo" con router.refresh() — pero eso deja el estado del árbol de
+  // componentes cliente bajo esta pantalla a merced de cómo React
+  // reconcilie el nuevo payload del server component, y en la práctica
+  // resultó impredecible (el componente de captura volvía a su estado
+  // inicial vacío en vez de dar paso a la pantalla de ingreso). Una
+  // navegación real y completa a la URL limpia (sin ?paso=) es más
+  // lenta mostrar pero 100% predecible: la página vuelve a derivar todo
+  // desde cero en el servidor, sin ninguna ambigüedad de qué estado de
+  // cliente sobrevive.
+  const [finishing, setFinishing] = useState(false);
 
   const [step, setStep] = useState<Step>(() => {
     if (!initialIdentityDocType) return "elegir";
@@ -72,11 +81,12 @@ export function IdentityScreen({
       if (docType === "cedula_chilena" && documentType === "cedula_identidad") {
         setStep("reverso");
       } else {
-        // Terminó la identidad — router.refresh() re-corre el server
-        // component, que deriva sola la siguiente pantalla (tipo de
-        // ingreso). Sin esto habría que duplicar acá la misma lógica
-        // de derivación que ya vive en la página.
-        router.refresh();
+        // Terminó la identidad — navegación real (no router.refresh())
+        // a la misma página sin ?paso=, para que el server component la
+        // vuelva a derivar de cero con datos ya al día (ver el
+        // comentario junto a "finishing" más arriba).
+        setFinishing(true);
+        window.location.href = `/evaluacion/postulacion/${candidateParticipantId}`;
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo subir la foto.");
@@ -118,6 +128,19 @@ export function IdentityScreen({
             Pasaporte
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // La foto ya se subió y quedó guardada — lo único que falta es que
+  // termine de cargar la página siguiente (ver setFinishing más
+  // arriba). Reemplaza al componente de captura (que ya terminó su
+  // propio "Subiendo…") para que la persona vea que sí avanzó, en vez
+  // de quedar mirando algo que parece pegado.
+  if (finishing) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-sm text-muted-foreground">Identidad guardada — cargando el siguiente paso…</p>
       </div>
     );
   }
