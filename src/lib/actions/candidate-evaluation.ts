@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DOCUMENT_TYPE_LABELS, type CandidateDocumentType, type CandidateIdentityDocType, type CandidateIncomeType } from "@/lib/candidate-documents";
+import { identityVisionProvider } from "@/lib/adapters/identity-vision";
 
 function evaluationPath(candidateParticipantId: string): string {
   return `/evaluacion/postulacion/${candidateParticipantId}`;
@@ -41,6 +42,19 @@ export async function uploadCandidateIdentityPhoto(formData: FormData) {
   const path = `${candidate_participant_id}/${document_type}-${crypto.randomUUID()}.webp`;
   const { error: uploadError } = await supabase.storage.from("candidate-documents").upload(path, file, { contentType: "image/webp" });
   if (uploadError) return fail(`No se pudo subir la foto: ${uploadError.message}`);
+
+  // Enchufe de IA de visión — el proveedor real todavía no está
+  // decidido (falta resolver privacidad de datos biométricos), así que
+  // esto llama al mock, que nunca lee los bytes ni sale a la red y
+  // siempre "pasa" (ver el comentario en adapters/identity-vision/mock.ts).
+  // v1 no bloquea con el resultado — el corredor es el filtro visual
+  // real mientras tanto — pero el punto de llamada ya queda marcado
+  // para cuando haya proveedor: ahí se decide qué hacer con
+  // passed:false, no acá.
+  const imageBytes = new Uint8Array(await file.arrayBuffer());
+  await (document_type === "selfie_con_documento"
+    ? identityVisionProvider.checkSelfieWithDocument(imageBytes)
+    : identityVisionProvider.checkDocumentPhoto(imageBytes));
 
   const { error: docError } = await supabase
     .from("candidate_documents")

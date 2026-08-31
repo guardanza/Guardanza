@@ -111,7 +111,13 @@ export default async function CandidateEvaluationPage({
   const documentTypes = new Set<CandidateDocumentType>((documents ?? []).map((d) => d.document_type as CandidateDocumentType));
   const hasFrontal = documentTypes.has("cedula_identidad") || documentTypes.has("pasaporte");
   const hasReverso = documentTypes.has("cedula_identidad_reverso");
-  const identityDone = participant.identity_doc_type === "pasaporte_extranjero" ? hasFrontal : participant.identity_doc_type === "cedula_chilena" ? hasFrontal && hasReverso : false;
+  const hasSelfie = documentTypes.has("selfie_con_documento");
+  const identityDone =
+    (participant.identity_doc_type === "pasaporte_extranjero"
+      ? hasFrontal
+      : participant.identity_doc_type === "cedula_chilena"
+        ? hasFrontal && hasReverso
+        : false) && hasSelfie;
 
   // Capa de propiedad, luego la de org — el corredor delegado manda por
   // sobre la del dueño si hay uno (fallbackOrgId, mismo criterio que la
@@ -202,6 +208,7 @@ export default async function CandidateEvaluationPage({
               initialIdentityDocType={participant.identity_doc_type}
               hasFrontal={hasFrontal}
               hasReverso={hasReverso}
+              hasSelfie={hasSelfie}
             />
           )}
           {step === "ingreso" && <IncomeTypeScreen candidateParticipantId={id} />}

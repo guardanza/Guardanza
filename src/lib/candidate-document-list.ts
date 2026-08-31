@@ -27,10 +27,15 @@ export interface CandidateDocumentRow {
   uploaded: boolean;
 }
 
-// La identidad (cédula/pasaporte, frontal/reverso) no pasa por acá — ya
-// se resolvió en la pantalla anterior (Etapa 3) y no es parte de la
-// matriz de política por tipo de ingreso.
-const IDENTITY_DOCUMENT_TYPES: ReadonlySet<CandidateDocumentType> = new Set(["cedula_identidad", "cedula_identidad_reverso", "pasaporte"]);
+// La identidad (cédula/pasaporte, frontal/reverso, selfie con
+// documento) no pasa por acá — ya se resolvió en la pantalla anterior
+// (Etapa 3) y no es parte de la matriz de política por tipo de ingreso.
+const IDENTITY_DOCUMENT_TYPES: ReadonlySet<CandidateDocumentType> = new Set([
+  "cedula_identidad",
+  "cedula_identidad_reverso",
+  "pasaporte",
+  "selfie_con_documento",
+]);
 
 export function resolveCandidateDocumentList(params: {
   incomeType: CandidateIncomeType;
