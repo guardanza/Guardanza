@@ -23,6 +23,16 @@ const BLUR_VARIANCE_THRESHOLD = 100;
 const GLARE_CHANNEL_THRESHOLD = 245; // por canal, sobre 255
 const GLARE_PIXEL_RATIO_THRESHOLD = 0.06; // 6% del área analizada
 
+// Techo para lo que efectivamente se sube — aplica a los dos caminos
+// (cámara en vivo y archivo). Sin este tope, la cámara en vivo subía
+// la foto a la resolución nativa que entregara el hardware: el "ideal"
+// de getUserMedia no es una garantía, y un celular real fácilmente
+// entrega mucho más que eso — encontrado en un Android real, donde la
+// subida se quedaba pegada en "Subiendo…" sin ningún error (probable
+// archivo de varios MB en una red móvil, nunca llegaba a fallar ni a
+// terminar). 1600px sigue siendo de sobra para que se lea una cédula.
+const MAX_UPLOAD_DIMENSION = 1600;
+
 export interface PhotoQualityResult {
   ok: boolean;
   blurry: boolean;
@@ -91,8 +101,24 @@ export function canvasToUploadBlob(canvas: HTMLCanvasElement, quality = 0.85): P
   });
 }
 
+// Devuelve el mismo canvas si ya entra en maxDim, o una copia reducida
+// si no — nunca agranda. Usado antes de canvasToUploadBlob en los dos
+// caminos (cámara y archivo), para que lo que efectivamente se sube
+// nunca dependa de la resolución nativa de la cámara o del archivo
+// original.
+export function clampCanvasDimensions(source: HTMLCanvasElement, maxDim = MAX_UPLOAD_DIMENSION): HTMLCanvasElement {
+  const scale = Math.min(1, maxDim / Math.max(source.width, source.height));
+  if (scale === 1) return source;
+  const clamped = document.createElement("canvas");
+  clamped.width = Math.max(1, Math.round(source.width * scale));
+  clamped.height = Math.max(1, Math.round(source.height * scale));
+  const ctx = clamped.getContext("2d");
+  if (!ctx) throw new Error("No se pudo procesar la imagen.");
+  ctx.drawImage(source, 0, 0, clamped.width, clamped.height);
+  return clamped;
+}
+
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
-const MAX_DIMENSION = 1600;
 
 // Camino de archivo (drag-drop / selector de sistema) — no pasa por la
 // cámara en vivo, pero corre el mismo chequeo de calidad sobre el
@@ -103,15 +129,12 @@ export async function fileToCanvas(file: File): Promise<HTMLCanvasElement> {
     throw new Error("La imagen no puede pesar más de 8MB.");
   }
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
-  const w = Math.max(1, Math.round(bitmap.width * scale));
-  const h = Math.max(1, Math.round(bitmap.height * scale));
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No se pudo procesar la imagen.");
-  ctx.drawImage(bitmap, 0, 0, w, h);
+  ctx.drawImage(bitmap, 0, 0);
   bitmap.close();
-  return canvas;
+  return clampCanvasDimensions(canvas);
 }

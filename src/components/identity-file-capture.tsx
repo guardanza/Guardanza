@@ -61,7 +61,14 @@ export function IdentityFileCapture({
   const accept = useCallback(async () => {
     if (!reviewBlob) return;
     setUploading(true);
-    await onAccept(reviewBlob);
+    try {
+      await onAccept(reviewBlob);
+    } catch {
+      // Mismo criterio que identity-camera-capture: onAccept ya deja el
+      // mensaje en el Alert del padre, acá solo hace falta reactivar
+      // los botones para poder reintentar.
+      setUploading(false);
+    }
   }, [reviewBlob, onAccept]);
 
   if (reviewUrl) {

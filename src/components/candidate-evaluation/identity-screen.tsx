@@ -59,7 +59,16 @@ export function IdentityScreen({
     formData.set("document_type", documentType);
     formData.set("file", blob, "identidad.webp");
     try {
-      await uploadCandidateIdentityPhoto(formData);
+      // Encontrado en un Android real: sin este tope, una subida
+      // colgada (red móvil inestable) dejaba la pantalla en "Subiendo…"
+      // para siempre, sin ningún error — nada que informarle a la
+      // persona ni ninguna forma de reintentar. No cancela la subida
+      // original (los server actions no lo permiten hoy), pero libera
+      // la pantalla y deja repetir si de verdad no llegó a nada.
+      await Promise.race([
+        uploadCandidateIdentityPhoto(formData),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("La subida está tomando demasiado — revisa tu conexión e intenta de nuevo.")), 30_000)),
+      ]);
       if (docType === "cedula_chilena" && documentType === "cedula_identidad") {
         setStep("reverso");
       } else {
