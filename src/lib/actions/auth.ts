@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { validateRut, formatRut } from "@/lib/rut";
 import { assignRoleIfNone, type AssignableRole } from "@/lib/auth/role-assignment";
 import { crossMethodMessage } from "@/lib/auth/cross-method";
+import { safeNext } from "@/lib/safe-next";
 
 // Works out this deployment's own origin from the incoming request instead
 // of a hardcoded env var, so the same code redirects correctly whether it's
@@ -20,6 +21,13 @@ export async function siteOrigin() {
 export async function signIn(formData: FormData) {
   const email = String(formData.get("email"));
   const password = String(formData.get("password"));
+  // next: hoy solo lo usa /evaluacion/postulacion/[id] (Etapa 3) —
+  // alguien con cuenta existente confirma su postulación sin sesión
+  // (mismo modelo de confianza que contacts, el token es la prueba de
+  // identidad) y necesita loguearse antes de poder verla; sin esto
+  // quedaría varado en el dashboard, sin cómo volver. safeNext: solo
+  // rutas propias, nunca un valor que saque del sitio.
+  const next = safeNext(String(formData.get("next") || ""));
   const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -29,9 +37,10 @@ export async function signIn(formData: FormData) {
     // alguien que solo tiene cuenta de Google le queda la impresión de que
     // escribió mal su contraseña, cuando en realidad nunca tuvo una.
     const crossMethod = await crossMethodMessage(email, "email");
-    redirect(`/login?error=${encodeURIComponent(crossMethod ?? error.message)}`);
+    const nextParam = next ? `&next=${encodeURIComponent(next)}` : "";
+    redirect(`/login?error=${encodeURIComponent(crossMethod ?? error.message)}${nextParam}`);
   }
-  redirect("/");
+  redirect(next ?? "/");
 }
 
 export async function signUp(formData: FormData) {
@@ -150,11 +159,17 @@ export async function signInWithGoogle(formData: FormData) {
   const legal_form = String(formData.get("legal_form") || "");
   const company_name = String(formData.get("company_name") || "").trim();
   const rutInput = String(formData.get("rut") || "").trim();
+  // Mismo next que el formulario de email (LoginForm) — el botón de
+  // Google llegaba sin esto, así que /evaluacion/postulacion/[id]
+  // (Cuenta equivocada → Cerrar sesión → login con la cuenta correcta)
+  // perdía el destino apenas alguien elegía Google en vez de email.
+  const next = safeNext(String(formData.get("next") || ""));
 
   const failSignup = (message: string): never =>
     redirect(`/signup?role=${role}&legal_form=${legal_form}&error=${encodeURIComponent(message)}`);
 
   const callbackUrl = new URL(`${origin}/auth/callback`);
+  if (next) callbackUrl.searchParams.set("next", next);
   if (role) {
     if (!["arrendador", "corredor", "arrendatario"].includes(role)) return failSignup("Selecciona un tipo de cuenta.");
     callbackUrl.searchParams.set("role", role);
@@ -177,10 +192,16 @@ export async function signInWithGoogle(formData: FormData) {
   redirect(data.url);
 }
 
-export async function signOut() {
+// next opcional: hoy lo usa /evaluacion/postulacion/[id] cuando quien
+// está conectado no es el propio participante (spec: ese flujo siempre
+// es la propia persona) — cierra sesión y vuelve derecho al mismo link
+// de invitación para que puedas entrar con la cuenta correcta, en vez
+// de perderlo y tener que ir a buscarlo de nuevo.
+export async function signOut(formData?: FormData) {
+  const next = safeNext(String(formData?.get("next") || ""));
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
 }
 
 // /choose-role: para una cuenta que YA está autenticada (típicamente

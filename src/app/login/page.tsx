@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/safe-next";
 import { LoginForm } from "@/components/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,13 +16,12 @@ const timeline = [
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; confirmed?: string }>;
+  searchParams: Promise<{ error?: string; confirmed?: string; next?: string }>;
 }) {
   const supabase = await createClient();
   const { data: userRes } = await supabase.auth.getUser();
-  if (userRes.user) redirect("/");
-
-  const { error, confirmed } = await searchParams;
+  const { error, confirmed, next } = await searchParams;
+  if (userRes.user) redirect(safeNext(next ?? "") ?? "/");
 
   return (
     <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
@@ -84,7 +84,7 @@ export default async function LoginPage({
             <CardDescription>Entra con tu cuenta existente.</CardDescription>
           </CardHeader>
           <CardContent>
-            <LoginForm startExpanded={Boolean(error)} />
+            <LoginForm startExpanded={Boolean(error)} next={next} />
           </CardContent>
         </Card>
 
