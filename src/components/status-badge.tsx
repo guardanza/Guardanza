@@ -38,6 +38,7 @@ const STATUS_STYLES: Record<string, string> = {
   aprobada: "bg-success/15 text-success",
   cancelado: "bg-muted text-muted-foreground",
   en_evaluacion: "bg-accent text-accent-foreground",
+  en_progreso: "bg-accent text-accent-foreground",
   seleccionado: "bg-success/15 text-success",
   no_seleccionado: "bg-muted text-muted-foreground",
 };

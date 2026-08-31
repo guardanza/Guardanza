@@ -10,6 +10,8 @@ import { MobileTabBar } from "@/components/mobile-tabbar";
 import { MarketingHeader } from "@/components/marketing-header";
 import { PageTransitionProvider } from "@/components/page-transition";
 import { UserAvatar } from "@/components/user-avatar";
+import { PendingEvaluationsBell } from "@/components/pending-evaluations-bell";
+import { getPendingCandidateEvaluations } from "@/lib/candidate-evaluations-pending";
 import { METADATA_DESCRIPTION } from "@/lib/copy";
 import "./globals.css";
 
@@ -45,6 +47,7 @@ export default async function RootLayout({
   const { data: avatarProfile } = userRes.user
     ? await supabase.from("profiles").select("full_name, avatar_url, is_platform_admin").eq("id", userRes.user.id).single()
     : { data: null };
+  const pendingEvaluations = userRes.user ? await getPendingCandidateEvaluations(supabase, userRes.user.id) : [];
 
   return (
     <html lang="en" className={`${montserrat.variable} ${jetbrainsMono.variable} h-full antialiased`}>
@@ -72,6 +75,7 @@ export default async function RootLayout({
                       </button>
                     </form>
                   </div>
+                  <PendingEvaluationsBell evaluations={pendingEvaluations} />
                 </div>
               </div>
             </aside>
@@ -80,9 +84,12 @@ export default async function RootLayout({
               <Link href="/" className="flex items-center">
                 <Logo />
               </Link>
-              <Link href="/more">
-                <UserAvatar avatarUrl={avatarProfile?.avatar_url} name={avatarProfile?.full_name ?? userRes.user.email ?? ""} size={32} />
-              </Link>
+              <div className="flex items-center gap-1">
+                <PendingEvaluationsBell evaluations={pendingEvaluations} />
+                <Link href="/more">
+                  <UserAvatar avatarUrl={avatarProfile?.avatar_url} name={avatarProfile?.full_name ?? userRes.user.email ?? ""} size={32} />
+                </Link>
+              </div>
             </header>
 
             <main className="w-full flex-1 pt-14 pb-16 md:ml-60 md:pt-0 md:pb-0">
