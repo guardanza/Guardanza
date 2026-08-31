@@ -9,6 +9,7 @@ export type CandidateDocumentType =
   | "cedula_identidad"
   | "cedula_identidad_reverso"
   | "pasaporte"
+  | "selfie_con_documento"
   | "visa_permanencia_definitiva"
   | "liquidaciones_sueldo"
   | "certificado_afp"
@@ -39,6 +40,7 @@ export const DOCUMENT_TYPE_LABELS: Record<CandidateDocumentType, string> = {
   cedula_identidad: "Cédula de identidad (frontal)",
   cedula_identidad_reverso: "Cédula de identidad (reverso)",
   pasaporte: "Pasaporte",
+  selfie_con_documento: "Selfie con tu documento de identidad",
   visa_permanencia_definitiva: "Visa o permanencia definitiva vigente",
   liquidaciones_sueldo: "Últimas 3 liquidaciones de sueldo",
   certificado_afp: "Certificado de cotizaciones AFP (12 meses)",

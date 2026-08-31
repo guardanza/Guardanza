@@ -5,6 +5,7 @@ import { Camera as CameraIcon, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { assessPhotoQuality, downscaleForAnalysis, canvasToUploadBlob, clampCanvasDimensions } from "@/lib/identity-photo-processing";
+import { cn } from "@/lib/utils";
 
 type CaptureState = "requesting" | "live" | "denied" | "unsupported" | "review" | "uploading";
 
@@ -22,10 +23,16 @@ export function IdentityCameraCapture({
   instruction,
   onAccept,
   onSwitchToFile,
+  // "document": cámara trasera + marco proporción tarjeta (cédula/
+  // pasaporte). "selfie": cámara frontal, sin el marco de tarjeta (no
+  // tiene sentido para una cara) y con el aviso de reflejo/nitidez en
+  // términos de "la foto", no "la cédula".
+  variant = "document",
 }: {
   instruction: string;
   onAccept: (blob: Blob) => void | Promise<void>;
   onSwitchToFile: () => void;
+  variant?: "document" | "selfie";
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -44,7 +51,7 @@ export function IdentityCameraCapture({
       }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 960 } },
+          video: { facingMode: { ideal: variant === "selfie" ? "user" : "environment" }, width: { ideal: 1280 }, height: { ideal: 960 } },
           audio: false,
         });
         if (cancelled) {
@@ -71,6 +78,7 @@ export function IdentityCameraCapture({
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- variant no cambia en la vida de una instancia (identity-screen.tsx monta una instancia nueva por paso, vía key={step})
   }, []);
 
   const capture = useCallback(() => {
@@ -129,8 +137,13 @@ export function IdentityCameraCapture({
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-black">
         {(state === "requesting" || state === "live") && (
           <>
-            <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
-            {state === "live" && (
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              className={cn("h-full w-full object-cover", variant === "selfie" && "-scale-x-100")}
+            />
+            {state === "live" && variant === "document" && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
                 <div className="relative w-full" style={{ aspectRatio: "1.586" }}>
                   <span className="absolute top-0 left-0 size-7 rounded-tl-lg border-t-4 border-l-4 border-white/90" />
@@ -138,6 +151,11 @@ export function IdentityCameraCapture({
                   <span className="absolute bottom-0 left-0 size-7 rounded-bl-lg border-b-4 border-l-4 border-white/90" />
                   <span className="absolute right-0 bottom-0 size-7 rounded-br-lg border-r-4 border-b-4 border-white/90" />
                 </div>
+              </div>
+            )}
+            {state === "live" && variant === "selfie" && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
+                <div className="h-full max-h-80 w-full max-w-64 rounded-[50%] border-4 border-white/90" />
               </div>
             )}
             {state === "requesting" && (
@@ -176,8 +194,12 @@ export function IdentityCameraCapture({
             <Alert variant="destructive">
               <AlertDescription>
                 {issue === "blurry"
-                  ? "La foto salió borrosa — prueba de nuevo, con buena luz y la cámara firme sobre una superficie plana."
-                  : "Hay un reflejo que tapa la cédula — cambia el ángulo o aléjate de la luz directa."}
+                  ? variant === "selfie"
+                    ? "La foto salió borrosa — prueba de nuevo, con buena luz y sin moverte al tomarla."
+                    : "La foto salió borrosa — prueba de nuevo, con buena luz y la cámara firme sobre una superficie plana."
+                  : variant === "selfie"
+                    ? "Hay un reflejo que tapa parte de la foto — cambia el ángulo o aléjate de la luz directa."
+                    : "Hay un reflejo que tapa la cédula — cambia el ángulo o aléjate de la luz directa."}
               </AlertDescription>
             </Alert>
           )}

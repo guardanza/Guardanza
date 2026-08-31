@@ -18,10 +18,12 @@ export function IdentityFileCapture({
   onAccept,
   onSwitchToCamera,
   showCameraOption,
+  variant = "document",
 }: {
   onAccept: (blob: Blob) => void | Promise<void>;
   onSwitchToCamera?: () => void;
   showCameraOption: boolean;
+  variant?: "document" | "selfie";
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -83,7 +85,9 @@ export function IdentityFileCapture({
             <AlertDescription>
               {issue === "blurry"
                 ? "La foto salió borrosa — prueba con una imagen más nítida, o con buena luz si la vas a fotografiar."
-                : "Hay un reflejo que tapa la cédula — prueba con otra foto."}
+                : variant === "selfie"
+                  ? "Hay un reflejo que tapa parte de la foto — prueba con otra."
+                  : "Hay un reflejo que tapa la cédula — prueba con otra foto."}
             </AlertDescription>
           </Alert>
         )}
