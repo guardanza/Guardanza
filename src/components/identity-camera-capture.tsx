@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera as CameraIcon, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { assessPhotoQuality, downscaleForAnalysis, canvasToUploadBlob } from "@/lib/identity-photo-processing";
+import { assessPhotoQuality, downscaleForAnalysis, canvasToUploadBlob, clampCanvasDimensions } from "@/lib/identity-photo-processing";
 
 type CaptureState = "requesting" | "live" | "denied" | "unsupported" | "review" | "uploading";
 
@@ -83,8 +83,13 @@ export function IdentityCameraCapture({
     if (!ctx) return;
     ctx.drawImage(video, 0, 0);
 
-    const quality = assessPhotoQuality(downscaleForAnalysis(canvas));
-    canvasToUploadBlob(canvas).then((blob) => {
+    // La cámara real de un teléfono entrega mucho más que el "ideal"
+    // pedido más arriba — sin este tope, la foto capturada acá subía a
+    // resolución nativa (varios MB) y la subida se colgaba en una red
+    // móvil sin nunca fallar ni avisar.
+    const uploadCanvas = clampCanvasDimensions(canvas);
+    const quality = assessPhotoQuality(downscaleForAnalysis(uploadCanvas));
+    canvasToUploadBlob(uploadCanvas).then((blob) => {
       setReviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return URL.createObjectURL(blob);
@@ -108,7 +113,15 @@ export function IdentityCameraCapture({
   const accept = useCallback(async () => {
     if (!reviewBlob) return;
     setState("uploading");
-    await onAccept(reviewBlob);
+    try {
+      await onAccept(reviewBlob);
+    } catch {
+      // onAccept ya deja el mensaje en el Alert del padre — acá solo
+      // hace falta volver a "review" para que la persona pueda repetir
+      // o reintentar, en vez de quedar viendo "Subiendo…" para siempre
+      // (el bug real que se encontró en un Android físico).
+      setState("review");
+    }
   }, [reviewBlob, onAccept]);
 
   return (
