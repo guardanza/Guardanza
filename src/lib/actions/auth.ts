@@ -186,10 +186,16 @@ export async function signInWithGoogle(formData: FormData) {
   redirect(data.url);
 }
 
-export async function signOut() {
+// next opcional: hoy lo usa /evaluacion/postulacion/[id] cuando quien
+// está conectado no es el propio participante (spec: ese flujo siempre
+// es la propia persona) — cierra sesión y vuelve derecho al mismo link
+// de invitación para que puedas entrar con la cuenta correcta, en vez
+// de perderlo y tener que ir a buscarlo de nuevo.
+export async function signOut(formData?: FormData) {
+  const next = safeNext(String(formData?.get("next") || ""));
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
 }
 
 // /choose-role: para una cuenta que YA está autenticada (típicamente
