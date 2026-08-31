@@ -159,11 +159,17 @@ export async function signInWithGoogle(formData: FormData) {
   const legal_form = String(formData.get("legal_form") || "");
   const company_name = String(formData.get("company_name") || "").trim();
   const rutInput = String(formData.get("rut") || "").trim();
+  // Mismo next que el formulario de email (LoginForm) — el botón de
+  // Google llegaba sin esto, así que /evaluacion/postulacion/[id]
+  // (Cuenta equivocada → Cerrar sesión → login con la cuenta correcta)
+  // perdía el destino apenas alguien elegía Google en vez de email.
+  const next = safeNext(String(formData.get("next") || ""));
 
   const failSignup = (message: string): never =>
     redirect(`/signup?role=${role}&legal_form=${legal_form}&error=${encodeURIComponent(message)}`);
 
   const callbackUrl = new URL(`${origin}/auth/callback`);
+  if (next) callbackUrl.searchParams.set("next", next);
   if (role) {
     if (!["arrendador", "corredor", "arrendatario"].includes(role)) return failSignup("Selecciona un tipo de cuenta.");
     callbackUrl.searchParams.set("role", role);

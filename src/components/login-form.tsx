@@ -21,6 +21,7 @@ export function LoginForm({ startExpanded = false, next }: { startExpanded?: boo
   return (
     <div className="space-y-3">
       <form action={signInWithGoogle}>
+        {next && <input type="hidden" name="next" value={next} />}
         <Button type="submit" className="w-full">
           <span className="flex size-5 items-center justify-center rounded-full bg-white">
             <GoogleIcon className="size-3" />
