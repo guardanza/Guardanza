@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   BottomSheet,
@@ -68,17 +68,26 @@ export function AdjudicateCandidateSheet({
   fullName,
   hasLandlord,
   propertyId,
+  disabled = false,
+  triggerClassName,
 }: {
   href: string;
   fullName: string;
   hasLandlord: boolean;
   propertyId: string;
+  // Puramente de interfaz — la persona no tiene los papeles completos
+  // todavía, así que ni vale la pena abrir la confirmación. No toca
+  // select_winning_candidate() ni ningún permiso real: alguien podría
+  // seguir llegando a /contracts/new directo, esto solo evita el atajo
+  // más obvio desde acá.
+  disabled?: boolean;
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button type="button" size="sm" onClick={() => setOpen(true)}>
+      <Button type="button" size="sm" disabled={disabled} onClick={() => setOpen(true)} className={triggerClassName}>
         Adjudicar
       </Button>
       <BottomSheet open={open} onOpenChange={setOpen}>
@@ -120,19 +129,32 @@ export function DiscardCandidateSheet({
   candidateId,
   propertyId,
   fullName,
+  // "icon": solo el ícono de papelera, para la tarjeta oscura de la
+  // ficha de propiedad — mismo sheet de confirmación de siempre atrás,
+  // el trigger es lo único que cambia de forma.
+  triggerVariant = "text",
+  triggerClassName,
 }: {
   action: (formData: FormData) => void;
   candidateId: string;
   propertyId: string;
   fullName: string;
+  triggerVariant?: "text" | "icon";
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
-        Descartar
-      </Button>
+      {triggerVariant === "icon" ? (
+        <button type="button" onClick={() => setOpen(true)} className={triggerClassName} aria-label="Descartar candidato(a)" title="Descartar">
+          <Trash2 className="size-4" />
+        </button>
+      ) : (
+        <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className={triggerClassName}>
+          Descartar
+        </Button>
+      )}
       <BottomSheet open={open} onOpenChange={setOpen}>
         <BottomSheetContent>
           <form action={action} className="space-y-3">

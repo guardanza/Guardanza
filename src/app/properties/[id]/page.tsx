@@ -9,21 +9,22 @@ import { startCandidateEvaluation } from "@/lib/actions/candidate-participants";
 import { stripParticularSuffix } from "@/lib/labels";
 import { formatMoney, type MoneyCurrency } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { policyRowsToMap, type CandidateDocumentType, type CandidateIdentityDocType, type CandidateIncomeType } from "@/lib/candidate-documents";
+import { resolveCandidateProgress } from "@/lib/candidate-document-list";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { PropertyThumb } from "@/components/property-thumb";
 import { CandidateSearchField } from "@/components/candidate-search-field";
 import { NewContractButton } from "@/components/new-contract-button";
 import { ScrollIntoViewOnMount } from "@/components/scroll-into-view-on-mount";
-import { AdjudicateCandidateSheet, DiscardCandidateSheet } from "@/components/candidate-decision-sheets";
+import { CandidateCard } from "@/components/candidate-card";
 import { ListingPortalLink } from "@/components/listing-portal-link";
 import { DeletePropertyDialog } from "@/components/delete-property-dialog";
 import { PropertyLifecycleAction } from "@/components/property-lifecycle-action";
 import { RoleBadge } from "@/components/role-badge";
 import { Badge } from "@/components/ui/badge";
-import { ContactStatusBadge } from "@/components/contact-status-badge";
 import { categorizeBlockingContract } from "@/lib/property-status";
 
 export default async function PropertyDetailPage({
@@ -41,7 +42,7 @@ export default async function PropertyDetailPage({
   const { data: property, error: fetchError } = await supabase
     .from("properties")
     .select(
-      "id, address, photo_url, organization_id, status, listing_url, expected_rent_amount, expected_rent_currency, expected_term_months, expected_guarantee_amount, expected_guarantee_currency, property_landlords(organizations(id, name, type)), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
+      "id, address, photo_url, organization_id, broker_organization_id, status, listing_url, expected_rent_amount, expected_rent_currency, expected_term_months, expected_guarantee_amount, expected_guarantee_currency, property_landlords(organizations(id, name, type)), broker:organizations!properties_broker_organization_id_fkey(name), communes(name, regions(name))"
     )
     .eq("id", id)
     .single();
@@ -103,32 +104,79 @@ export default async function PropertyDetailPage({
 
   const { data: candidateRows } = await supabase
     .from("property_candidates")
-    .select("id, status, contacts(full_name, email, status)")
+    .select("id, status, contacts(id, full_name, email, status, user_id, profiles!contacts_user_id_fkey(avatar_url))")
     .eq("property_id", id)
     .order("created_at", { ascending: false });
   const candidates = (candidateRows ?? [])
     .map((c) => ({ id: c.id, status: c.status, contact: one(c.contacts) }))
-    .filter((c): c is { id: string; status: string; contact: { full_name: string; email: string; status: string } } => !!c.contact);
+    .filter(
+      (
+        c
+      ): c is {
+        id: string;
+        status: string;
+        contact: { id: string; full_name: string; email: string; status: string; user_id: string | null; profiles: { avatar_url: string | null }[] };
+      } =>
+        !!c.contact
+    );
   const readyCandidates = candidates
     .filter((c) => c.status === "en_evaluacion" && c.contact.status === "confirmado")
     .map((c) => ({ id: c.id, fullName: c.contact.full_name }));
-  const hasReadyCandidate = readyCandidates.length > 0;
 
   // Evaluación de papeles, Etapa 2: estado del titular por candidatura,
   // si ya se le envió el link — consulta aparte en vez de un embed
   // porque hace falta filtrar por participant_type='titular' antes de
   // cruzar, y un embed simple de Supabase no filtra la tabla hija.
+  // Suma income_type/identity_doc_type (Etapa 3/4) para la barra de
+  // progreso documental de la tarjeta.
   const { data: participantRows } = candidates.length
     ? await supabase
         .from("candidate_participants")
-        .select("property_candidate_id, status")
+        .select("id, property_candidate_id, status, income_type, identity_doc_type")
         .eq("participant_type", "titular")
         .in(
           "property_candidate_id",
           candidates.map((c) => c.id)
         )
     : { data: [] };
+  type ParticipantRow = {
+    id: string;
+    property_candidate_id: string;
+    status: string;
+    income_type: CandidateIncomeType | null;
+    identity_doc_type: CandidateIdentityDocType | null;
+  };
+  const participantsByCandidate = new Map<string, ParticipantRow>((participantRows ?? []).map((p) => [p.property_candidate_id, p as ParticipantRow]));
   const evaluationStatusByCandidate = new Map((participantRows ?? []).map((p) => [p.property_candidate_id, p.status]));
+
+  // Documentos ya subidos por cada participante — misma tabla que usa
+  // Etapa 3/4, una sola consulta para todos los candidatos de esta
+  // propiedad en vez de una por tarjeta.
+  const participantIds = (participantRows ?? []).map((p) => p.id);
+  const { data: documentRows } = participantIds.length
+    ? await supabase.from("candidate_documents").select("candidate_participant_id, document_type").in("candidate_participant_id", participantIds)
+    : { data: [] };
+  const documentsByParticipant = new Map<string, Set<CandidateDocumentType>>();
+  for (const d of documentRows ?? []) {
+    const set = documentsByParticipant.get(d.candidate_participant_id) ?? new Set<CandidateDocumentType>();
+    set.add(d.document_type as CandidateDocumentType);
+    documentsByParticipant.set(d.candidate_participant_id, set);
+  }
+
+  // Política de documentos de la propiedad — una sola vez para todos
+  // los candidatos (no cambia por candidato), mismo criterio de capas
+  // (propiedad, luego el org del corredor delegado si hay uno) que ya
+  // usa la pantalla de política del corredor y la propia Etapa 4.
+  const fallbackOrgId = property.broker_organization_id ?? property.organization_id;
+  const needsPolicy = (participantRows ?? []).some((p) => p.income_type);
+  const [{ data: propertyPolicyRows }, { data: orgPolicyRows }] = needsPolicy
+    ? await Promise.all([
+        supabase.from("property_document_policy").select("income_type, document_type, required").eq("property_id", id),
+        supabase.from("org_document_policy").select("income_type, document_type, required").eq("organization_id", fallbackOrgId),
+      ])
+    : [{ data: null }, { data: null }];
+  const orgPolicy = policyRowsToMap(orgPolicyRows);
+  const propertyPolicy = policyRowsToMap(propertyPolicyRows);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:px-6 md:py-10">
@@ -246,92 +294,51 @@ export default async function PropertyDetailPage({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-medium">Candidatos para arrendar</h2>
-                {candidates.length === 0 ? (
+                {candidates.length === 0 && (
                   <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-foreground">Empieza aquí</span>
-                ) : hasReadyCandidate ? (
-                  <span className="shrink-0 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">Listo para adjudicar</span>
-                ) : null}
+                )}
               </div>
               <p className="text-xs text-muted-foreground">Personas de tu libreta en evaluación para ser el arrendatario de esta propiedad.</p>
             </div>
           </div>
           <CardContent className="space-y-3 py-4">
             {candidates.length > 0 ? (
-              <ul className="space-y-1.5">
-                {candidates.map((c) => (
-                  <li key={c.id} className="flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{c.contact.full_name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {c.contact.email}
-                        {c.contact.status === "pendiente" && " · pendiente de confirmar"}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      {/* "en_evaluacion" es implícito: ya está dentro del
-                          marco "Candidatos para arrendar", repetirlo acá
-                          es redundante. El estado sigue existiendo abajo
-                          sin cambios — solo se oculta esta etiqueta. */}
-                      {c.status !== "en_evaluacion" && (
-                        <StatusBadge status={c.status} label={c.status === "seleccionado" ? "Adjudicado" : undefined} />
-                      )}
-                      {c.status === "en_evaluacion" && (
-                        <>
-                          {c.contact.status === "confirmado" ? (
-                            <>
-                              {/* Evaluación de papeles, Etapa 2 — único
-                                  punto de entrada de esta etapa: enviar
-                                  (o reenviar, mientras siga 'invitado')
-                                  el link al TITULAR. "En curso" cuando
-                                  ya confirmó y avanza en el flujo
-                                  guiado (Etapa 3, todavía sin construir
-                                  del todo). */}
-                              {(() => {
-                                const evalStatus = evaluationStatusByCandidate.get(c.id);
-                                if (!evalStatus || evalStatus === "invitado") {
-                                  return (
-                                    <form action={startCandidateEvaluation}>
-                                      <input type="hidden" name="property_candidate_id" value={c.id} />
-                                      <input type="hidden" name="property_id" value={id} />
-                                      <Button type="submit" variant="outline" size="sm">
-                                        {evalStatus === "invitado" ? "Reenviar evaluación" : "Enviar evaluación de papeles"}
-                                      </Button>
-                                    </form>
-                                  );
-                                }
-                                return <Badge variant="outline">Evaluación en curso</Badge>;
-                              })()}
-                              <AdjudicateCandidateSheet
-                                href={`/contracts/new?property_id=${id}&candidate_id=${c.id}`}
-                                fullName={c.contact.full_name}
-                                hasLandlord={hasLandlord}
-                                propertyId={id}
-                              />
-                            </>
-                          ) : (
-                            <ContactStatusBadge status="pendiente" />
-                          )}
-                          <DiscardCandidateSheet
-                            action={markCandidateNotSelected}
-                            candidateId={c.id}
-                            propertyId={id}
-                            fullName={c.contact.full_name}
-                          />
-                        </>
-                      )}
-                      {c.status === "no_seleccionado" && (
-                        <form action={reactivateCandidate}>
-                          <input type="hidden" name="id" value={c.id} />
-                          <input type="hidden" name="property_id" value={id} />
-                          <Button type="submit" variant="outline" size="sm">
-                            Reactivar
-                          </Button>
-                        </form>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-3">
+                {candidates.map((c) => {
+                  const participant = participantsByCandidate.get(c.id);
+                  const uploaded = participant ? (documentsByParticipant.get(participant.id) ?? new Set<CandidateDocumentType>()) : new Set<CandidateDocumentType>();
+                  const progress = participant?.income_type
+                    ? resolveCandidateProgress({
+                        incomeType: participant.income_type,
+                        identityDocType: participant.identity_doc_type,
+                        orgPolicy,
+                        propertyPolicy,
+                        uploadedDocumentTypes: uploaded,
+                      })
+                    : null;
+                  const avatarUrl = one(c.contact.profiles)?.avatar_url ?? null;
+                  const detailKey = c.contact.user_id ?? `contact:${c.contact.id}`;
+                  return (
+                    <CandidateCard
+                      key={c.id}
+                      propertyCandidateId={c.id}
+                      propertyId={id}
+                      status={c.status}
+                      fullName={c.contact.full_name}
+                      email={c.contact.email}
+                      avatarUrl={avatarUrl}
+                      contactStatus={c.contact.status}
+                      evaluationStatus={evaluationStatusByCandidate.get(c.id) ?? null}
+                      progress={progress}
+                      hasLandlord={hasLandlord}
+                      detailHref={`/contacts/arrendatario/${encodeURIComponent(detailKey)}`}
+                      sendEvaluationAction={startCandidateEvaluation}
+                      discardAction={markCandidateNotSelected}
+                      reactivateAction={reactivateCandidate}
+                    />
+                  );
+                })}
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">Sin candidatos todavía.</p>
             )}
