@@ -59,6 +59,11 @@
   --color-brand-sand-foreground: var(--brand-sand-foreground);
   --color-brand-forest: var(--brand-forest);
   --color-brand-forest-foreground: var(--brand-forest-foreground);
+  --color-brand-green-card: var(--brand-green-card);
+  --color-brand-green-card-border: var(--brand-green-card-border);
+  --color-brand-green-card-foreground: var(--brand-green-card-foreground);
+  --color-brand-green-card-deep: var(--brand-green-card-deep);
+  --color-brand-green-card-deep-border: var(--brand-green-card-deep-border);
   --color-primary-hover: var(--primary-hover);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
@@ -136,6 +141,22 @@
      propósito, nunca se mezclan. */
   --brand-forest: #14432f;
   --brand-forest-foreground: #cfe6da;
+  /* Verde de tarjeta ("75%" — contactos y candidatos, unificados) — a
+     diferencia de --brand-forest (pensado para TEXTO, invierte con el
+     tema), esta familia es el fondo de una tarjeta opaca y autocontenida:
+     se ve igual en modo claro y oscuro de la app, a propósito, así que
+     vive solo acá en :root (nunca redefinida en .dark, mismo criterio que
+     --radius). --brand-green-card-deep es el estado "documentos
+     completos"/destacado — mismo verde que ya usaba el círculo de
+     iniciales, reusado a propósito en vez de un tono nuevo.
+     --brand-green-card-deep-border (#14432f) también se reusa tal cual
+     como texto oscuro en chips claros sobre el verde medio (contraste
+     verificado, ver /estilos). */
+  --brand-green-card: #3f8f66;
+  --brand-green-card-border: #347a56;
+  --brand-green-card-foreground: #ffffff;
+  --brand-green-card-deep: #1c5f3f;
+  --brand-green-card-deep-border: #14432f;
   --chart-1: #c8963e;
   --chart-2: #1f7a4d;
   --chart-3: #d4a574;
