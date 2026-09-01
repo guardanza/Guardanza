@@ -21,3 +21,14 @@ export function orgTypeLabel(type: string): string {
 export function stripParticularSuffix(name: string): string {
   return name.replace(/ \(particular\)$/, "");
 }
+
+// Nombres con un apodo o aclaración entre paréntesis ("Juan (el del
+// depto 302)") se ven bien en una lista de contactos densa, pero no en
+// una tarjeta grande donde el nombre es lo primero que se lee — display-
+// only, no toca el nombre guardado.
+export function cleanDisplayName(name: string): string {
+  return name
+    .replace(/\s*\([^)]*\)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
