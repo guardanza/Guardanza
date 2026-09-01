@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Users, Mail, Plus, ChevronRight } from "lucide-react";
+import { Users, Mail, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getUnifiedContacts, type UnifiedContactRow } from "@/lib/contacts-unified";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
@@ -10,8 +10,7 @@ import { findAccountRoleByEmail } from "@/lib/supabase/find-user-by-email";
 import { ContactsSearchField } from "@/components/contacts-search-field";
 import { QuickInviteButton } from "@/components/quick-invite-role-sheet";
 import { Card, CardContent } from "@/components/ui/card";
-import { contactStatusLabel } from "@/components/contact-status-badge";
-import { UserAvatar } from "@/components/user-avatar";
+import { ContactCard } from "@/components/contact-card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -187,84 +186,18 @@ export default async function ContactsPage({
           const roleConflict = !rejected && r.status === "pendiente" && r.roleConflict;
           const expired = !rejected && !roleConflict && r.status === "pendiente" && !!r.inviteExpiresAt && new Date(r.inviteExpiresAt) < new Date();
           const displayStatus = rejected ? "invitacion_rechazada" : roleConflict ? "rol_distinto" : expired ? "expirada" : r.status;
-          // Mismo verde de tarjeta que Candidatos (--brand-green-card,
-          // ver candidate-card.tsx y /estilos) — dos familias de tarjeta
-          // que antes se veían distintas (blanco liso acá, verde oscuro
-          // allá) ahora hablan el mismo idioma de marca. Confirmado usa
-          // el chip "on" (fondo casi blanco, texto verde oscuro,
-          // contraste 5.78:1); cualquier otro estado (pendiente,
-          // rechazada, sin ficha…) usa "pend" (blanco/35%, mismo texto
-          // oscuro — 4.87:1) — el propio mockup de referencia usaba
-          // texto claro ahí y no llegaba a 3:1, se corrigió acá.
-          const isOn = displayStatus === "confirmado";
-          const chipLabel = displayStatus ? contactStatusLabel(displayStatus) : "Sin ficha en tu libreta";
           return (
-            <div
+            <ContactCard
               key={`${r.role}-${r.key}`}
-              className="relative flex items-center gap-2 rounded-2xl border border-brand-green-card-border bg-brand-green-card p-3 text-brand-green-card-foreground shadow-[0_3px_12px_rgba(20,67,47,0.18)] transition-shadow hover:shadow-[0_4px_16px_rgba(20,67,47,0.26)]"
-            >
-              {/* after:absolute after:inset-0 ("stretched link"): el <a>
-                  solo envuelve avatar+texto, pero su pseudo-elemento
-                  cubre toda la tarjeta (position:relative ya está en el
-                  div), así que el área tocable es la fila entera —
-                  blanco más grande, que es lo que conviene acá. El
-                  chevrón va como hermano con z-10 para quedar por
-                  encima de esa capa y seguir siendo clickeable; no
-                  puede ir dentro del <a> porque no se anida un botón en
-                  un enlace. */}
-              <Link
-                href={`/contacts/${r.role}/${encodeURIComponent(r.key)}`}
-                className="flex min-w-0 flex-1 items-center gap-3 after:absolute after:inset-0"
-              >
-                {/* size=44 no es solo el tamaño en pantalla: next/image
-                    pide al optimizador una miniatura de ese orden (~48/96px
-                    para retina), no el original de 400×400 que guarda el
-                    bucket. Sumado al loading="lazy" que ya trae UserAvatar,
-                    solo se descargan las fotos de las filas visibles. Las
-                    iniciales no cuestan red: se pintan al instante y cubren
-                    tanto a quien no tiene foto como el rato previo a que
-                    cargue. */}
-                <UserAvatar
-                  avatarUrl={r.avatarUrl}
-                  name={r.fullName}
-                  size={44}
-                  className="border-2 border-white/25 bg-brand-green-card-deep text-white"
-                />
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className="truncate text-[15px] font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.18)]">{r.fullName}</p>
-                  {(r.email || r.rut) && (
-                    <p className="truncate text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.18)]">{r.email ?? r.rut}</p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {/* El chip de rol solo cuando hay búsqueda: ahí la
-                        lista mezcla las 3 pestañas y sin él no se sabe
-                        de cuál viene cada fila. Sin búsqueda todas son
-                        del rol de la pestaña activa — repetirlo en cada
-                        tarjeta es ruido. */}
-                    {prefix && (
-                      <span className="rounded-full bg-white/35 px-2 py-0.5 text-[10px] font-semibold text-brand-green-card-deep-border">
-                        {roleBucketLabel(r.role)}
-                      </span>
-                    )}
-                    <span
-                      className={cn(
-                        "rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
-                        isOn ? "bg-white/90 text-[#1f6b45]" : "bg-white/35 text-brand-green-card-deep-border"
-                      )}
-                    >
-                      {chipLabel}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-              {/* Sin menú de acciones acá — "Quitar"/"Reenviar" viven
-                  en la ficha de detalle (la flechita lleva ahí). Que
-                  haga falta entrar al contacto para encontrar "Quitar"
-                  es el punto: un paso más de intención antes de una
-                  acción destructiva, sin depender de un menú que igual
-                  había que abrir. */}
-              <ChevronRight className="size-4 shrink-0 text-white/85" aria-hidden="true" />
-            </div>
+              role={r.role}
+              contactKey={r.key}
+              fullName={r.fullName}
+              email={r.email}
+              rut={r.rut}
+              avatarUrl={r.avatarUrl}
+              displayStatus={displayStatus}
+              showRoleChip={!!prefix}
+            />
           );
         })}
 
