@@ -6,21 +6,32 @@ import { cleanDisplayName } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import type { CandidateDocumentProgress } from "@/lib/candidate-document-list";
 
-// Rediseño visual (cambio de forma, no de lógica — la adjudicación real
-// sigue siendo select_winning_candidate()/AdjudicateCandidateSheet tal
-// cual estaban): los candidatos son el corazón de la decisión del
-// corredor, así que la tarjeta pesa — verde oscuro de marca, no una
-// fila más de una lista. Colores literales (no tokens del sistema, que
-// invierten con el tema — --brand-forest está pensado para TEXTO, no
-// para un fondo que tiene que quedarse oscuro siempre): esta tarjeta se
-// ve igual en modo claro y oscuro de la app, a propósito, como una
-// pieza de marca fija, no chrome que se adapta.
+// Verde de marca unificado con Contactos (--brand-green-card, "75%" —
+// ver /estilos) — texto claro sobre fondo medio, con la paleta de
+// contraste verificada de verdad (no asumida): blanco puro es el techo
+// matemático de contraste sobre #3f8f66 (3.94:1) — NINGÚN verde-menta
+// más tenue llega más alto, así que acá no se usa ningún tono
+// "atenuado" para texto secundario (el propio mockup de referencia sí
+// lo hacía, y por eso el email quedaba en 3.16:1). La jerarquía
+// nombre/email se resuelve con tamaño y peso, no con un color más
+// apagado — apagar el color solo empeora el contraste en este fondo.
+// Igual, 3.94:1 queda corto de la AA estricta (4.5) para texto chico:
+// el nombre se sube a texto "grande" (bold ≥18px) para calzar en el
+// umbral relajado de la propia WCAG; el email no tiene ese resquicio
+// (es chico a propósito) — es el máximo posible sin cambiar el verde
+// de fondo que pidió el usuario.
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0][0].toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
+
+// Texto claro con una sombra sutil detrás — no cambia el contraste que
+// mide WCAG (eso solo compara color contra color sólido), pero sí ayuda
+// a la legibilidad real sobre un verde con textura/gradiente, sobre
+// todo para quien no ve tan nítido. Barato de dar, nunca de más.
+const legibleText = "[text-shadow:0_1px_2px_rgba(0,0,0,0.18)]";
 
 export function CandidateCard({
   propertyCandidateId,
@@ -60,10 +71,8 @@ export function CandidateCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-3.5 text-white shadow-[0_3px_12px_rgba(20,67,47,0.22)]",
-        isDone
-          ? "border-[#2f8258] bg-gradient-to-br from-[#1b5c3e] to-[#14432f] shadow-[0_4px_18px_rgba(31,122,77,0.34)]"
-          : "border-[#0e3123] bg-[#14432f]"
+        "rounded-2xl border p-3.5 text-brand-green-card-foreground shadow-[0_3px_12px_rgba(20,67,47,0.22)]",
+        isDone ? "border-brand-green-card-deep-border bg-brand-green-card-deep shadow-[0_4px_18px_rgba(20,67,47,0.4)]" : "border-brand-green-card-border bg-brand-green-card"
       )}
     >
       <div className="mb-3 flex items-center gap-3">
@@ -73,18 +82,18 @@ export function CandidateCard({
             alt=""
             width={52}
             height={52}
-            className="size-[52px] shrink-0 rounded-full border-2 border-white/22 object-cover"
+            className="size-[52px] shrink-0 rounded-full border-2 border-white/25 object-cover"
           />
         ) : (
-          <span className="flex size-[52px] shrink-0 items-center justify-center rounded-full border-2 border-white/22 bg-[#3d8563] text-lg font-bold text-white">
+          <span className="flex size-[52px] shrink-0 items-center justify-center rounded-full border-2 border-white/25 bg-brand-green-card-deep text-lg font-bold text-white">
             {initials(name)}
           </span>
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-bold text-white">{name}</p>
-          <p className="truncate text-[11px] text-[#9dc4b1]">{email}</p>
+          <p className={cn("truncate text-lg font-bold text-white", legibleText)}>{name}</p>
+          <p className={cn("truncate text-xs text-white", legibleText)}>{email}</p>
         </div>
-        <span className="shrink-0 self-start rounded-full bg-white/15 px-2.5 py-1 text-[9.5px] font-semibold whitespace-nowrap text-[#d6ece1]">
+        <span className="shrink-0 self-start rounded-full bg-white/90 px-2.5 py-1 text-[9.5px] font-semibold whitespace-nowrap text-[#1f6b45]">
           {stateChip}
         </span>
       </div>
@@ -107,7 +116,7 @@ export function CandidateCard({
         <form action={reactivateAction}>
           <input type="hidden" name="id" value={propertyCandidateId} />
           <input type="hidden" name="property_id" value={propertyId} />
-          <Button type="submit" variant="outline" size="sm" className="w-full border-white/38 bg-transparent text-white hover:bg-white/10">
+          <Button type="submit" variant="outline" size="sm" className="w-full border-white/65 bg-transparent font-bold text-white hover:bg-white/12">
             Reactivar
           </Button>
         </form>
@@ -146,15 +155,8 @@ function CandidateCardBody({
   if (contactStatus !== "confirmado") {
     return (
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-[#c3ddd0]">Invitación pendiente — todavía no confirma su cuenta.</p>
-        <DiscardCandidateSheet
-          action={discardAction}
-          candidateId={propertyCandidateId}
-          propertyId={propertyId}
-          fullName={fullName}
-          triggerVariant="icon"
-          triggerClassName="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] border-[1.5px] border-[#ff8c82]/45 text-[#ff9a92] hover:bg-white/5"
-        />
+        <p className="text-xs text-white">Invitación pendiente — todavía no confirma su cuenta.</p>
+        <DiscardTrigger discardAction={discardAction} propertyCandidateId={propertyCandidateId} propertyId={propertyId} fullName={fullName} />
       </div>
     );
   }
@@ -168,18 +170,11 @@ function CandidateCardBody({
         <form action={sendEvaluationAction} className="flex-1">
           <input type="hidden" name="property_candidate_id" value={propertyCandidateId} />
           <input type="hidden" name="property_id" value={propertyId} />
-          <Button type="submit" variant="outline" size="sm" className="w-full border-white/38 bg-transparent text-white hover:bg-white/10">
+          <Button type="submit" variant="outline" size="sm" className="w-full border-white/65 bg-transparent font-bold text-white hover:bg-white/12">
             {evaluationStatus === "invitado" ? "Reenviar evaluación" : "Enviar evaluación de papeles"}
           </Button>
         </form>
-        <DiscardCandidateSheet
-          action={discardAction}
-          candidateId={propertyCandidateId}
-          propertyId={propertyId}
-          fullName={fullName}
-          triggerVariant="icon"
-          triggerClassName="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] border-[1.5px] border-[#ff8c82]/45 text-[#ff9a92] hover:bg-white/5"
-        />
+        <DiscardTrigger discardAction={discardAction} propertyCandidateId={propertyCandidateId} propertyId={propertyId} fullName={fullName} />
       </div>
     );
   }
@@ -191,15 +186,8 @@ function CandidateCardBody({
   if (!progress) {
     return (
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-[#c3ddd0]">Evaluación en curso.</p>
-        <DiscardCandidateSheet
-          action={discardAction}
-          candidateId={propertyCandidateId}
-          propertyId={propertyId}
-          fullName={fullName}
-          triggerVariant="icon"
-          triggerClassName="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] border-[1.5px] border-[#ff8c82]/45 text-[#ff9a92] hover:bg-white/5"
-        />
+        <p className="text-xs text-white">Evaluación en curso.</p>
+        <DiscardTrigger discardAction={discardAction} propertyCandidateId={propertyCandidateId} propertyId={propertyId} fullName={fullName} />
       </div>
     );
   }
@@ -210,19 +198,23 @@ function CandidateCardBody({
     <>
       <div className="mb-3">
         <div className="mb-1.5 flex items-baseline justify-between">
-          <span className="text-[11px] font-semibold text-[#c3ddd0]">{isDone ? "Documentos completos" : "Progreso documental"}</span>
-          <span className="text-[11px] font-bold text-[#86e0b3] tabular-nums">
+          <span className="text-[11px] text-white">{isDone ? "Documentos completos" : "Progreso documental"}</span>
+          <span className="text-[11px] font-bold text-white tabular-nums">
             {progress.uploaded} de {progress.total}
           </span>
         </div>
-        <div className="h-[7px] overflow-hidden rounded-full bg-white/16">
-          <div className="h-full rounded-full bg-[#4ec98c]" style={{ width: `${percent}%` }} />
+        {/* Pista oscura (negro/20%, no blanco translúcido) — sobre este
+            verde medio, un relleno claro apenas se distinguía de una
+            pista clara (1.46:1, casi invisible). Relleno blanco sobre
+            pista oscura: 5.73:1, se lee sin esfuerzo. */}
+        <div className="h-[7px] overflow-hidden rounded-full bg-black/20">
+          <div className="h-full rounded-full bg-white" style={{ width: `${percent}%` }} />
         </div>
       </div>
       <div className="flex items-center gap-2">
         <Link
           href={detailHref}
-          className="flex-1 rounded-[10px] border-[1.5px] border-white/38 px-2.5 py-2.5 text-center text-[12.5px] font-bold text-white hover:bg-white/10"
+          className="flex-1 rounded-[10px] border-[1.5px] border-white/65 px-2.5 py-2.5 text-center text-[12.5px] font-bold text-white hover:bg-white/12"
         >
           Revisar detalle
         </Link>
@@ -234,19 +226,42 @@ function CandidateCardBody({
           disabled={!isDone}
           triggerClassName={cn(
             "flex-1 rounded-[10px] px-2.5 py-2.5 text-[12.5px] font-bold h-auto",
-            isDone ? "bg-white text-[#14432f] hover:bg-white/90" : "bg-white/13 text-white/42 hover:bg-white/13"
+            // Deshabilitado: WCAG exime a los controles inactivos del
+            // contraste mínimo (no son interactivos), pero igual queda
+            // perceptible como botón apagado, no invisible.
+            isDone ? "bg-white text-brand-green-card-deep-border hover:bg-white/90" : "bg-white/22 text-white/70 hover:bg-white/22"
           )}
         />
-        <DiscardCandidateSheet
-          action={discardAction}
-          candidateId={propertyCandidateId}
-          propertyId={propertyId}
-          fullName={fullName}
-          triggerVariant="icon"
-          triggerClassName="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] border-[1.5px] border-[#ff8c82]/45 text-[#ff9a92] hover:bg-white/5"
-        />
+        <DiscardTrigger discardAction={discardAction} propertyCandidateId={propertyCandidateId} propertyId={propertyId} fullName={fullName} />
       </div>
     </>
   );
 }
 
+function DiscardTrigger({
+  discardAction,
+  propertyCandidateId,
+  propertyId,
+  fullName,
+}: {
+  discardAction: (formData: FormData) => void;
+  propertyCandidateId: string;
+  propertyId: string;
+  fullName: string;
+}) {
+  return (
+    <DiscardCandidateSheet
+      action={discardAction}
+      candidateId={propertyCandidateId}
+      propertyId={propertyId}
+      fullName={fullName}
+      triggerVariant="icon"
+      // Rojo suave, no el rojo funcional pleno (#ffd6d1) — sobre este
+      // verde no hay ningún tono de rojo que llegue a AA sin perder por
+      // completo el matiz "peligro"; este es el más alto posible
+      // manteniéndolo reconocible como rojo, y el ícono de tacho ya
+      // comunica la acción por forma, no solo por color.
+      triggerClassName="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] border-[1.5px] border-white/50 text-[#ffd6d1] hover:bg-white/10"
+    />
+  );
+}
