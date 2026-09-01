@@ -135,43 +135,48 @@ export function IdentityCameraCapture({
   return (
     <div className="space-y-3">
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-black">
-        {(state === "requesting" || state === "live") && (
-          <>
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              className={cn("h-full w-full object-cover", variant === "selfie" && "-scale-x-100")}
-            />
-            {state === "live" && variant === "document" && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
-                <div className="relative w-full" style={{ aspectRatio: "1.586" }}>
-                  <span className="absolute top-0 left-0 size-7 rounded-tl-lg border-t-4 border-l-4 border-white/90" />
-                  <span className="absolute top-0 right-0 size-7 rounded-tr-lg border-t-4 border-r-4 border-white/90" />
-                  <span className="absolute bottom-0 left-0 size-7 rounded-bl-lg border-b-4 border-l-4 border-white/90" />
-                  <span className="absolute right-0 bottom-0 size-7 rounded-br-lg border-r-4 border-b-4 border-white/90" />
-                </div>
-              </div>
-            )}
-            {state === "live" && variant === "selfie" && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
-                <div className="h-full max-h-80 w-full max-w-64 rounded-[50%] border-4 border-white/90" />
-              </div>
-            )}
-            {state === "requesting" && (
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-white/80">
-                Pidiendo acceso a la cámara…
-              </div>
-            )}
-          </>
+        {/* El <video> queda SIEMPRE montado (nunca condicionado por
+            state) — antes se desmontaba al pasar a "review" y React
+            destruía el elemento; al volver a "live" con Repetir, el
+            <video> nuevo nunca recibía de vuelta el stream (el efecto
+            que lo asigna corre una sola vez, al montar el componente),
+            así que el visor quedaba negro. Ahora solo se oculta con
+            CSS — el mismo elemento, con el mismo stream, sigue vivo
+            debajo en todo momento. */}
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          className={cn("h-full w-full object-cover", state !== "requesting" && state !== "live" && "hidden")}
+        />
+        {(state === "requesting" || state === "live") && variant === "document" && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
+            <div className="relative w-full" style={{ aspectRatio: "1.586" }}>
+              <span className="absolute top-0 left-0 size-7 rounded-tl-lg border-t-4 border-l-4 border-white/90" />
+              <span className="absolute top-0 right-0 size-7 rounded-tr-lg border-t-4 border-r-4 border-white/90" />
+              <span className="absolute bottom-0 left-0 size-7 rounded-bl-lg border-b-4 border-l-4 border-white/90" />
+              <span className="absolute right-0 bottom-0 size-7 rounded-br-lg border-r-4 border-b-4 border-white/90" />
+            </div>
+          </div>
         )}
-        {state === "review" && reviewUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={reviewUrl} alt="" className="h-full w-full object-contain" />
+        {(state === "requesting" || state === "live") && variant === "selfie" && (
+          // Óvalo para la cara arriba, tarjeta más chica abajo — dos
+          // guías, no una (spec: mostrar dónde va la cara Y dónde va la
+          // cédula, no solo un óvalo genérico). Proporciones aprobadas
+          // por el usuario a mano, en un mockup — viewBox fijo 300×400
+          // (misma proporción 3:4 del contenedor) para que escale igual
+          // sea cual sea el tamaño real en pantalla.
+          <svg viewBox="0 0 300 400" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+            <ellipse cx="150" cy="140" rx="74" ry="102" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.9)" strokeWidth="3" />
+            <rect x="95" y="300" width="110" height="69" rx="7" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.9)" strokeWidth="3" />
+          </svg>
         )}
-        {state === "uploading" && reviewUrl && (
+        {state === "requesting" && (
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-white/80">Pidiendo acceso a la cámara…</div>
+        )}
+        {(state === "review" || state === "uploading") && reviewUrl && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={reviewUrl} alt="" className="h-full w-full object-contain opacity-50" />
+          <img src={reviewUrl} alt="" className={cn("absolute inset-0 h-full w-full object-contain", state === "uploading" && "opacity-50")} />
         )}
       </div>
 
