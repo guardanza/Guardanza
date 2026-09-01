@@ -5,11 +5,14 @@ import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import type { MoneyCurrency } from "@/lib/money";
-import type { CandidateIdentityDocType, CandidateIncomeType } from "@/lib/candidate-documents";
+import type { CandidateDocumentType, CandidateIdentityDocType, CandidateIncomeType } from "@/lib/candidate-documents";
+import { policyRowsToMap } from "@/lib/candidate-documents";
+import { resolveCandidateDocumentList } from "@/lib/candidate-document-list";
 import type { CandidateParticipantType } from "@/lib/candidate-participant-messaging";
 import { WelcomeScreen } from "@/components/candidate-evaluation/welcome-screen";
 import { IdentityScreen } from "@/components/candidate-evaluation/identity-screen";
 import { IncomeTypeScreen } from "@/components/candidate-evaluation/income-type-screen";
+import { DocumentListScreen } from "@/components/candidate-evaluation/document-list-screen";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { signOut } from "@/lib/actions/auth";
@@ -94,7 +97,9 @@ export default async function CandidateEvaluationPage({
   const [{ data: propertyCandidate }, { data: documents }, { data: inviterProfile }] = await Promise.all([
     supabase
       .from("property_candidates")
-      .select("properties(address, expected_rent_amount, expected_rent_currency, expected_guarantee_amount, expected_guarantee_currency)")
+      .select(
+        "properties(id, address, expected_rent_amount, expected_rent_currency, expected_guarantee_amount, expected_guarantee_currency, organization_id, broker_organization_id)"
+      )
       .eq("id", participant.property_candidate_id)
       .single(),
     supabase.from("candidate_documents").select("document_type").eq("candidate_participant_id", id),
@@ -103,10 +108,33 @@ export default async function CandidateEvaluationPage({
   const property = one(propertyCandidate?.properties);
   if (!property) notFound();
 
-  const documentTypes = new Set((documents ?? []).map((d) => d.document_type));
+  const documentTypes = new Set<CandidateDocumentType>((documents ?? []).map((d) => d.document_type as CandidateDocumentType));
   const hasFrontal = documentTypes.has("cedula_identidad") || documentTypes.has("pasaporte");
   const hasReverso = documentTypes.has("cedula_identidad_reverso");
   const identityDone = participant.identity_doc_type === "pasaporte_extranjero" ? hasFrontal : participant.identity_doc_type === "cedula_chilena" ? hasFrontal && hasReverso : false;
+
+  // Capa de propiedad, luego la de org — el corredor delegado manda por
+  // sobre la del dueño si hay uno (fallbackOrgId, mismo criterio que la
+  // pantalla de política del corredor en properties/[id]/edit). Solo se
+  // consultan una vez que income_type ya existe — antes de eso no hay
+  // nada que resolver todavía.
+  const fallbackOrgId = property.broker_organization_id ?? property.organization_id;
+  const [{ data: propertyPolicyRows }, { data: orgPolicyRows }] = participant.income_type
+    ? await Promise.all([
+        supabase.from("property_document_policy").select("income_type, document_type, required").eq("property_id", property.id),
+        supabase.from("org_document_policy").select("income_type, document_type, required").eq("organization_id", fallbackOrgId),
+      ])
+    : [{ data: null }, { data: null }];
+
+  const documentRows = participant.income_type
+    ? resolveCandidateDocumentList({
+        incomeType: participant.income_type,
+        identityDocType: participant.identity_doc_type ?? "cedula_chilena",
+        orgPolicy: policyRowsToMap(orgPolicyRows),
+        propertyPolicy: policyRowsToMap(propertyPolicyRows),
+        uploadedDocumentTypes: documentTypes,
+      })
+    : [];
 
   // Sin ?paso=, la pantalla se deriva de qué datos ya existen — así
   // "retoma desde el mismo link" (spec sección 2) funciona solo, sin
@@ -126,13 +154,13 @@ export default async function CandidateEvaluationPage({
             ? "identidad"
             : !participant.income_type
               ? "ingreso"
-              : "listo";
+              : "documentos";
 
   const isMobile = looksLikeMobile((await headers()).get("user-agent"));
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-6 md:py-10">
-      {step !== "bienvenida" && step !== "listo" && (
+      {step !== "bienvenida" && step !== "documentos" && (
         <Link href={`/evaluacion/postulacion/${id}?paso=identidad`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ChevronLeft className="size-4" />
           Volver
@@ -177,17 +205,7 @@ export default async function CandidateEvaluationPage({
             />
           )}
           {step === "ingreso" && <IncomeTypeScreen candidateParticipantId={id} />}
-          {step === "listo" && (
-            <div className="space-y-2 text-center">
-              <CardHeader className="p-0">
-                <CardTitle>Vamos avanzando</CardTitle>
-                <CardDescription>
-                  Ya registramos tu identidad y tu situación laboral. El siguiente paso — la lista de documentos —
-                  todavía no está disponible; te avisamos apenas lo esté.
-                </CardDescription>
-              </CardHeader>
-            </div>
-          )}
+          {step === "documentos" && <DocumentListScreen candidateParticipantId={id} rows={documentRows} />}
         </CardContent>
       </Card>
     </div>
