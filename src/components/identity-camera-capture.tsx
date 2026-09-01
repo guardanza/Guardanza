@@ -168,7 +168,7 @@ export function IdentityCameraCapture({
           // sea cual sea el tamaño real en pantalla.
           <svg viewBox="0 0 300 400" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
             <ellipse cx="150" cy="140" rx="74" ry="102" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.9)" strokeWidth="3" />
-            <rect x="95" y="300" width="110" height="69" rx="7" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.9)" strokeWidth="3" />
+            <rect x="40" y="252" width="220" height="138" rx="14" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.9)" strokeWidth="3" />
           </svg>
         )}
         {state === "requesting" && (
