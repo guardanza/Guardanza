@@ -9,29 +9,33 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import type { CandidateIdentityDocType } from "@/lib/candidate-documents";
 
-type Step = "elegir" | "frontal" | "reverso";
+type Step = "elegir" | "frontal" | "reverso" | "selfie";
 
 // Pantalla 2 del flujo guiado (spec sección 5) — "va primero porque
 // define la lista posterior y si hay informe comercial" (esta pantalla
 // solo captura, la derivación de la lista es Etapa 4).
 //
-// hasFrontal/hasReverso vienen del server component (qué documentos ya
-// existen para esta postulación) — retomar a mitad de la cédula (ya
-// subió la frontal, cerró la pestaña antes de la reverso) tiene que
-// caer directo en "reverso", no repetir la elección de tipo de
-// documento ni pedir la frontal de nuevo.
+// hasFrontal/hasReverso/hasSelfie vienen del server component (qué
+// documentos ya existen para esta postulación) — retomar a mitad de la
+// cédula (ya subió la frontal, cerró la pestaña antes de la reverso)
+// tiene que caer directo en "reverso", no repetir la elección de tipo
+// de documento ni pedir la frontal de nuevo. Selfie siempre va al
+// final, cédula o pasaporte por igual — sube la barrera antifraude sin
+// comparación automática (el corredor la valida a ojo por ahora).
 export function IdentityScreen({
   candidateParticipantId,
   isMobile,
   initialIdentityDocType,
   hasFrontal,
   hasReverso,
+  hasSelfie,
 }: {
   candidateParticipantId: string;
   isMobile: boolean;
   initialIdentityDocType: CandidateIdentityDocType | null;
   hasFrontal: boolean;
   hasReverso: boolean;
+  hasSelfie: boolean;
 }) {
   const [docType, setDocType] = useState<CandidateIdentityDocType | null>(initialIdentityDocType);
   // Cámara por default en mobile, archivo/arrastre por default en
@@ -54,12 +58,13 @@ export function IdentityScreen({
 
   const [step, setStep] = useState<Step>(() => {
     if (!initialIdentityDocType) return "elegir";
-    if (initialIdentityDocType === "cedula_chilena" && !hasFrontal) return "frontal";
+    if (!hasFrontal) return "frontal";
     if (initialIdentityDocType === "cedula_chilena" && !hasReverso) return "reverso";
+    if (!hasSelfie) return "selfie";
     return "frontal";
   });
 
-  async function upload(blob: Blob, documentType: "cedula_identidad" | "cedula_identidad_reverso" | "pasaporte") {
+  async function upload(blob: Blob, documentType: "cedula_identidad" | "cedula_identidad_reverso" | "pasaporte" | "selfie_con_documento") {
     if (!docType) return;
     setError(null);
     const formData = new FormData();
@@ -78,10 +83,14 @@ export function IdentityScreen({
         uploadCandidateIdentityPhoto(formData),
         new Promise((_, reject) => setTimeout(() => reject(new Error("La subida está tomando demasiado — revisa tu conexión e intenta de nuevo.")), 30_000)),
       ]);
-      if (docType === "cedula_chilena" && documentType === "cedula_identidad") {
+      if (step === "frontal" && docType === "cedula_chilena") {
         setStep("reverso");
+      } else if (step === "frontal" || step === "reverso") {
+        // Frontal de pasaporte, o reverso de cédula — en los dos casos
+        // lo que sigue es la selfie, el último paso siempre.
+        setStep("selfie");
       } else {
-        // Terminó la identidad — navegación real (no router.refresh())
+        // Selfie — terminó todo. Navegación real (no router.refresh())
         // a la misma página sin ?paso=, para que el server component la
         // vuelva a derivar de cero con datos ya al día (ver el
         // comentario junto a "finishing" más arriba).
@@ -145,26 +154,37 @@ export function IdentityScreen({
     );
   }
 
-  const documentType = step === "reverso" ? "cedula_identidad_reverso" : docType === "pasaporte_extranjero" ? "pasaporte" : "cedula_identidad";
+  const documentType =
+    step === "selfie" ? "selfie_con_documento" : step === "reverso" ? "cedula_identidad_reverso" : docType === "pasaporte_extranjero" ? "pasaporte" : "cedula_identidad";
   const instruction =
-    step === "reverso"
-      ? "Ahora el reverso — apoya la cédula sobre una superficie plana y evita reflejos."
-      : docType === "pasaporte_extranjero"
-        ? "Encuadra la página con tu foto — apoya el pasaporte sobre una superficie plana y evita reflejos."
-        : "Encuadra la cédula por su lado frontal — apoya sobre una superficie plana y evita reflejos.";
+    step === "selfie"
+      ? "Tómate una foto sosteniendo tu documento de identidad junto a tu cara."
+      : step === "reverso"
+        ? "Ahora el reverso — apoya la cédula sobre una superficie plana y evita reflejos."
+        : docType === "pasaporte_extranjero"
+          ? "Encuadra la página con tu foto — apoya el pasaporte sobre una superficie plana y evita reflejos."
+          : "Encuadra la cédula por su lado frontal — apoya sobre una superficie plana y evita reflejos.";
+
+  // Cédula: 3 pasos (frontal, reverso, selfie). Pasaporte: 2 (frontal,
+  // selfie) — la selfie siempre es el último paso, sea cual sea el
+  // total.
+  const totalSteps = docType === "cedula_chilena" ? 3 : 2;
+  const stepNumber = step === "frontal" ? 1 : step === "reverso" ? 2 : totalSteps;
+  const stepLabel = step === "selfie" ? "selfie con tu documento" : step === "reverso" ? "reverso" : "frontal";
+  const captureVariant = step === "selfie" ? "selfie" : "document";
 
   return (
     <div className="space-y-3">
-      {docType === "cedula_chilena" && (
-        <p className="text-center text-xs font-medium text-muted-foreground">{step === "reverso" ? "Paso 2 de 2 — reverso" : "Paso 1 de 2 — frontal"}</p>
-      )}
+      <p className="text-center text-xs font-medium text-muted-foreground">
+        Paso {stepNumber} de {totalSteps} — {stepLabel}
+      </p>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       {/* key={step}: sin esto, React reusa la MISMA instancia al pasar de
-          frontal a reverso (misma posición en el árbol) — su estado
+          un paso a otro (misma posición en el árbol) — su estado
           interno (ej. "Subiendo…" de la captura anterior) quedaba
           pegado en vez de partir limpio para la siguiente foto. */}
       {useCamera ? (
@@ -173,6 +193,7 @@ export function IdentityScreen({
           instruction={instruction}
           onAccept={(blob) => upload(blob, documentType)}
           onSwitchToFile={() => setUseCamera(false)}
+          variant={captureVariant}
         />
       ) : (
         <IdentityFileCapture
@@ -180,6 +201,7 @@ export function IdentityScreen({
           onAccept={(blob) => upload(blob, documentType)}
           onSwitchToCamera={isMobile ? () => setUseCamera(true) : undefined}
           showCameraOption={isMobile}
+          variant={captureVariant}
         />
       )}
     </div>
