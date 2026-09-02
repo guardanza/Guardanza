@@ -27,12 +27,16 @@ export function PropertyRowMenu({
   blockingReason,
   deactivateAction,
   reactivateAction,
+  triggerClassName,
 }: {
   propertyId: string;
   status: "activa" | "inactiva";
   blockingReason: ContractBlockingReason | null;
   deactivateAction: (formData: FormData) => void;
   reactivateAction: (formData: FormData) => void;
+  // Sobre la tarjeta verde de Propiedades el trigger fantasma
+  // (text-muted-foreground) se pierde — ver PropertyCard.
+  triggerClassName?: string;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -45,7 +49,7 @@ export function PropertyRowMenu({
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="shrink-0 text-muted-foreground"
+              className={triggerClassName ?? "shrink-0 text-muted-foreground"}
               aria-label="Más acciones"
               title="Más acciones"
             />

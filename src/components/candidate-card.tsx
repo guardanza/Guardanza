@@ -2,17 +2,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { AdjudicateCandidateSheet, DiscardCandidateSheet } from "@/components/candidate-decision-sheets";
 import { Button } from "@/components/ui/button";
+import { GreenCard, GreenChip } from "@/components/ui/green-card";
 import { cleanDisplayName } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import type { CandidateDocumentProgress } from "@/lib/candidate-document-list";
 
-// Verde de marca unificado con Contactos (--brand-green-card, "75%" —
-// ver /estilos) — texto claro sobre fondo medio, con la paleta de
-// contraste verificada de verdad (no asumida): blanco puro es el techo
-// matemático de contraste sobre #3f8f66 (3.94:1) — NINGÚN verde-menta
-// más tenue llega más alto, así que acá no se usa ningún tono
-// "atenuado" para texto secundario (el propio mockup de referencia sí
-// lo hacía, y por eso el email quedaba en 3.16:1). La jerarquía
+// Verde de marca unificado en toda la app (--brand-green-card, "75%" —
+// ver /estilos y ui/green-card.tsx, el primitivo del que sale esta
+// tarjeta) — texto claro sobre fondo medio, con la paleta de contraste
+// verificada de verdad (no asumida): blanco puro es el techo matemático
+// de contraste sobre #3f8f66 (3.94:1) — NINGÚN verde-menta más tenue
+// llega más alto, así que acá no se usa ningún tono "atenuado" para
+// texto secundario (el propio mockup de referencia original sí lo
+// hacía, y por eso el email quedaba en 3.16:1). La jerarquía
 // nombre/email se resuelve con tamaño y peso, no con un color más
 // apagado — apagar el color solo empeora el contraste en este fondo.
 // Igual, 3.94:1 queda corto de la AA estricta (4.5) para texto chico:
@@ -69,12 +71,7 @@ export function CandidateCard({
   const stateChip = status === "seleccionado" ? "Adjudicado" : status === "no_seleccionado" ? "No seleccionado" : "En evaluación";
 
   return (
-    <div
-      className={cn(
-        "rounded-2xl border p-3.5 text-brand-green-card-foreground shadow-[0_3px_12px_rgba(20,67,47,0.22)]",
-        isDone ? "border-brand-green-card-deep-border bg-brand-green-card-deep shadow-[0_4px_18px_rgba(20,67,47,0.4)]" : "border-brand-green-card-border bg-brand-green-card"
-      )}
-    >
+    <GreenCard deep={isDone} className={cn("p-3.5", isDone ? "shadow-[0_4px_18px_rgba(20,67,47,0.4)]" : "shadow-[0_3px_12px_rgba(20,67,47,0.22)]")}>
       <div className="mb-3 flex items-center gap-3">
         {avatarUrl ? (
           <Image
@@ -93,9 +90,9 @@ export function CandidateCard({
           <p className={cn("truncate text-lg font-bold text-white", legibleText)}>{name}</p>
           <p className={cn("truncate text-xs text-white", legibleText)}>{email}</p>
         </div>
-        <span className="shrink-0 self-start rounded-full bg-white/90 px-2.5 py-1 text-[9.5px] font-semibold whitespace-nowrap text-[#1f6b45]">
+        <GreenChip tone="solid" className="shrink-0 self-start px-2.5 py-1 text-[9.5px]">
           {stateChip}
-        </span>
+        </GreenChip>
       </div>
 
       {status === "en_evaluacion" ? (
@@ -121,7 +118,7 @@ export function CandidateCard({
           </Button>
         </form>
       ) : null}
-    </div>
+    </GreenCard>
   );
 }
 

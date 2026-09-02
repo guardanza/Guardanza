@@ -9,11 +9,11 @@ import { deactivateProperty, reactivateProperty } from "@/lib/actions/properties
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PropertyThumb } from "@/components/property-thumb";
+import { GreenChip, GreenEmptyState } from "@/components/ui/green-card";
+import { PropertyCard } from "@/components/property-card";
 import { PropertySearchField } from "@/components/property-search-field";
 import { PropertyStatusFilter } from "@/components/property-status-filter";
 import { PropertyRowMenu } from "@/components/property-row-menu";
-import { cn } from "@/lib/utils";
 
 type StatusFilter = "activa" | "inactiva" | "todas";
 
@@ -149,69 +149,49 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
             const region = commune ? one(commune.regions) : null;
             const occupied = occupiedIds.has(p.id);
             return (
-              <Card key={p.id} size="sm" className="transition-shadow hover:shadow-md">
-                <CardContent className="flex items-center gap-3">
-                  <Link
-                    href={viewingDrafts ? `/properties/${p.id}/edit` : `/properties/${p.id}`}
-                    className="flex min-w-0 flex-1 items-center gap-3"
-                  >
-                    <PropertyThumb url={p.photo_url} className="size-16 shrink-0 rounded-lg" />
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <p className="truncate text-sm font-medium">{p.address}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5 pt-0.5">
-                        {viewingDrafts ? (
-                          <Badge variant="secondary" className="bg-accent text-accent-foreground">
-                            Falta completar
-                          </Badge>
-                        ) : (
-                          <>
-                            {p.status === "inactiva" && (
-                              <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                                Fuera de cartera
-                              </Badge>
-                            )}
-                            <Badge variant="secondary" className="bg-success/15 text-success">
-                              Arrendador
-                            </Badge>
-                            <Badge variant="secondary" className={cn(occupied ? "bg-success/15 text-success" : "bg-muted text-muted-foreground")}>
-                              {occupied ? "Arrendatario" : "Sin adjudicar"}
-                            </Badge>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                  {!viewingDrafts && (
+              <PropertyCard
+                key={p.id}
+                href={viewingDrafts ? `/properties/${p.id}/edit` : `/properties/${p.id}`}
+                photoUrl={p.photo_url}
+                address={p.address}
+                location={[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
+                badges={
+                  viewingDrafts ? (
+                    <Badge variant="secondary" className="bg-accent text-accent-foreground">
+                      Falta completar
+                    </Badge>
+                  ) : (
+                    <>
+                      {p.status === "inactiva" && (
+                        <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                          Fuera de cartera
+                        </Badge>
+                      )}
+                      <GreenChip tone="deep">Arrendador</GreenChip>
+                      <GreenChip tone={occupied ? "solid" : "translucent"}>{occupied ? "Arrendatario" : "Sin adjudicar"}</GreenChip>
+                    </>
+                  )
+                }
+                menu={
+                  !viewingDrafts ? (
                     <PropertyRowMenu
                       propertyId={p.id}
                       status={p.status as "activa" | "inactiva"}
                       blockingReason={blockingReasonByPropertyId.get(p.id) ?? null}
                       deactivateAction={deactivateProperty}
                       reactivateAction={reactivateProperty}
+                      triggerClassName="shrink-0 rounded-full bg-black/15 text-white hover:bg-black/25"
                     />
-                  )}
-                </CardContent>
-              </Card>
+                  ) : undefined
+                }
+              />
             );
           })}
         </div>
       ) : searching ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-            <SearchX className="size-8 text-muted-foreground" strokeWidth={1.5} />
-            <p className="text-sm text-muted-foreground">{emptyMessage}</p>
-          </CardContent>
-        </Card>
+        <GreenEmptyState icon={SearchX} message={emptyMessage} />
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-            <Building2 className="size-8 text-muted-foreground" strokeWidth={1.5} />
-            <p className="text-sm text-muted-foreground">{emptyMessage}</p>
-          </CardContent>
-        </Card>
+        <GreenEmptyState icon={Building2} message={emptyMessage} />
       )}
     </div>
   );

@@ -23,7 +23,7 @@ import { CandidateCard } from "@/components/candidate-card";
 import { ListingPortalLink } from "@/components/listing-portal-link";
 import { DeletePropertyDialog } from "@/components/delete-property-dialog";
 import { PropertyLifecycleAction } from "@/components/property-lifecycle-action";
-import { RoleBadge } from "@/components/role-badge";
+import { GreenInfoBox, GreenInfoRow } from "@/components/ui/green-info-box";
 import { Badge } from "@/components/ui/badge";
 import { categorizeBlockingContract } from "@/lib/property-status";
 
@@ -211,16 +211,13 @@ export default async function PropertyDetailPage({
         <p className="text-sm text-muted-foreground">
           {[commune?.name, region?.name].filter(Boolean).join(", ") || "Sin ubicación"}
         </p>
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          {property.status === "inactiva" && (
+        {property.status === "inactiva" && (
+          <div className="pt-1">
             <Badge variant="secondary" className="bg-muted text-muted-foreground">
               Fuera de cartera
             </Badge>
-          )}
-          <RoleBadge label="Arrendador" value={owners.length > 0 ? owners.map((o) => stripParticularSuffix(o.name)).join(", ") : null} emptyText="Sin asignar" />
-          <RoleBadge label="Corredor" value={broker?.name ?? null} emptyText="Sin corredor" />
-          <RoleBadge label="Arrendatario" value={tenantName} emptyText="Sin adjudicar" />
-        </div>
+          </div>
+        )}
         {property.status !== "borrador" && (
           <div className="pt-1">
             <PropertyLifecycleAction
@@ -234,37 +231,38 @@ export default async function PropertyDetailPage({
         )}
       </div>
 
+      {/* Participantes: antes tres chips (RoleBadge) sueltos junto al
+          título — ahora una caja del mismo sistema verde que el resto
+          de la app (ver /estilos), con el mismo criterio de contraste:
+          rótulo y valor van en blanco pleno, la diferencia es de peso
+          (un valor "vacío" — Sin asignar/Sin corredor/Sin adjudicar —
+          va en regular en vez de bold, nunca en un color más apagado). */}
+      <GreenInfoBox title="Participantes">
+        <GreenInfoRow
+          label="Arrendador"
+          value={owners.length > 0 ? owners.map((o) => stripParticularSuffix(o.name)).join(", ") : "Sin asignar"}
+          valueClassName={owners.length > 0 ? undefined : "font-normal"}
+        />
+        <GreenInfoRow label="Corredor" value={broker?.name ?? "Sin corredor"} valueClassName={broker?.name ? undefined : "font-normal"} />
+        <GreenInfoRow label="Arrendatario" value={tenantName ?? "Sin adjudicar"} valueClassName={tenantName ? undefined : "font-normal"} />
+      </GreenInfoBox>
+
       {hasListingDetails && (
-        <Card className="p-0">
-          <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
-            <h2 className="text-sm font-medium">Detalles de la propiedad</h2>
-            {property.listing_url && <ListingPortalLink url={property.listing_url} />}
-          </div>
-          <CardContent className="space-y-2 pb-4 text-sm">
-            {property.expected_rent_amount && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Valor de arriendo</span>
-                <span className="font-medium tabular-nums">
-                  {formatMoney(property.expected_rent_amount, (property.expected_rent_currency as MoneyCurrency) ?? "CLP")}
-                </span>
-              </div>
-            )}
-            {property.expected_term_months && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Plazo de arriendo</span>
-                <span className="font-medium tabular-nums">{property.expected_term_months} meses</span>
-              </div>
-            )}
-            {property.expected_guarantee_amount && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Valor garantía</span>
-                <span className="font-medium tabular-nums">
-                  {formatMoney(property.expected_guarantee_amount, (property.expected_guarantee_currency as MoneyCurrency) ?? "CLP")}
-                </span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <GreenInfoBox title="Detalles de la propiedad" action={property.listing_url ? <ListingPortalLink url={property.listing_url} /> : undefined}>
+          {property.expected_rent_amount && (
+            <GreenInfoRow
+              label="Valor de arriendo"
+              value={formatMoney(property.expected_rent_amount, (property.expected_rent_currency as MoneyCurrency) ?? "CLP")}
+            />
+          )}
+          {property.expected_term_months && <GreenInfoRow label="Plazo de arriendo" value={`${property.expected_term_months} meses`} />}
+          {property.expected_guarantee_amount && (
+            <GreenInfoRow
+              label="Valor garantía"
+              value={formatMoney(property.expected_guarantee_amount, (property.expected_guarantee_currency as MoneyCurrency) ?? "CLP")}
+            />
+          )}
+        </GreenInfoBox>
       )}
 
       {/* Candidatos (Tanda D Fase 1): no se muestra si la propiedad ya

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { contactStatusLabel } from "@/components/contact-status-badge";
+import { GreenCard, GreenChip } from "@/components/ui/green-card";
 import { roleBucketLabel, type RoleBucket } from "@/lib/role-bucket";
-import { cn } from "@/lib/utils";
 
 // Extraído de app/contacts/page.tsx para que /estilos pueda mostrar
 // exactamente esta tarjeta (mismo componente, no una copia a mano que
@@ -38,7 +38,7 @@ export function ContactCard({
   const chipLabel = displayStatus ? contactStatusLabel(displayStatus) : "Sin ficha en tu libreta";
 
   return (
-    <div className="relative flex items-center gap-2 rounded-2xl border border-brand-green-card-border bg-brand-green-card p-3 text-brand-green-card-foreground shadow-[0_3px_12px_rgba(20,67,47,0.18)] transition-shadow hover:shadow-[0_4px_16px_rgba(20,67,47,0.26)]">
+    <GreenCard className="relative flex items-center gap-2 p-3 transition-shadow hover:shadow-[0_4px_16px_rgba(20,67,47,0.26)]">
       {/* after:absolute after:inset-0 ("stretched link"): el <a> solo
           envuelve avatar+texto, pero su pseudo-elemento cubre toda la
           tarjeta (position:relative ya está en el div), así que el área
@@ -66,19 +66,8 @@ export function ContactCard({
                 mezcla las 3 pestañas y sin él no se sabe de cuál viene
                 cada fila. Sin búsqueda todas son del rol de la pestaña
                 activa — repetirlo en cada tarjeta es ruido. */}
-            {showRoleChip && (
-              <span className="rounded-full bg-white/35 px-2 py-0.5 text-[10px] font-semibold text-brand-green-card-deep-border">
-                {roleBucketLabel(role)}
-              </span>
-            )}
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
-                isOn ? "bg-white/90 text-[#1f6b45]" : "bg-white/35 text-brand-green-card-deep-border"
-              )}
-            >
-              {chipLabel}
-            </span>
+            {showRoleChip && <GreenChip tone="translucent">{roleBucketLabel(role)}</GreenChip>}
+            <GreenChip tone={isOn ? "solid" : "translucent"}>{chipLabel}</GreenChip>
           </div>
         </div>
       </Link>
@@ -88,6 +77,6 @@ export function ContactCard({
           intención antes de una acción destructiva, sin depender de un
           menú que igual había que abrir. */}
       <ChevronRight className="size-4 shrink-0 text-white/85" aria-hidden="true" />
-    </div>
+    </GreenCard>
   );
 }
