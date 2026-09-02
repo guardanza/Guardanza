@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronLeft, Info, CheckCircle2, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, Info, CheckCircle2, AlertTriangle, Plus, Trash2, Building2 } from "lucide-react";
 import { Logo, LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +17,11 @@ import { RutInput } from "@/components/rut-input";
 import { PhoneInput } from "@/components/phone-input";
 import { PasswordInput } from "@/components/password-input";
 import { MoneyAmountInput } from "@/components/money-amount-input";
-import { PropertyThumb } from "@/components/property-thumb";
 import { ContactCard } from "@/components/contact-card";
 import { CandidateCard } from "@/components/candidate-card";
+import { PropertyCard } from "@/components/property-card";
+import { GreenChip, GreenEmptyState } from "@/components/ui/green-card";
+import { GreenInfoBox, GreenInfoRow } from "@/components/ui/green-info-box";
 import { TokenSwatch, TypeSample, BottomSheetDemo } from "./interactive";
 import { noopAction } from "./noop-action";
 
@@ -265,6 +267,21 @@ export default function EstilosPage() {
             <RoleChip label="Administrador de plataforma" />
           </div>
         </SubSection>
+
+        <SubSection title="GreenChip — chips sobre el sistema verde">
+          <p className="text-xs text-muted-foreground">
+            Los tres tonos que usan las tarjetas verdes (Contactos, Candidatos, Propiedades…) — <code className="font-mono">solid</code> y{" "}
+            <code className="font-mono">translucent</code> llevan texto verde oscuro (contraste verificado, nunca texto claro sobre translúcido);{" "}
+            <code className="font-mono">deep</code> es el verde sólido más oscuro con texto blanco, para una etiqueta persistente.
+          </p>
+          <div
+            className="flex flex-wrap gap-2 rounded-xl border border-brand-green-card-border bg-brand-green-card p-3"
+          >
+            <GreenChip tone="solid">solid</GreenChip>
+            <GreenChip tone="translucent">translucent</GreenChip>
+            <GreenChip tone="deep">deep</GreenChip>
+          </div>
+        </SubSection>
       </Section>
 
       <Section id="botones" title="Botones">
@@ -320,20 +337,44 @@ export default function EstilosPage() {
         </SubSection>
 
         <SubSection title="Tarjeta de propiedad">
-          <Card size="sm" className="max-w-sm transition-shadow hover:shadow-md">
-            <CardContent className="flex items-center gap-3">
-              <PropertyThumb url={null} className="size-16 shrink-0 rounded-lg" />
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="truncate text-sm font-medium">Los Aromos 1234, depto 502, Ñuñoa</p>
-                <p className="truncate text-xs text-muted-foreground">$450.000 · Garantía $450.000</p>
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  <Badge variant="secondary" className="bg-success/15 text-success">
-                    Activa
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <p className="text-xs text-muted-foreground">
+            Sistema verde nivelado en toda la app (no solo Contactos/Candidatos) — ver <code className="font-mono">src/components/ui/green-card.tsx</code>. Foto arriba a
+            todo el ancho, chip persistente de rol (<code className="font-mono">tone=&quot;deep&quot;</code>) más el chip de estado dinámico.
+          </p>
+          <div className="max-w-sm">
+            <PropertyCard
+              href="#"
+              photoUrl={null}
+              address="Los Aromos 1234, depto 502, Ñuñoa"
+              location="Ñuñoa, Región Metropolitana"
+              badges={
+                <>
+                  <GreenChip tone="deep">Arrendador</GreenChip>
+                  <GreenChip tone="solid">Arrendatario</GreenChip>
+                </>
+              }
+            />
+          </div>
+        </SubSection>
+
+        <SubSection title="Caja de información">
+          <p className="text-xs text-muted-foreground">
+            Título + filas rótulo/valor sobre el mismo verde — para fichas de detalle (propiedad, contrato…). Rótulo y valor van los dos en blanco pleno; la jerarquía
+            es de peso, no de color (un valor vacío va en regular, nunca atenuado — ver la fila &quot;Corredor&quot;).
+          </p>
+          <div className="grid max-w-sm gap-3">
+            <GreenInfoBox title="Participantes">
+              <GreenInfoRow label="Arrendador" value="Juan Pérez" />
+              <GreenInfoRow label="Corredor" value="Sin corredor" valueClassName="font-normal" />
+              <GreenInfoRow label="Arrendatario" value="Ana Torres" />
+            </GreenInfoBox>
+          </div>
+        </SubSection>
+
+        <SubSection title="Estado vacío">
+          <div className="max-w-sm">
+            <GreenEmptyState icon={Building2} message="Sin propiedades todavía." />
+          </div>
         </SubSection>
 
         <SubSection title="Tarjeta de contacto">
