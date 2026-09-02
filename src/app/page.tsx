@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Landmark, FileText, AlertTriangle, CalendarClock, ShieldCheck, Percent, ClipboardList } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
-import { Card, CardContent } from "@/components/ui/card";
+import { GreenCard } from "@/components/ui/green-card";
 import { StatusBadge } from "@/components/status-badge";
 import { MarketingHome } from "@/components/marketing-home";
 import { getPendingCandidateEvaluations } from "@/lib/candidate-evaluations-pending";
@@ -15,6 +15,22 @@ import { StaggerGroup, StaggerItem } from "@/components/motion/stagger";
 function formatAmount(amount: number, currency: string) {
   if (currency === "UF") return `UF ${amount.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return `$${Math.round(amount).toLocaleString("es-CL")}`;
+}
+
+// Tarjeta de estadística del dashboard — mismo sistema verde que el
+// resto de la app (ver /estilos), ícono + rótulo en blanco, número
+// grande en blanco bold. Solo se usa acá (5 veces), por eso vive local
+// en vez de en ui/green-card.tsx junto a los primitivos genéricos.
+function StatCard({ icon: Icon, label, children }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; children: React.ReactNode }) {
+  return (
+    <GreenCard className="p-4">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-white">
+        <Icon className="size-3.5" strokeWidth={2} />
+        {label}
+      </div>
+      <div className="mt-1">{children}</div>
+    </GreenCard>
+  );
 }
 
 export default async function DashboardPage() {
@@ -95,73 +111,43 @@ async function SummaryCards({ userId, isPlatformAdmin }: { userId: string; isPla
   return (
     <>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card>
-          <CardContent className="space-y-1">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Landmark className="size-3.5" strokeWidth={2} />
-              Garantías en custodia
+        <StatCard icon={Landmark} label="Garantías en custodia">
+          {custodyByCurrency.size > 0 ? (
+            <div className="space-y-0.5">
+              {[...custodyByCurrency.entries()].map(([currency, { count, amount }]) => (
+                <p key={currency} className="text-xl font-bold text-white tabular-nums">
+                  {formatAmount(amount, currency)}
+                  <span className="ml-1.5 text-xs font-normal text-white/85">
+                    ({count} {count === 1 ? "garantía" : "garantías"})
+                  </span>
+                </p>
+              ))}
             </div>
-            {custodyByCurrency.size > 0 ? (
-              <div className="space-y-0.5">
-                {[...custodyByCurrency.entries()].map(([currency, { count, amount }]) => (
-                  <p key={currency} className="text-xl font-semibold tabular-nums">
-                    {formatAmount(amount, currency)}
-                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                      ({count} {count === 1 ? "garantía" : "garantías"})
-                    </span>
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xl font-semibold text-muted-foreground">—</p>
-            )}
-          </CardContent>
-        </Card>
+          ) : (
+            <p className="text-xl font-bold text-white">—</p>
+          )}
+        </StatCard>
 
-        <Card>
-          <CardContent className="space-y-1">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <FileText className="size-3.5" strokeWidth={2} />
-              Contratos activos
-            </div>
-            <p className="text-xl font-semibold tabular-nums">{activeContracts}</p>
-          </CardContent>
-        </Card>
+        <StatCard icon={FileText} label="Contratos activos">
+          <p className="text-xl font-bold text-white tabular-nums">{activeContracts}</p>
+        </StatCard>
 
-        <Card>
-          <CardContent className="space-y-1">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <AlertTriangle className="size-3.5" strokeWidth={2} />
-              Acuerdos pendientes
-            </div>
-            <p className="text-xl font-semibold tabular-nums">{openDisputes.length}</p>
-          </CardContent>
-        </Card>
+        <StatCard icon={AlertTriangle} label="Acuerdos pendientes">
+          <p className="text-xl font-bold text-white tabular-nums">{openDisputes.length}</p>
+        </StatCard>
       </div>
 
       {(isPlatformAdmin || brokerOrgIds.length > 0) && (
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {isPlatformAdmin && (
-            <Card>
-              <CardContent className="space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <ShieldCheck className="size-3.5" strokeWidth={2} />
-                  Comisiones Guardanza acumuladas (todo el sistema)
-                </div>
-                <p className="text-xl font-semibold tabular-nums">{formatAmount(totalComisionGuardanza, "CLP")}</p>
-              </CardContent>
-            </Card>
+            <StatCard icon={ShieldCheck} label="Comisiones Guardanza acumuladas (todo el sistema)">
+              <p className="text-xl font-bold text-white tabular-nums">{formatAmount(totalComisionGuardanza, "CLP")}</p>
+            </StatCard>
           )}
           {brokerOrgIds.length > 0 && (
-            <Card>
-              <CardContent className="space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <Percent className="size-3.5" strokeWidth={2} />
-                  Mis comisiones acumuladas (corredor)
-                </div>
-                <p className="text-xl font-semibold tabular-nums">{formatAmount(totalComisionCorredor, "CLP")}</p>
-              </CardContent>
-            </Card>
+            <StatCard icon={Percent} label="Mis comisiones acumuladas (corredor)">
+              <p className="text-xl font-bold text-white tabular-nums">{formatAmount(totalComisionCorredor, "CLP")}</p>
+            </StatCard>
           )}
         </div>
       )}
@@ -205,93 +191,91 @@ async function DashboardDetails({ userId }: { userId: string }) {
   return (
     <>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="p-0">
-          <div className="border-b px-4 py-3">
-            <h2 className="text-sm font-medium">Contratos por estado</h2>
+        <GreenCard className="p-0">
+          <div className="border-b border-white/12 px-4 py-3">
+            <h2 className="text-sm font-bold text-white">Contratos por estado</h2>
           </div>
-          <CardContent className="space-y-2.5 py-4">
+          <div className="space-y-2.5 p-4">
             {contractStatusOrder.map(({ key, label }) => {
               const count = contractsByStatus.get(key) ?? 0;
               const total = contracts?.length || 1;
               return (
                 <div key={key} className="flex items-center gap-3">
-                  <span className="w-32 shrink-0 text-xs text-muted-foreground">{label}</span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${(count / total) * 100}%` }} />
+                  <span className="w-32 shrink-0 text-xs text-white">{label}</span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20">
+                    <div className="h-full rounded-full bg-white" style={{ width: `${(count / total) * 100}%` }} />
                   </div>
-                  <span className="w-5 shrink-0 text-right text-xs font-medium tabular-nums">{count}</span>
+                  <span className="w-5 shrink-0 text-right text-xs font-bold text-white tabular-nums">{count}</span>
                 </div>
               );
             })}
-            {(!contracts || contracts.length === 0) && <p className="text-sm text-muted-foreground">Sin contratos todavía.</p>}
-          </CardContent>
-        </Card>
+            {(!contracts || contracts.length === 0) && <p className="text-sm text-white">Sin contratos todavía.</p>}
+          </div>
+        </GreenCard>
 
-        <Card className="p-0">
-          <div className="flex items-center gap-1.5 border-b px-4 py-3">
-            <CalendarClock className="size-3.5 text-muted-foreground" strokeWidth={2} />
-            <h2 className="text-sm font-medium">Vencen en los próximos 60 días</h2>
+        <GreenCard className="p-0">
+          <div className="flex items-center gap-1.5 border-b border-white/12 px-4 py-3">
+            <CalendarClock className="size-3.5 text-white" strokeWidth={2} />
+            <h2 className="text-sm font-bold text-white">Vencen en los próximos 60 días</h2>
           </div>
           {upcomingEndings.length > 0 ? (
-            <StaggerGroup as="div" className="divide-y">
+            <StaggerGroup as="div" className="divide-y divide-white/12">
               {upcomingEndings.map((c) => (
                 <StaggerItem as="div" key={c.id}>
-                  <Link href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
+                  <Link href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm text-white hover:bg-white/10">
                     <span className="truncate">{one(c.properties)?.address ?? c.id}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                      {new Date(c.end_date!).toLocaleDateString("es-CL")}
-                    </span>
+                    <span className="shrink-0 text-xs text-white tabular-nums">{new Date(c.end_date!).toLocaleDateString("es-CL")}</span>
                   </Link>
                 </StaggerItem>
               ))}
             </StaggerGroup>
           ) : (
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">Nada por vencer pronto.</CardContent>
+            <p className="px-4 py-8 text-center text-sm text-white">Nada por vencer pronto.</p>
           )}
-        </Card>
+        </GreenCard>
       </div>
 
       {/* Lo mismo que la campanita del header (misma consulta,
           getPendingCandidateEvaluations) — acá con más espacio para el
           detalle de cada una, en vez de solo el conteo. */}
       {pendingEvaluations.length > 0 && (
-        <Card className="mt-6 p-0">
-          <div className="flex items-center gap-1.5 border-b px-4 py-3">
-            <ClipboardList className="size-3.5 text-muted-foreground" strokeWidth={2} />
-            <h2 className="text-sm font-medium">Evaluaciones</h2>
+        <GreenCard className="mt-6 p-0">
+          <div className="flex items-center gap-1.5 border-b border-white/12 px-4 py-3">
+            <ClipboardList className="size-3.5 text-white" strokeWidth={2} />
+            <h2 className="text-sm font-bold text-white">Evaluaciones</h2>
           </div>
-          <StaggerGroup as="div" className="divide-y">
+          <StaggerGroup as="div" className="divide-y divide-white/12">
             {pendingEvaluations.map((ev) => (
               <StaggerItem as="div" key={ev.id}>
-                <Link href={`/evaluacion/postulacion/${ev.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
+                <Link href={`/evaluacion/postulacion/${ev.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-white/10">
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{participantInviteTitle(ev.participantType)}</p>
-                    <p className="truncate text-xs text-muted-foreground">{ev.propertyAddress}</p>
+                    <p className="truncate font-bold text-white">{participantInviteTitle(ev.participantType)}</p>
+                    <p className="truncate text-xs text-white">{ev.propertyAddress}</p>
                   </div>
                   <StatusBadge status="en_progreso" label="En progreso" />
                 </Link>
               </StaggerItem>
             ))}
           </StaggerGroup>
-        </Card>
+        </GreenCard>
       )}
 
       {openDisputes.length > 0 && (
-        <Card className="mt-6 p-0">
-          <div className="border-b px-4 py-3">
-            <h2 className="text-sm font-medium">Acuerdos pendientes</h2>
+        <GreenCard className="mt-6 p-0">
+          <div className="border-b border-white/12 px-4 py-3">
+            <h2 className="text-sm font-bold text-white">Acuerdos pendientes</h2>
           </div>
-          <StaggerGroup as="div" className="divide-y">
+          <StaggerGroup as="div" className="divide-y divide-white/12">
             {openDisputes.map((d) => (
               <StaggerItem as="div" key={d.id}>
-                <Link href={`/disputes/${d.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
+                <Link href={`/disputes/${d.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm text-white hover:bg-white/10">
                   <span>Disputa {d.id.slice(0, 8)}</span>
                   <StatusBadge status={d.status} />
                 </Link>
               </StaggerItem>
             ))}
           </StaggerGroup>
-        </Card>
+        </GreenCard>
       )}
     </>
   );
