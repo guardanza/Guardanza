@@ -9,6 +9,7 @@ import { stripParticularSuffix } from "@/lib/labels";
 import { getRegionsWithCommunes } from "@/lib/supabase/regions";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionTitle } from "@/components/ui/section-title";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -70,7 +71,7 @@ export default async function EditPropertyPage({
       <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-medium">Arrendadores</h2>
+            <SectionTitle>Arrendadores</SectionTitle>
             {!hasLandlord && (
               <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-foreground">
                 Falta asignar

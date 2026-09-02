@@ -5,6 +5,7 @@ import { uploadApplicantDocument, deleteApplicantDocument } from "@/lib/actions/
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { SectionTitle } from "@/components/ui/section-title";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -59,7 +60,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
       <Card className="p-0">
         <div className="border-b px-4 py-3">
-          <h2 className="text-sm font-medium">Tus documentos</h2>
+          <SectionTitle>Tus documentos</SectionTitle>
         </div>
         {documents && documents.length > 0 ? (
           <div className="divide-y">

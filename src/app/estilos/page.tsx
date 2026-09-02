@@ -22,6 +22,7 @@ import { CandidateCard } from "@/components/candidate-card";
 import { PropertyCard } from "@/components/property-card";
 import { GreenChip, GreenEmptyState } from "@/components/ui/green-card";
 import { GreenInfoBox, GreenInfoRow } from "@/components/ui/green-info-box";
+import { SectionTitle } from "@/components/ui/section-title";
 import { TokenSwatch, TypeSample, BottomSheetDemo } from "./interactive";
 import { noopAction } from "./noop-action";
 
@@ -178,9 +179,13 @@ export default function EstilosPage() {
       >
         <div className="rounded-xl border border-border bg-card p-4">
           <TypeSample twClass="text-xs" note="chips y labels cortos — no usar en cuerpo de texto" sample="Texto en tamaño xs." />
-          <TypeSample twClass="text-sm" note="cuerpo real de la app — piso de legibilidad pedido (13px), nunca por debajo" sample="Texto en tamaño sm — el más usado en toda la interfaz." />
+          <TypeSample
+            twClass="text-sm"
+            note="cuerpo real de la app — piso de legibilidad pedido (13px); también el nombre del ítem dentro de una tarjeta (ej. nombre en Candidatos)"
+            sample="Texto en tamaño sm — el más usado en toda la interfaz."
+          />
           <TypeSample twClass="text-base" note="cuerpo secundario e inputs" sample="Texto en tamaño base." />
-          <TypeSample twClass="text-lg" note="destacados — ej. nombre en la tarjeta de Candidatos" sample="Texto en tamaño lg." />
+          <TypeSample twClass="text-lg" note="título de sección (SectionTitle) — ver la subsección de abajo" sample="Texto en tamaño lg." />
           <TypeSample twClass="text-xl" note="título de página (h1) en mobile" sample="Título en tamaño xl." />
           <TypeSample twClass="text-2xl" note="título de página (h1) en desktop" sample="Título en tamaño 2xl." />
           <TypeSample twClass="text-3xl" note="hero de marketing" sample="Título en tamaño 3xl." />
@@ -200,6 +205,50 @@ export default function EstilosPage() {
           <h2 className="text-xl">Título h2</h2>
           <h3 className="text-lg">Título h3</h3>
         </div>
+
+        <SubSection title="Título de sección (SectionTitle)">
+          <p className="text-xs text-muted-foreground">
+            Antes convivían dos tratamientos para el mismo tipo de título dentro de una pantalla (mayúsculas chico en las cajas verdes, sentence case más
+            grande en las tarjetas blancas) — <code className="font-mono">SectionTitle</code> (<code className="font-mono">src/components/ui/section-title.tsx</code>) es
+            ahora la única fuente, sobre cualquier fondo. Jerarquía que respeta, de mayor a menor peso visual:
+          </p>
+          <div className="grid gap-2 rounded-xl border border-border bg-card p-4 text-sm">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-xl font-bold text-brand-forest">Título de página</span>
+              <code className="text-xs text-muted-foreground">h1 · text-xl/2xl</code>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-lg font-bold text-brand-forest">Título de sección</span>
+              <code className="text-xs text-muted-foreground">SectionTitle · text-lg</code>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-sm font-bold text-brand-forest">Nombre del ítem</span>
+              <code className="text-xs text-muted-foreground">text-sm bold</code>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-xs text-muted-foreground">Texto secundario</span>
+              <code className="text-xs text-muted-foreground">text-xs</code>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            El contenido de una sección nunca puede pesar visualmente más que su propio encabezado — por eso el nombre del candidato bajó de{" "}
+            <code className="font-mono">text-lg</code> a <code className="font-mono">text-sm</code> (ver la tarjeta de Candidato, más abajo): a 18px bold quedaba más
+            grande que el título &quot;Candidatos para arrendar&quot; que lo contenía.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-border bg-card p-4">
+              <SectionTitle>Detalles de la propiedad</SectionTitle>
+              <p className="mt-1 text-xs text-muted-foreground">Sobre blanco — hereda el verde oscuro de marca (--brand-forest).</p>
+            </div>
+            <div className="rounded-xl border border-brand-green-card-border bg-brand-green-card p-4">
+              <SectionTitle onGreen>Detalles de la propiedad</SectionTitle>
+              <p className="mt-1 text-xs text-white">
+                Sobre verde (<code className="font-mono">onGreen</code>) — blanco pleno, mismo 3.94:1 ya verificado; a este tamaño (bold ≥18px) sí califica
+                como texto grande para WCAG.
+              </p>
+            </div>
+          </div>
+        </SubSection>
       </Section>
 
       <Section id="chips" title="Chips y badges" description="Todos los estados posibles, agrupados por estilo real (varios nombres de estado comparten exactamente el mismo color).">

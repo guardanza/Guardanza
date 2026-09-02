@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { Separator } from "@/components/ui/separator";
+import { SectionTitle } from "@/components/ui/section-title";
 import { RequireRutPrompt } from "@/components/require-rut-prompt";
 import { UndoAdjudicationSheet } from "@/components/undo-adjudication-sheet";
 import { CancelContractSheet } from "@/components/cancel-contract-sheet";
@@ -207,7 +208,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
       <Separator />
 
       <div className="space-y-3">
-        <h2 className="font-medium">Propuestas de descuento</h2>
+        <SectionTitle>Propuestas de descuento</SectionTitle>
         <Card className="p-0">
           {disputes && disputes.length > 0 ? (
             <ul className="divide-y">

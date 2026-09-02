@@ -17,11 +17,18 @@ import type { CandidateDocumentProgress } from "@/lib/candidate-document-list";
 // hacía, y por eso el email quedaba en 3.16:1). La jerarquía
 // nombre/email se resuelve con tamaño y peso, no con un color más
 // apagado — apagar el color solo empeora el contraste en este fondo.
-// Igual, 3.94:1 queda corto de la AA estricta (4.5) para texto chico:
-// el nombre se sube a texto "grande" (bold ≥18px) para calzar en el
-// umbral relajado de la propia WCAG; el email no tiene ese resquicio
-// (es chico a propósito) — es el máximo posible sin cambiar el verde
-// de fondo que pidió el usuario.
+//
+// El nombre va en text-sm (13px) bold — un nivel por debajo del título
+// de sección (SectionTitle, text-lg/18px, ver ui/section-title.tsx:
+// "Candidatos para arrendar" en la ficha de propiedad) y uno por
+// encima del email (text-xs/12px, regular). Antes el nombre estaba en
+// text-lg (18px), más grande que el título de la sección que lo
+// contenía — jerarquía invertida. A este tamaño ya no califica como
+// "texto grande" de WCAG (necesita bold ≥18px), así que el nombre
+// queda en el mismo 3.94:1 que el email — corto de la AA estricta
+// (4.5:1) para texto chico, mismo techo ya aceptado para el email,
+// ahora también acá: es el máximo posible sin cambiar el verde de
+// fondo, y el peso bold lo sigue distinguiendo del email.
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
@@ -71,23 +78,23 @@ export function CandidateCard({
   const stateChip = status === "seleccionado" ? "Adjudicado" : status === "no_seleccionado" ? "No seleccionado" : "En evaluación";
 
   return (
-    <GreenCard deep={isDone} className={cn("p-3.5", isDone ? "shadow-[0_4px_18px_rgba(20,67,47,0.4)]" : "shadow-[0_3px_12px_rgba(20,67,47,0.22)]")}>
-      <div className="mb-3 flex items-center gap-3">
+    <GreenCard deep={isDone} className={cn("p-3", isDone ? "shadow-[0_4px_18px_rgba(20,67,47,0.4)]" : "shadow-[0_3px_12px_rgba(20,67,47,0.22)]")}>
+      <div className="mb-2.5 flex items-center gap-3">
         {avatarUrl ? (
           <Image
             src={avatarUrl}
             alt=""
-            width={52}
-            height={52}
-            className="size-[52px] shrink-0 rounded-full border-2 border-white/25 object-cover"
+            width={44}
+            height={44}
+            className="size-11 shrink-0 rounded-full border-2 border-white/25 object-cover"
           />
         ) : (
-          <span className="flex size-[52px] shrink-0 items-center justify-center rounded-full border-2 border-white/25 bg-brand-green-card-deep text-lg font-bold text-white">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-white/25 bg-brand-green-card-deep text-sm font-bold text-white">
             {initials(name)}
           </span>
         )}
         <div className="min-w-0 flex-1">
-          <p className={cn("truncate text-lg font-bold text-white", legibleText)}>{name}</p>
+          <p className={cn("truncate text-sm font-bold text-white", legibleText)}>{name}</p>
           <p className={cn("truncate text-xs text-white", legibleText)}>{email}</p>
         </div>
         <GreenChip tone="solid" className="shrink-0 self-start px-2.5 py-1 text-[9.5px]">
@@ -213,7 +220,7 @@ function CandidateCardBody({
           href={detailHref}
           className="flex-1 rounded-[10px] border-[1.5px] border-white/65 px-2.5 py-2.5 text-center text-[12.5px] font-bold text-white hover:bg-white/12"
         >
-          Revisar detalle
+          Ver
         </Link>
         <AdjudicateCandidateSheet
           href={`/contracts/new?property_id=${propertyId}&candidate_id=${propertyCandidateId}`}
