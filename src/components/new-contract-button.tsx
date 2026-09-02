@@ -33,17 +33,21 @@ export function NewContractButton({
   propertyId,
   hasLandlord,
   readyCandidates,
+  triggerClassName,
 }: {
   propertyId: string;
   hasLandlord: boolean;
   readyCandidates: ReadyCandidate[];
+  // Para cuando el trigger vive sobre una tarjeta verde en vez del
+  // fondo blanco de siempre — ver "Contratos de esta propiedad".
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const candidatesHref = `/properties/${propertyId}?focus=candidatos#candidatos-para-arrendar`;
 
   return (
     <>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button type="button" variant="outline" size="sm" className={triggerClassName} onClick={() => setOpen(true)}>
         Nuevo contrato
       </Button>
       <BottomSheet open={open} onOpenChange={setOpen}>

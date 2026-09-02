@@ -3,9 +3,9 @@ import { redirect } from "next/navigation";
 import { Handshake, ClipboardList } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
-import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
+import { GreenCard, GreenEmptyState } from "@/components/ui/green-card";
 
 type Guarantee = { contracts: { properties: { address: string } | { address: string }[] } | { properties: { address: string } | { address: string }[] }[] };
 
@@ -40,23 +40,16 @@ export default async function ProposalsPage() {
             const property = contract ? one(contract.properties) : null;
             return (
               <Link key={d.id} href={`/disputes/${d.id}`}>
-                <Card>
-                  <CardContent className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{property?.address ?? `Propuesta ${d.id.slice(0, 8)}`}</span>
-                    <StatusBadge status={d.status} />
-                  </CardContent>
-                </Card>
+                <GreenCard className="flex items-center justify-between p-3.5 transition-shadow hover:shadow-[0_4px_16px_rgba(20,67,47,0.26)]">
+                  <span className="text-sm font-bold text-white">{property?.address ?? `Propuesta ${d.id.slice(0, 8)}`}</span>
+                  <StatusBadge status={d.status} />
+                </GreenCard>
               </Link>
             );
           })}
         </div>
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-            <Handshake className="size-8 text-muted-foreground" strokeWidth={1.5} />
-            <p className="text-sm text-muted-foreground">Sin propuestas de descuento todavía.</p>
-          </CardContent>
-        </Card>
+        <GreenEmptyState icon={Handshake} message="Sin propuestas de descuento todavía." />
       )}
     </div>
   );

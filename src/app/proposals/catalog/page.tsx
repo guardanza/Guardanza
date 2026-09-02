@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { GreenCard, GreenEmptyState } from "@/components/ui/green-card";
+import { ClipboardList } from "lucide-react";
 
 export default async function CatalogPage() {
   const supabase = await createClient();
@@ -36,53 +38,43 @@ export default async function CatalogPage() {
           const current = versions.find((v) => v.valid_to === null);
 
           return (
-            <Card key={r.id}>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">
-                      {r.description} <span className="text-sm text-muted-foreground">({r.unit})</span>
-                    </p>
-                    <Badge variant="outline" className="mt-1 font-mono">
-                      {r.code}
-                    </Badge>
-                  </div>
-                  <p className="text-lg font-medium">{current?.unit_price ?? "—"}</p>
+            <GreenCard key={r.id} className="p-3.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-white">
+                    {r.description} <span className="text-sm font-normal text-white">({r.unit})</span>
+                  </p>
+                  <Badge variant="outline" className="mt-1 border-white/50 bg-transparent font-mono text-white">
+                    {r.code}
+                  </Badge>
                 </div>
+                <p className="text-lg font-bold text-white">{current?.unit_price ?? "—"}</p>
+              </div>
 
-                <details className="text-sm">
-                  <summary className="cursor-pointer text-muted-foreground underline-offset-4 hover:underline">
-                    Historial de versiones
-                  </summary>
-                  <ul className="mt-2 list-disc space-y-0.5 pl-5 text-muted-foreground">
-                    {versions.map((v) => (
-                      <li key={v.id}>
-                        {v.unit_price} — desde {v.valid_from} {v.valid_to ? `hasta ${v.valid_to}` : "(vigente)"}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
+              <details className="mt-3 text-sm">
+                <summary className="cursor-pointer text-white underline-offset-4 hover:underline">Historial de versiones</summary>
+                <ul className="mt-2 list-disc space-y-0.5 pl-5 text-white">
+                  {versions.map((v) => (
+                    <li key={v.id}>
+                      {v.unit_price} — desde {v.valid_from} {v.valid_to ? `hasta ${v.valid_to}` : "(vigente)"}
+                    </li>
+                  ))}
+                </ul>
+              </details>
 
-                {isPlatformAdmin && (
-                  <form action={updateRepairPrice} className="flex gap-2">
-                    <input type="hidden" name="repair_reference_id" value={r.id} />
-                    <Input name="unit_price" type="number" step="0.01" placeholder="Nuevo precio" required className="max-w-40" />
-                    <Button type="submit" variant="outline" size="sm">
-                      Actualizar precio
-                    </Button>
-                  </form>
-                )}
-              </CardContent>
-            </Card>
+              {isPlatformAdmin && (
+                <form action={updateRepairPrice} className="mt-3 flex gap-2">
+                  <input type="hidden" name="repair_reference_id" value={r.id} />
+                  <Input name="unit_price" type="number" step="0.01" placeholder="Nuevo precio" required className="max-w-40 bg-white" />
+                  <Button type="submit" variant="outline" size="sm" className="border-white/65 bg-transparent text-white hover:bg-white/12">
+                    Actualizar precio
+                  </Button>
+                </form>
+              )}
+            </GreenCard>
           );
         })}
-        {(!references || references.length === 0) && (
-          <Card>
-            <CardContent className="py-6 text-center text-sm text-muted-foreground">
-              Sin tipos de reparación todavía.
-            </CardContent>
-          </Card>
-        )}
+        {(!references || references.length === 0) && <GreenEmptyState icon={ClipboardList} message="Sin tipos de reparación todavía." />}
       </div>
 
       {isPlatformAdmin && (

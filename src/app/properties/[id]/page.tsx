@@ -23,6 +23,7 @@ import { CandidateCard } from "@/components/candidate-card";
 import { ListingPortalLink } from "@/components/listing-portal-link";
 import { DeletePropertyDialog } from "@/components/delete-property-dialog";
 import { PropertyLifecycleAction } from "@/components/property-lifecycle-action";
+import { GreenCard } from "@/components/ui/green-card";
 import { GreenInfoBox, GreenInfoRow } from "@/components/ui/green-info-box";
 import { SectionTitle } from "@/components/ui/section-title";
 import { Badge } from "@/components/ui/badge";
@@ -349,24 +350,31 @@ export default async function PropertyDetailPage({
         </Card>
       )}
 
-      <Card className="p-0">
-        <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
-          <SectionTitle>Contratos de esta propiedad</SectionTitle>
-          {!isOccupied && <NewContractButton propertyId={id} hasLandlord={hasLandlord} readyCandidates={readyCandidates} />}
+      <GreenCard className="p-0">
+        <div className="flex items-center justify-between gap-2 border-b border-white/12 px-4 py-3">
+          <SectionTitle onGreen>Contratos de esta propiedad</SectionTitle>
+          {!isOccupied && (
+            <NewContractButton
+              propertyId={id}
+              hasLandlord={hasLandlord}
+              readyCandidates={readyCandidates}
+              triggerClassName="border-white/65 bg-transparent text-white hover:bg-white/12"
+            />
+          )}
         </div>
         {contracts && contracts.length > 0 ? (
-          <div className="divide-y">
+          <div className="divide-y divide-white/12">
             {contracts.map((c) => (
-              <Link key={c.id} href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-muted/50">
+              <Link key={c.id} href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-3 text-sm text-white hover:bg-white/10">
                 <span className="tabular-nums">{formatMoney(c.guarantee_amount, c.guarantee_currency as MoneyCurrency)}</span>
                 <StatusBadge status={c.status} />
               </Link>
             ))}
           </div>
         ) : (
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">Sin contratos todavía.</CardContent>
+          <p className="py-8 text-center text-sm text-white">Sin contratos todavía.</p>
         )}
-      </Card>
+      </GreenCard>
     </div>
   );
 }

@@ -73,16 +73,19 @@ export function GreenChip({
 export function GreenEmptyState({
   icon: Icon,
   message,
+  action,
   className,
 }: {
   icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   message: string;
+  action?: React.ReactNode;
   className?: string;
 }) {
   return (
-    <GreenCard className={cn("flex flex-col items-center gap-2 px-4 py-12 text-center", className)}>
+    <GreenCard className={cn("flex flex-col items-center gap-3 px-4 py-12 text-center", className)}>
       {Icon && <Icon className="size-8 text-white/70" strokeWidth={1.5} />}
-      <p className="text-sm text-white">{message}</p>
+      <p className="max-w-xs text-sm text-white">{message}</p>
+      {action}
     </GreenCard>
   );
 }
