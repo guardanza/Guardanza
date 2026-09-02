@@ -4,10 +4,12 @@ import { createProposal, acceptProposal, rejectProposal, resolveDisputeAdmin } f
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { SectionTitle } from "@/components/ui/section-title";
+import { GreenCard, GreenEmptyState } from "@/components/ui/green-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/status-badge";
+import { Handshake } from "lucide-react";
 
 const selectClass =
   "h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -82,56 +84,49 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
       <div className="space-y-3">
         <SectionTitle>Propuestas</SectionTitle>
         {proposals?.map((p) => (
-          <Card key={p.id}>
-            <CardContent className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-lg font-medium">{p.total_amount}</p>
-                <StatusBadge status={p.status} />
-              </div>
-              <ul className="space-y-0.5 text-sm text-muted-foreground">
-                {p.proposal_items?.map((it, i) => (
-                  <li key={i}>
-                    {it.description} — {it.quantity} × {it.unit_price_snapshot ?? "—"} = {it.amount}
-                  </li>
-                ))}
-              </ul>
-              {p.status === "pendiente" && (
-                <div className="flex flex-wrap items-start gap-2">
-                  <form action={acceptProposal.bind(null, p.id, id)}>
-                    <Button type="submit" size="sm">
-                      Aceptar
+          <GreenCard key={p.id} className="p-3.5">
+            <div className="flex items-center justify-between">
+              <p className="text-lg font-bold text-white">{p.total_amount}</p>
+              <StatusBadge status={p.status} />
+            </div>
+            <ul className="mt-1 space-y-0.5 text-sm text-white">
+              {p.proposal_items?.map((it, i) => (
+                <li key={i}>
+                  {it.description} — {it.quantity} × {it.unit_price_snapshot ?? "—"} = {it.amount}
+                </li>
+              ))}
+            </ul>
+            {p.status === "pendiente" && (
+              <div className="mt-2 flex flex-wrap items-start gap-2">
+                <form action={acceptProposal.bind(null, p.id, id)}>
+                  <Button type="submit" size="sm" className="bg-white text-brand-green-card-deep-border hover:bg-white/90">
+                    Aceptar
+                  </Button>
+                </form>
+
+                <details className="group">
+                  <summary className="flex h-8 cursor-pointer list-none items-center rounded-md border border-white/65 px-3 text-sm font-bold text-white">
+                    Rechazar
+                  </summary>
+                  <form action={rejectProposal.bind(null, p.id, id)} className="mt-2 w-64 space-y-2">
+                    <Textarea
+                      name="motivo_rechazo"
+                      placeholder="Explica por qué rechazas esta propuesta (mínimo 50 caracteres)."
+                      minLength={50}
+                      required
+                      rows={3}
+                      className="bg-white"
+                    />
+                    <Button type="submit" size="sm" className="bg-white text-destructive hover:bg-white/90">
+                      Confirmar rechazo y abrir disputa
                     </Button>
                   </form>
-
-                  <details className="group">
-                    <summary className="flex h-8 cursor-pointer list-none items-center rounded-md border border-input px-3 text-sm font-medium">
-                      Rechazar
-                    </summary>
-                    <form action={rejectProposal.bind(null, p.id, id)} className="mt-2 w-64 space-y-2">
-                      <Textarea
-                        name="motivo_rechazo"
-                        placeholder="Explica por qué rechazas esta propuesta (mínimo 50 caracteres)."
-                        minLength={50}
-                        required
-                        rows={3}
-                      />
-                      <Button type="submit" size="sm" variant="destructive">
-                        Confirmar rechazo y abrir disputa
-                      </Button>
-                    </form>
-                  </details>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </details>
+              </div>
+            )}
+          </GreenCard>
         ))}
-        {(!proposals || proposals.length === 0) && (
-          <Card>
-            <CardContent className="py-6 text-center text-sm text-muted-foreground">
-              Sin propuestas todavía.
-            </CardContent>
-          </Card>
-        )}
+        {(!proposals || proposals.length === 0) && <GreenEmptyState icon={Handshake} message="Sin propuestas todavía." />}
       </div>
 
       <Card>

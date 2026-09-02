@@ -9,8 +9,9 @@ import { isValidEmail } from "@/lib/email";
 import { findAccountRoleByEmail } from "@/lib/supabase/find-user-by-email";
 import { ContactsSearchField } from "@/components/contacts-search-field";
 import { QuickInviteButton } from "@/components/quick-invite-role-sheet";
-import { Card, CardContent } from "@/components/ui/card";
 import { ContactCard } from "@/components/contact-card";
+import { GreenEmptyState } from "@/components/ui/green-card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -201,14 +202,7 @@ export default async function ContactsPage({
           );
         })}
 
-        {filtered.length === 0 && !prefix && (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-              <Users className="size-8 text-muted-foreground" strokeWidth={1.5} />
-              <p className="text-sm text-muted-foreground">Todavía no tienes a nadie acá.</p>
-            </CardContent>
-          </Card>
-        )}
+        {filtered.length === 0 && !prefix && <GreenEmptyState icon={Users} message="Todavía no tienes a nadie acá." />}
 
         {/* Una persona tiene un solo rol en la plataforma — si la
             búsqueda (global, las 3 pestañas) no encontró a nadie en TU
@@ -280,12 +274,7 @@ export default async function ContactsPage({
         )}
 
         {filtered.length === 0 && prefix && !existingAccountRole && !orgCount && (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-              <Users className="size-8 text-muted-foreground" strokeWidth={1.5} />
-              <p className="text-sm text-muted-foreground">No encontramos a nadie con &quot;{trimmedQuery}&quot;.</p>
-            </CardContent>
-          </Card>
+          <GreenEmptyState icon={Users} message={`No encontramos a nadie con "${trimmedQuery}".`} />
         )}
       </div>
     </div>

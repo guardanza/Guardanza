@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Link2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function CopyLinkButton({ path }: { path: string }) {
+export function CopyLinkButton({ path, className }: { path: string; className?: string }) {
   const [copied, setCopied] = useState(false);
 
   return (
@@ -12,6 +12,7 @@ export function CopyLinkButton({ path }: { path: string }) {
       type="button"
       variant="outline"
       size="sm"
+      className={className}
       onClick={async () => {
         const url = `${window.location.origin}${path}`;
         await navigator.clipboard.writeText(url);
