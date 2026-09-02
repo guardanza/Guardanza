@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createProposal, acceptProposal, rejectProposal, resolveDisputeAdmin } from "@/lib/actions/disputes";
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SectionTitle } from "@/components/ui/section-title";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,7 +80,7 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
       )}
 
       <div className="space-y-3">
-        <h2 className="font-medium">Propuestas</h2>
+        <SectionTitle>Propuestas</SectionTitle>
         {proposals?.map((p) => (
           <Card key={p.id}>
             <CardContent className="space-y-2">

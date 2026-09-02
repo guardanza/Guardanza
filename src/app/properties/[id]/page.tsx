@@ -24,6 +24,7 @@ import { ListingPortalLink } from "@/components/listing-portal-link";
 import { DeletePropertyDialog } from "@/components/delete-property-dialog";
 import { PropertyLifecycleAction } from "@/components/property-lifecycle-action";
 import { GreenInfoBox, GreenInfoRow } from "@/components/ui/green-info-box";
+import { SectionTitle } from "@/components/ui/section-title";
 import { Badge } from "@/components/ui/badge";
 import { categorizeBlockingContract } from "@/lib/property-status";
 
@@ -291,7 +292,7 @@ export default async function PropertyDetailPage({
           <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-medium">Candidatos para arrendar</h2>
+                <SectionTitle>Candidatos para arrendar</SectionTitle>
                 {candidates.length === 0 && (
                   <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-foreground">Empieza aquí</span>
                 )}
@@ -350,7 +351,7 @@ export default async function PropertyDetailPage({
 
       <Card className="p-0">
         <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
-          <h2 className="text-sm font-medium">Contratos de esta propiedad</h2>
+          <SectionTitle>Contratos de esta propiedad</SectionTitle>
           {!isOccupied && <NewContractButton propertyId={id} hasLandlord={hasLandlord} readyCandidates={readyCandidates} />}
         </div>
         {contracts && contracts.length > 0 ? (

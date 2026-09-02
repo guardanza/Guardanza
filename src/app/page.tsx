@@ -4,6 +4,7 @@ import { Landmark, FileText, AlertTriangle, CalendarClock, ShieldCheck, Percent,
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { GreenCard } from "@/components/ui/green-card";
+import { SectionTitle } from "@/components/ui/section-title";
 import { StatusBadge } from "@/components/status-badge";
 import { MarketingHome } from "@/components/marketing-home";
 import { getPendingCandidateEvaluations } from "@/lib/candidate-evaluations-pending";
@@ -193,7 +194,7 @@ async function DashboardDetails({ userId }: { userId: string }) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <GreenCard className="p-0">
           <div className="border-b border-white/12 px-4 py-3">
-            <h2 className="text-sm font-bold text-white">Contratos por estado</h2>
+            <SectionTitle onGreen>Contratos por estado</SectionTitle>
           </div>
           <div className="space-y-2.5 p-4">
             {contractStatusOrder.map(({ key, label }) => {
@@ -216,7 +217,7 @@ async function DashboardDetails({ userId }: { userId: string }) {
         <GreenCard className="p-0">
           <div className="flex items-center gap-1.5 border-b border-white/12 px-4 py-3">
             <CalendarClock className="size-3.5 text-white" strokeWidth={2} />
-            <h2 className="text-sm font-bold text-white">Vencen en los próximos 60 días</h2>
+            <SectionTitle onGreen>Vencen en los próximos 60 días</SectionTitle>
           </div>
           {upcomingEndings.length > 0 ? (
             <StaggerGroup as="div" className="divide-y divide-white/12">
@@ -242,7 +243,7 @@ async function DashboardDetails({ userId }: { userId: string }) {
         <GreenCard className="mt-6 p-0">
           <div className="flex items-center gap-1.5 border-b border-white/12 px-4 py-3">
             <ClipboardList className="size-3.5 text-white" strokeWidth={2} />
-            <h2 className="text-sm font-bold text-white">Evaluaciones</h2>
+            <SectionTitle onGreen>Evaluaciones</SectionTitle>
           </div>
           <StaggerGroup as="div" className="divide-y divide-white/12">
             {pendingEvaluations.map((ev) => (
@@ -263,7 +264,7 @@ async function DashboardDetails({ userId }: { userId: string }) {
       {openDisputes.length > 0 && (
         <GreenCard className="mt-6 p-0">
           <div className="border-b border-white/12 px-4 py-3">
-            <h2 className="text-sm font-bold text-white">Acuerdos pendientes</h2>
+            <SectionTitle onGreen>Acuerdos pendientes</SectionTitle>
           </div>
           <StaggerGroup as="div" className="divide-y divide-white/12">
             {openDisputes.map((d) => (
