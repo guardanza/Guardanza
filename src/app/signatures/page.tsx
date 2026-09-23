@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { StatusBadge } from "@/components/status-badge";
 import { CopyLinkButton } from "@/components/copy-link-button";
-import { GreenCard, GreenEmptyState } from "@/components/ui/green-card";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function SignaturesPage() {
   const supabase = await createClient();
@@ -41,25 +42,23 @@ export default async function SignaturesPage() {
             const property = one(c.properties);
             const pendingSignature = c.status === "pendiente_firma_arrendador" || c.status === "pendiente_firma_arrendatario";
             return (
-              <GreenCard key={c.id} className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between">
+              <Card key={c.id} className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <Link href={`/contracts/${c.id}`} className="text-sm font-bold text-white underline-offset-4 hover:underline">
+                  <Link href={`/contracts/${c.id}`} className="text-sm font-bold text-foreground underline-offset-4 hover:underline">
                     {property?.address ?? c.id}
                   </Link>
                   <div className="mt-1 flex items-center gap-2">
                     <StatusBadge status={c.status} />
-                    <span className="text-xs text-white">{SIGN_STATUS_LABEL[c.status] ?? c.status}</span>
+                    <span className="text-xs text-muted-foreground">{SIGN_STATUS_LABEL[c.status] ?? c.status}</span>
                   </div>
                 </div>
-                {pendingSignature && (
-                  <CopyLinkButton path={`/contracts/${c.id}`} className="border-white/65 bg-transparent font-bold text-white hover:bg-white/12" />
-                )}
-              </GreenCard>
+                {pendingSignature && <CopyLinkButton path={`/contracts/${c.id}`} />}
+              </Card>
             );
           })}
         </div>
       ) : (
-        <GreenEmptyState icon={PenLine} message="Sin contratos todavía." />
+        <EmptyState icon={PenLine} message="Sin contratos todavía." />
       )}
     </div>
   );

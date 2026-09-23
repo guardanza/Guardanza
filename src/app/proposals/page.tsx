@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { StatusBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
-import { GreenCard, GreenEmptyState } from "@/components/ui/green-card";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Guarantee = { contracts: { properties: { address: string } | { address: string }[] } | { properties: { address: string } | { address: string }[] }[] };
 
@@ -40,16 +41,16 @@ export default async function ProposalsPage() {
             const property = contract ? one(contract.properties) : null;
             return (
               <Link key={d.id} href={`/disputes/${d.id}`}>
-                <GreenCard className="flex items-center justify-between p-3.5 transition-shadow hover:shadow-[0_4px_16px_rgba(20,67,47,0.26)]">
-                  <span className="text-sm font-bold text-white">{property?.address ?? `Propuesta ${d.id.slice(0, 8)}`}</span>
+                <Card className="flex items-center justify-between p-3.5">
+                  <span className="text-sm font-bold text-foreground">{property?.address ?? `Propuesta ${d.id.slice(0, 8)}`}</span>
                   <StatusBadge status={d.status} />
-                </GreenCard>
+                </Card>
               </Link>
             );
           })}
         </div>
       ) : (
-        <GreenEmptyState icon={Handshake} message="Sin propuestas de descuento todavía." />
+        <EmptyState icon={Handshake} message="Sin propuestas de descuento todavía." />
       )}
     </div>
   );

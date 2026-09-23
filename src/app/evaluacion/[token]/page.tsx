@@ -69,14 +69,14 @@ export default async function CandidateParticipantInvitePage({
           <CardTitle>{participantInviteTitle(invite.participant_type)}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* El tono del codeudor se destaca con el mismo dorado que el
+          {/* El tono del codeudor se destaca con el mismo ámbar que el
               resto de la app usa para avisos importantes — no es un
               error, pero sí algo que hay que leer con atención antes
               de avanzar, spec sección 4. */}
           <p
             className={cn(
               "text-sm leading-relaxed",
-              isCodeudor ? "rounded-lg border border-brand-gold/40 bg-brand-gold/5 p-3 text-foreground" : "text-muted-foreground"
+              isCodeudor ? "rounded-lg border border-accent-foreground/30 bg-accent/40 p-3 text-foreground" : "text-muted-foreground"
             )}
           >
             {message}

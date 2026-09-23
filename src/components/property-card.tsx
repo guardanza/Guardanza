@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { PropertyThumb } from "@/components/property-thumb";
-import { GreenCard } from "@/components/ui/green-card";
-import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
-// Tarjeta de propiedad — mismo sistema verde que Contactos/Candidatos
-// (ver ui/green-card.tsx), con la foto arriba a todo el ancho en vez del
-// layout anterior (miniatura a la izquierda) — así lo pidió el usuario,
-// mismo criterio que el mockup de referencia (verde-75-sistema.html).
+// Tarjeta blanca (sistema carbón + dorado — el sistema verde anterior se
+// retiró), foto arriba a todo el ancho.
 //
 // El menú de tres puntitos (PropertyRowMenu) es un hermano del <Link>,
 // no algo anidado adentro — mismo motivo que el chevrón de ContactCard:
@@ -32,19 +29,19 @@ export function PropertyCard({
   menu?: React.ReactNode;
 }) {
   return (
-    <GreenCard className="relative overflow-hidden p-0 transition-shadow hover:shadow-[0_4px_16px_rgba(20,67,47,0.26)]">
+    <Card className="relative overflow-hidden p-0">
       <Link href={href} className="absolute inset-0" aria-label={address} />
       <div className="pointer-events-none">
-        <PropertyThumb url={photoUrl} className="h-28 w-full border-b border-white/15 bg-brand-green-card-deep text-white/60" />
+        <PropertyThumb url={photoUrl} className="h-28 w-full border-b border-border bg-secondary text-muted-foreground" />
         <div className="space-y-1.5 p-3">
           <div className="min-w-0">
-            <p className={cn("truncate text-[15px] font-bold text-white", "[text-shadow:0_1px_2px_rgba(0,0,0,0.18)]")}>{address}</p>
-            <p className="truncate text-xs text-white">{location}</p>
+            <p className="truncate text-[15px] font-bold text-foreground">{address}</p>
+            <p className="truncate text-xs text-muted-foreground">{location}</p>
           </div>
           <div className="flex flex-wrap gap-1.5">{badges}</div>
         </div>
       </div>
       {menu && <div className="absolute top-2 right-2 z-10">{menu}</div>}
-    </GreenCard>
+    </Card>
   );
 }

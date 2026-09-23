@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { Separator } from "@/components/ui/separator";
 import { SectionTitle } from "@/components/ui/section-title";
-import { GreenCard } from "@/components/ui/green-card";
-import { GreenInfoBox, GreenInfoRow } from "@/components/ui/green-info-box";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CarbonInfoBox, CarbonInfoRow } from "@/components/ui/carbon-info-box";
 import { RequireRutPrompt } from "@/components/require-rut-prompt";
+import { FileText } from "lucide-react";
 import { UndoAdjudicationSheet } from "@/components/undo-adjudication-sheet";
 import { CancelContractSheet } from "@/components/cancel-contract-sheet";
 
@@ -99,41 +101,41 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         <StatusBadge status={contract.status} />
       </div>
 
-      <GreenInfoBox title="Garantía">
+      <CarbonInfoBox title="Garantía">
         <div className="pb-2">
           {amounts ? (
             <>
-              <p className="text-lg font-bold text-white">
+              <p className="text-lg font-bold text-brand-gold-light">
                 {amounts.amount_chosen} {amounts.currency_chosen}
-                <span className="ml-1.5 text-sm font-normal text-white">moneda elegida</span>
+                <span className="ml-1.5 text-sm font-normal text-white/65">moneda elegida</span>
               </p>
-              <p className="text-xs text-white">
+              <p className="text-xs text-white/65">
                 {amounts.is_frozen
                   ? `Equivalente: ${amounts.amount_other} ${amounts.currency_other} — convertido a la UF del día de firma (${amounts.uf_rate_at_signing})`
                   : "Equivalente en la otra moneda se calculará al firmar el contrato."}
               </p>
             </>
           ) : (
-            <p className="text-sm text-white">—</p>
+            <p className="text-sm text-white/65">—</p>
           )}
         </div>
         {guarantee && (
           <div className="flex items-center gap-2 pt-2 text-sm">
-            <span className="text-white">Estado de la garantía:</span>
+            <span className="text-white/65">Estado de la garantía:</span>
             <StatusBadge status={guarantee.status} />
           </div>
         )}
-      </GreenInfoBox>
+      </CarbonInfoBox>
 
       {contract.deposit_confirmed_at && (
-        <GreenInfoBox title="Dinero custodiado">
-          <GreenInfoRow label="Intereses acumulados hasta hoy" value={`${interestAccrued ?? 0} ${contract.guarantee_currency}`} />
-          <GreenInfoRow label="Comisión Guardanza" value={`${contract.comision_guardanza_monto} ${contract.guarantee_currency}`} />
+        <CarbonInfoBox title="Dinero custodiado">
+          <CarbonInfoRow label="Intereses acumulados hasta hoy" amount value={`${interestAccrued ?? 0} ${contract.guarantee_currency}`} />
+          <CarbonInfoRow label="Comisión Guardanza" amount value={`${contract.comision_guardanza_monto} ${contract.guarantee_currency}`} />
           {contract.comision_corredor_monto > 0 && (
-            <GreenInfoRow label="Comisión corredor" value={`${contract.comision_corredor_monto} ${contract.guarantee_currency}`} />
+            <CarbonInfoRow label="Comisión corredor" amount value={`${contract.comision_corredor_monto} ${contract.guarantee_currency}`} />
           )}
-          <p className="pt-2 text-xs text-white">Referencia de depósito: {contract.deposit_bank_tx_id}</p>
-        </GreenInfoBox>
+          <p className="pt-2 text-xs text-white/65">Referencia de depósito: {contract.deposit_bank_tx_id}</p>
+        </CarbonInfoBox>
       )}
 
       {blockedBySignature && <RequireRutPrompt returnTo={`/contracts/${id}`} />}
@@ -187,22 +189,22 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
 
       <div className="space-y-3">
         <SectionTitle>Propuestas de descuento</SectionTitle>
-        <GreenCard className="p-0">
-          {disputes && disputes.length > 0 ? (
-            <ul className="divide-y divide-white/12">
+        {disputes && disputes.length > 0 ? (
+          <Card className="p-0">
+            <ul className="divide-y">
               {disputes.map((d) => (
                 <li key={d.id} className="flex items-center justify-between p-3">
-                  <Link href={`/disputes/${d.id}`} className="text-sm text-white underline-offset-4 hover:underline">
+                  <Link href={`/disputes/${d.id}`} className="text-sm underline-offset-4 hover:underline">
                     {d.id}
                   </Link>
                   <StatusBadge status={d.status} />
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="py-6 text-center text-sm text-white">Sin propuestas de descuento.</p>
-          )}
-        </GreenCard>
+          </Card>
+        ) : (
+          <EmptyState icon={FileText} message="Sin propuestas de descuento." />
+        )}
       </div>
 
       <Link href={`/history?contract_id=${id}`} className="text-sm text-muted-foreground underline-offset-4 hover:underline">

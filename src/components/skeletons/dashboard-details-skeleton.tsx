@@ -1,14 +1,15 @@
-import { GreenCard } from "@/components/ui/green-card";
+import { CarbonCard } from "@/components/ui/carbon-card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Matches the "Contratos por estado" / "Vencen en los próximos 60 días"
-// section of the dashboard (src/app/page.tsx) — mismo GreenCard que el
-// contenido real, para no destellar blanco→verde al cargar.
+// Matches the "Contratos por estado" (carbón) / "Vencen en los próximos
+// 60 días" (blanca) section of the dashboard (src/app/page.tsx) — mismos
+// fondos que el contenido real, para no destellar al cargar.
 export function DashboardDetailsSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <GreenCard className="p-0">
-        <div className="border-b border-white/12 px-4 py-3">
+      <CarbonCard className="p-0">
+        <div className="border-b border-white/10 px-4 py-3">
           <Skeleton className="h-4 w-32" />
         </div>
         <div className="space-y-2.5 p-4">
@@ -20,10 +21,10 @@ export function DashboardDetailsSkeleton() {
             </div>
           ))}
         </div>
-      </GreenCard>
+      </CarbonCard>
 
-      <GreenCard className="p-0">
-        <div className="border-b border-white/12 px-4 py-3">
+      <Card className="p-0">
+        <div className="border-b px-4 py-3">
           <Skeleton className="h-4 w-48" />
         </div>
         <div className="space-y-3 p-4">
@@ -34,7 +35,7 @@ export function DashboardDetailsSkeleton() {
             </div>
           ))}
         </div>
-      </GreenCard>
+      </Card>
     </div>
   );
 }

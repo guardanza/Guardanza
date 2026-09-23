@@ -65,7 +65,7 @@ export default async function EditPropertyPage({
       id="arrendadores"
       className={cn(
         "p-0 transition-shadow duration-500",
-        !hasLandlord && "border-brand-gold/40 before:scale-y-100"
+        !hasLandlord && "border-accent-foreground/30 before:scale-y-100 before:bg-accent-foreground"
       )}
     >
       <div className="flex items-start justify-between gap-2 border-b px-4 py-3">

@@ -54,23 +54,23 @@ export default async function RootLayout({
       <body className="min-h-full bg-muted/40">
         {userRes.user ? (
           <div className="flex min-h-full">
-            <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r bg-card md:flex">
+            <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col bg-sidebar md:flex">
               <Link href="/" className="flex items-center px-5 py-5">
-                <Logo />
+                <Logo invert />
               </Link>
               <SidebarNav isPlatformAdmin={avatarProfile?.is_platform_admin ?? false} />
-              <div className="mt-auto border-t p-4">
+              <div className="mt-auto border-t border-white/10 p-4">
                 <div className="flex items-center gap-2.5">
                   <Link href="/profile" className="shrink-0">
                     <UserAvatar avatarUrl={avatarProfile?.avatar_url} name={avatarProfile?.full_name ?? userRes.user.email ?? ""} size={32} />
                   </Link>
                   <div className="min-w-0 flex-1">
-                    <Link href="/profile" className="block truncate text-xs font-medium hover:underline">
+                    <Link href="/profile" className="block truncate text-xs font-medium text-white hover:underline">
                       {avatarProfile?.full_name || userRes.user.email}
                     </Link>
-                    <p className="truncate text-[11px] text-muted-foreground">{profileType}</p>
+                    <p className="truncate text-[11px] text-white/60">{profileType}</p>
                     <form action={signOut}>
-                      <button type="submit" className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                      <button type="submit" className="text-xs text-white/60 underline-offset-4 hover:text-white hover:underline">
                         Salir
                       </button>
                     </form>
@@ -80,9 +80,12 @@ export default async function RootLayout({
               </div>
             </aside>
 
-            <header className="fixed inset-x-0 top-0 z-10 flex h-14 items-center justify-between border-b bg-card px-4 md:hidden">
+            {/* Header mobile: carbón como el sidebar — es la barra de
+                navegación superior en pantallas chicas, mismo lenguaje que
+                su equivalente desktop, no una superficie de contenido. */}
+            <header className="fixed inset-x-0 top-0 z-10 flex h-14 items-center justify-between bg-sidebar px-4 md:hidden">
               <Link href="/" className="flex items-center">
-                <Logo />
+                <Logo invert />
               </Link>
               <div className="flex items-center gap-1">
                 <PendingEvaluationsBell evaluations={pendingEvaluations} />

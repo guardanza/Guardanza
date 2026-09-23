@@ -203,7 +203,7 @@ export default async function AdminSolicitudesRolPage({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="size-4 text-brand-gold" strokeWidth={2} />
+              <AlertTriangle className="size-4 text-accent-foreground" strokeWidth={2} />
               Contratos con corredor sin congelar
             </CardTitle>
             <CardDescription>

@@ -4,7 +4,7 @@ import { createProposal, acceptProposal, rejectProposal, resolveDisputeAdmin } f
 import { one } from "@/lib/supabase/one";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { SectionTitle } from "@/components/ui/section-title";
-import { GreenCard, GreenEmptyState } from "@/components/ui/green-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -59,7 +59,9 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
       )}
 
       {dispute.status === "escalada" && isPlatformAdmin && guarantee && (
-        <Card className="border-brand-gold/40">
+        // Aviso funcional (requiere atención de un admin) — ámbar, no
+        // dorado: el dorado ahora es decoración de marca, no significado.
+        <Card className="border-accent-foreground/30 bg-accent/40">
           <CardHeader>
             <CardTitle className="text-sm">Resolver como administrador</CardTitle>
             <CardDescription>
@@ -84,12 +86,12 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
       <div className="space-y-3">
         <SectionTitle>Propuestas</SectionTitle>
         {proposals?.map((p) => (
-          <GreenCard key={p.id} className="p-3.5">
+          <Card key={p.id} className="p-3.5">
             <div className="flex items-center justify-between">
-              <p className="text-lg font-bold text-white">{p.total_amount}</p>
+              <p className="text-lg font-bold text-foreground">{p.total_amount}</p>
               <StatusBadge status={p.status} />
             </div>
-            <ul className="mt-1 space-y-0.5 text-sm text-white">
+            <ul className="mt-1 space-y-0.5 text-sm text-muted-foreground">
               {p.proposal_items?.map((it, i) => (
                 <li key={i}>
                   {it.description} — {it.quantity} × {it.unit_price_snapshot ?? "—"} = {it.amount}
@@ -99,13 +101,13 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
             {p.status === "pendiente" && (
               <div className="mt-2 flex flex-wrap items-start gap-2">
                 <form action={acceptProposal.bind(null, p.id, id)}>
-                  <Button type="submit" size="sm" className="bg-white text-brand-green-card-deep-border hover:bg-white/90">
+                  <Button type="submit" size="sm">
                     Aceptar
                   </Button>
                 </form>
 
                 <details className="group">
-                  <summary className="flex h-8 cursor-pointer list-none items-center rounded-md border border-white/65 px-3 text-sm font-bold text-white">
+                  <summary className="flex h-8 cursor-pointer list-none items-center rounded-md border border-input px-3 text-sm font-medium">
                     Rechazar
                   </summary>
                   <form action={rejectProposal.bind(null, p.id, id)} className="mt-2 w-64 space-y-2">
@@ -115,18 +117,17 @@ export default async function DisputeDetailPage({ params }: { params: Promise<{ 
                       minLength={50}
                       required
                       rows={3}
-                      className="bg-white"
                     />
-                    <Button type="submit" size="sm" className="bg-white text-destructive hover:bg-white/90">
+                    <Button type="submit" size="sm" variant="destructive">
                       Confirmar rechazo y abrir disputa
                     </Button>
                   </form>
                 </details>
               </div>
             )}
-          </GreenCard>
+          </Card>
         ))}
-        {(!proposals || proposals.length === 0) && <GreenEmptyState icon={Handshake} message="Sin propuestas todavía." />}
+        {(!proposals || proposals.length === 0) && <EmptyState icon={Handshake} message="Sin propuestas todavía." />}
       </div>
 
       <Card>

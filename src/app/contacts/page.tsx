@@ -10,7 +10,7 @@ import { findAccountRoleByEmail } from "@/lib/supabase/find-user-by-email";
 import { ContactsSearchField } from "@/components/contacts-search-field";
 import { QuickInviteButton } from "@/components/quick-invite-role-sheet";
 import { ContactCard } from "@/components/contact-card";
-import { GreenEmptyState } from "@/components/ui/green-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -202,7 +202,7 @@ export default async function ContactsPage({
           );
         })}
 
-        {filtered.length === 0 && !prefix && <GreenEmptyState icon={Users} message="Todavía no tienes a nadie acá." />}
+        {filtered.length === 0 && !prefix && <EmptyState icon={Users} message="Todavía no tienes a nadie acá." />}
 
         {/* Una persona tiene un solo rol en la plataforma — si la
             búsqueda (global, las 3 pestañas) no encontró a nadie en TU
@@ -212,9 +212,9 @@ export default async function ContactsPage({
             real. Es información, no un error: mismo trato visual
             amable que el aviso de agregar/invitar. */}
         {filtered.length === 0 && prefix && roleConflictsWithTab && resolvedExistingEmail && (
-          <Card className="border-brand-gold/40 bg-brand-gold/5">
+          <Card className="border-accent-foreground/30 bg-accent/40">
             <CardContent className="flex items-start gap-3">
-              <Mail className="mt-0.5 size-5 shrink-0 text-brand-gold" strokeWidth={2} />
+              <Mail className="mt-0.5 size-5 shrink-0 text-accent-foreground" strokeWidth={2} />
               <div className="flex-1 space-y-1">
                 <p className="text-sm font-medium text-primary">
                   <span className="break-all">{resolvedExistingEmail}</span> ya está en Guardanza como{" "}
@@ -236,9 +236,9 @@ export default async function ContactsPage({
             misma acción real de siempre (quickInviteContact reusa
             load_contact/issue_contact_invite). */}
         {filtered.length === 0 && prefix && !roleConflictsWithTab && orgCount && (
-          <Card className="border-brand-gold/40 bg-brand-gold/5">
+          <Card className="border-accent-foreground/30 bg-accent/40">
             <CardContent className="flex items-start gap-3">
-              <Mail className="mt-0.5 size-5 shrink-0 text-brand-gold" strokeWidth={2} />
+              <Mail className="mt-0.5 size-5 shrink-0 text-accent-foreground" strokeWidth={2} />
               {sameRoleAsTab ? (
                 <div className="flex-1 space-y-2">
                   <p className="text-sm font-medium text-primary">
@@ -274,7 +274,7 @@ export default async function ContactsPage({
         )}
 
         {filtered.length === 0 && prefix && !existingAccountRole && !orgCount && (
-          <GreenEmptyState icon={Users} message={`No encontramos a nadie con "${trimmedQuery}".`} />
+          <EmptyState icon={Users} message={`No encontramos a nadie con "${trimmedQuery}".`} />
         )}
       </div>
     </div>

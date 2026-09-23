@@ -9,7 +9,7 @@ import { deactivateProperty, reactivateProperty } from "@/lib/actions/properties
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GreenChip, GreenEmptyState } from "@/components/ui/green-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PropertyCard } from "@/components/property-card";
 import { PropertySearchField } from "@/components/property-search-field";
 import { PropertyStatusFilter } from "@/components/property-status-filter";
@@ -118,9 +118,9 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
           filtro esté activo, y desaparece solo cuando no queda ninguno. */}
       {!viewingDrafts && draftCount > 0 && (
         <Link href={singleDraftId ? `/properties/${singleDraftId}/edit` : "/properties?status=borrador"} className="block">
-          <Card className="border-brand-gold/40 bg-brand-gold/5 transition-shadow hover:shadow-md">
+          <Card className="border-accent-foreground/30 bg-accent/40 transition-shadow hover:shadow-md">
             <CardContent className="flex items-center gap-3">
-              <FileClock className="size-5 shrink-0 text-brand-gold" strokeWidth={2} />
+              <FileClock className="size-5 shrink-0 text-accent-foreground" strokeWidth={2} />
               <div className="flex-1">
                 <p className="text-sm font-medium text-primary">
                   Tienes {draftCount} {draftCount === 1 ? "propiedad sin terminar" : "propiedades sin terminar"} — complétala
@@ -167,8 +167,10 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
                           Fuera de cartera
                         </Badge>
                       )}
-                      <GreenChip tone="deep">Arrendador</GreenChip>
-                      <GreenChip tone={occupied ? "solid" : "translucent"}>{occupied ? "Arrendatario" : "Sin adjudicar"}</GreenChip>
+                      <Badge variant="outline">Arrendador</Badge>
+                      <Badge variant="secondary" className={occupied ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}>
+                        {occupied ? "Arrendatario" : "Sin adjudicar"}
+                      </Badge>
                     </>
                   )
                 }
@@ -180,7 +182,6 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
                       blockingReason={blockingReasonByPropertyId.get(p.id) ?? null}
                       deactivateAction={deactivateProperty}
                       reactivateAction={reactivateProperty}
-                      triggerClassName="shrink-0 rounded-full bg-black/15 text-white hover:bg-black/25"
                     />
                   ) : undefined
                 }
@@ -189,9 +190,9 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
           })}
         </div>
       ) : searching ? (
-        <GreenEmptyState icon={SearchX} message={emptyMessage} />
+        <EmptyState icon={SearchX} message={emptyMessage} />
       ) : (
-        <GreenEmptyState icon={Building2} message={emptyMessage} />
+        <EmptyState icon={Building2} message={emptyMessage} />
       )}
     </div>
   );

@@ -3,7 +3,8 @@ import { Suspense } from "react";
 import { Landmark, FileText, AlertTriangle, CalendarClock, ShieldCheck, Percent, ClipboardList } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
-import { GreenCard } from "@/components/ui/green-card";
+import { CarbonCard } from "@/components/ui/carbon-card";
+import { Card } from "@/components/ui/card";
 import { SectionTitle } from "@/components/ui/section-title";
 import { StatusBadge } from "@/components/status-badge";
 import { MarketingHome } from "@/components/marketing-home";
@@ -18,19 +19,18 @@ function formatAmount(amount: number, currency: string) {
   return `$${Math.round(amount).toLocaleString("es-CL")}`;
 }
 
-// Tarjeta de estadística del dashboard — mismo sistema verde que el
-// resto de la app (ver /estilos), ícono + rótulo en blanco, número
-// grande en blanco bold. Solo se usa acá (5 veces), por eso vive local
-// en vez de en ui/green-card.tsx junto a los primitivos genéricos.
+// Tarjeta destacada del dashboard — fondo carbón, ícono + rótulo en
+// blanco/65, número grande. Solo se usa acá (5 veces), por eso vive
+// local en vez de en ui/carbon-card.tsx junto a los primitivos genéricos.
 function StatCard({ icon: Icon, label, children }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; children: React.ReactNode }) {
   return (
-    <GreenCard className="p-4">
-      <div className="flex items-center gap-1.5 text-xs font-medium text-white">
+    <CarbonCard className="p-4">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-white/65">
         <Icon className="size-3.5" strokeWidth={2} />
         {label}
       </div>
       <div className="mt-1">{children}</div>
-    </GreenCard>
+    </CarbonCard>
   );
 }
 
@@ -116,9 +116,9 @@ async function SummaryCards({ userId, isPlatformAdmin }: { userId: string; isPla
           {custodyByCurrency.size > 0 ? (
             <div className="space-y-0.5">
               {[...custodyByCurrency.entries()].map(([currency, { count, amount }]) => (
-                <p key={currency} className="text-xl font-bold text-white tabular-nums">
+                <p key={currency} className="text-xl font-bold text-brand-gold-light tabular-nums">
                   {formatAmount(amount, currency)}
-                  <span className="ml-1.5 text-xs font-normal text-white/85">
+                  <span className="ml-1.5 text-xs font-normal text-white/65">
                     ({count} {count === 1 ? "garantía" : "garantías"})
                   </span>
                 </p>
@@ -142,12 +142,12 @@ async function SummaryCards({ userId, isPlatformAdmin }: { userId: string; isPla
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {isPlatformAdmin && (
             <StatCard icon={ShieldCheck} label="Comisiones Guardanza acumuladas (todo el sistema)">
-              <p className="text-xl font-bold text-white tabular-nums">{formatAmount(totalComisionGuardanza, "CLP")}</p>
+              <p className="text-xl font-bold text-brand-gold-light tabular-nums">{formatAmount(totalComisionGuardanza, "CLP")}</p>
             </StatCard>
           )}
           {brokerOrgIds.length > 0 && (
             <StatCard icon={Percent} label="Mis comisiones acumuladas (corredor)">
-              <p className="text-xl font-bold text-white tabular-nums">{formatAmount(totalComisionCorredor, "CLP")}</p>
+              <p className="text-xl font-bold text-brand-gold-light tabular-nums">{formatAmount(totalComisionCorredor, "CLP")}</p>
             </StatCard>
           )}
         </div>
@@ -192,9 +192,9 @@ async function DashboardDetails({ userId }: { userId: string }) {
   return (
     <>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <GreenCard className="p-0">
-          <div className="border-b border-white/12 px-4 py-3">
-            <SectionTitle onGreen>Contratos por estado</SectionTitle>
+        <CarbonCard className="p-0">
+          <div className="border-b border-white/10 px-4 py-3">
+            <SectionTitle onCarbon>Contratos por estado</SectionTitle>
           </div>
           <div className="space-y-2.5 p-4">
             {contractStatusOrder.map(({ key, label }) => {
@@ -202,81 +202,84 @@ async function DashboardDetails({ userId }: { userId: string }) {
               const total = contracts?.length || 1;
               return (
                 <div key={key} className="flex items-center gap-3">
-                  <span className="w-32 shrink-0 text-xs text-white">{label}</span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20">
-                    <div className="h-full rounded-full bg-white" style={{ width: `${(count / total) * 100}%` }} />
+                  <span className="w-32 shrink-0 text-xs text-white/65">{label}</span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-brand-gold-dark to-brand-gold-light"
+                      style={{ width: `${(count / total) * 100}%` }}
+                    />
                   </div>
                   <span className="w-5 shrink-0 text-right text-xs font-bold text-white tabular-nums">{count}</span>
                 </div>
               );
             })}
-            {(!contracts || contracts.length === 0) && <p className="text-sm text-white">Sin contratos todavía.</p>}
+            {(!contracts || contracts.length === 0) && <p className="text-sm text-white/65">Sin contratos todavía.</p>}
           </div>
-        </GreenCard>
+        </CarbonCard>
 
-        <GreenCard className="p-0">
-          <div className="flex items-center gap-1.5 border-b border-white/12 px-4 py-3">
-            <CalendarClock className="size-3.5 text-white" strokeWidth={2} />
-            <SectionTitle onGreen>Vencen en los próximos 60 días</SectionTitle>
+        <Card className="p-0">
+          <div className="flex items-center gap-1.5 border-b px-4 py-3">
+            <CalendarClock className="size-3.5 text-muted-foreground" strokeWidth={2} />
+            <SectionTitle>Vencen en los próximos 60 días</SectionTitle>
           </div>
           {upcomingEndings.length > 0 ? (
-            <StaggerGroup as="div" className="divide-y divide-white/12">
+            <StaggerGroup as="div" className="divide-y">
               {upcomingEndings.map((c) => (
                 <StaggerItem as="div" key={c.id}>
-                  <Link href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm text-white hover:bg-white/10">
+                  <Link href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm text-foreground hover:bg-muted/50">
                     <span className="truncate">{one(c.properties)?.address ?? c.id}</span>
-                    <span className="shrink-0 text-xs text-white tabular-nums">{new Date(c.end_date!).toLocaleDateString("es-CL")}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{new Date(c.end_date!).toLocaleDateString("es-CL")}</span>
                   </Link>
                 </StaggerItem>
               ))}
             </StaggerGroup>
           ) : (
-            <p className="px-4 py-8 text-center text-sm text-white">Nada por vencer pronto.</p>
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nada por vencer pronto.</p>
           )}
-        </GreenCard>
+        </Card>
       </div>
 
       {/* Lo mismo que la campanita del header (misma consulta,
           getPendingCandidateEvaluations) — acá con más espacio para el
           detalle de cada una, en vez de solo el conteo. */}
       {pendingEvaluations.length > 0 && (
-        <GreenCard className="mt-6 p-0">
-          <div className="flex items-center gap-1.5 border-b border-white/12 px-4 py-3">
-            <ClipboardList className="size-3.5 text-white" strokeWidth={2} />
-            <SectionTitle onGreen>Evaluaciones</SectionTitle>
+        <Card className="mt-6 p-0">
+          <div className="flex items-center gap-1.5 border-b px-4 py-3">
+            <ClipboardList className="size-3.5 text-muted-foreground" strokeWidth={2} />
+            <SectionTitle>Evaluaciones</SectionTitle>
           </div>
-          <StaggerGroup as="div" className="divide-y divide-white/12">
+          <StaggerGroup as="div" className="divide-y">
             {pendingEvaluations.map((ev) => (
               <StaggerItem as="div" key={ev.id}>
-                <Link href={`/evaluacion/postulacion/${ev.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-white/10">
+                <Link href={`/evaluacion/postulacion/${ev.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50">
                   <div className="min-w-0">
-                    <p className="truncate font-bold text-white">{participantInviteTitle(ev.participantType)}</p>
-                    <p className="truncate text-xs text-white">{ev.propertyAddress}</p>
+                    <p className="truncate font-bold text-foreground">{participantInviteTitle(ev.participantType)}</p>
+                    <p className="truncate text-xs text-muted-foreground">{ev.propertyAddress}</p>
                   </div>
                   <StatusBadge status="en_progreso" label="En progreso" />
                 </Link>
               </StaggerItem>
             ))}
           </StaggerGroup>
-        </GreenCard>
+        </Card>
       )}
 
       {openDisputes.length > 0 && (
-        <GreenCard className="mt-6 p-0">
-          <div className="border-b border-white/12 px-4 py-3">
-            <SectionTitle onGreen>Acuerdos pendientes</SectionTitle>
+        <Card className="mt-6 p-0">
+          <div className="border-b px-4 py-3">
+            <SectionTitle>Acuerdos pendientes</SectionTitle>
           </div>
-          <StaggerGroup as="div" className="divide-y divide-white/12">
+          <StaggerGroup as="div" className="divide-y">
             {openDisputes.map((d) => (
               <StaggerItem as="div" key={d.id}>
-                <Link href={`/disputes/${d.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm text-white hover:bg-white/10">
+                <Link href={`/disputes/${d.id}`} className="flex items-center justify-between px-4 py-2.5 text-sm text-foreground hover:bg-muted/50">
                   <span>Disputa {d.id.slice(0, 8)}</span>
                   <StatusBadge status={d.status} />
                 </Link>
               </StaggerItem>
             ))}
           </StaggerGroup>
-        </GreenCard>
+        </Card>
       )}
     </>
   );

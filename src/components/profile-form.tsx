@@ -88,7 +88,7 @@ export function ProfileForm({
 
       <div
         ref={rutSectionRef}
-        className={`space-y-1.5 rounded-lg transition-colors duration-500 ${rutHighlighted ? "-m-2 bg-brand-gold/10 p-2 ring-1 ring-brand-gold/40" : ""}`}
+        className={`space-y-1.5 rounded-lg transition-colors duration-500 ${rutHighlighted ? "-m-2 bg-accent/40 p-2 ring-1 ring-accent-foreground/30" : ""}`}
       >
         <div className="flex items-center gap-1.5">
           <Label htmlFor="rut">RUT</Label>

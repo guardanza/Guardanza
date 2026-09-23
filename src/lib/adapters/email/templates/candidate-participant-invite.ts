@@ -14,17 +14,18 @@ function formatExpiry(expiresAt: Date): string {
 
 export function candidateParticipantInviteEmailHtml(message: CandidateParticipantInviteEmail): string {
   const origin = new URL(message.acceptUrl).origin;
-  const logoUrl = `${origin}/logo-shield-white.png`;
+  const logoUrl = `${origin}/logo-shield-gold.png`;
   const expiresLabel = formatExpiry(message.expiresAt);
   const name = escapeHtml(message.participantFullName);
   const body = escapeHtml(
     participantInviteMessage(message.participantType, { propertyAddress: message.propertyAddress, inviterName: message.inviterName })
   );
   // El mensaje del codeudor lleva la advertencia de responsabilidad — se
-  // destaca con el mismo tono dorado que el resto de la app usa para
-  // avisos importantes (no un error, pero sí algo que hay que leer con
-  // atención antes de seguir). Titular y coarrendatario van en texto
-  // plano, sin destacar — no hay nada que advertir de más.
+  // destaca con el mismo ámbar que el resto de la app usa para avisos
+  // importantes (no un error, pero sí algo que hay que leer con atención
+  // antes de seguir; ámbar y no dorado porque el dorado ahora es marca,
+  // no significado). Titular y coarrendatario van en texto plano, sin
+  // destacar — no hay nada que advertir de más.
   const highlightCodeudor = message.participantType === "codeudor";
 
   return `<!doctype html>
@@ -37,15 +38,15 @@ export function candidateParticipantInviteEmailHtml(message: CandidateParticipan
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
   </head>
-  <body style="margin:0;padding:0;background-color:#f5ead9;font-family:'Montserrat',Helvetica,Arial,sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5ead9;padding:24px 12px;">
+  <body style="margin:0;padding:0;background-color:#f7f5f1;font-family:'Montserrat',Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f5f1;padding:24px 12px;">
       <tr>
         <td align="center">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border-radius:16px;overflow:hidden;">
             <tr>
-              <td align="center" style="background-color:#14432f;padding:28px 24px;">
+              <td align="center" style="background-color:#15171b;padding:28px 24px;">
                 <img src="${logoUrl}" width="48" height="51" alt="Guardanza" style="display:block;margin:0 auto 8px;border:0;" />
-                <span style="color:#fafbfc;font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Guardanza</span>
+                <span style="color:#ffffff;font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Guardanza</span>
               </td>
             </tr>
             <tr>
@@ -53,9 +54,9 @@ export function candidateParticipantInviteEmailHtml(message: CandidateParticipan
                 <p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:#2c3e50;">Hola ${name},</p>
                 ${
                   highlightCodeudor
-                    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background-color:#f5ead9;border-radius:12px;">
+                    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background-color:#fdf1e0;border-radius:12px;">
                          <tr><td style="padding:16px;">
-                           <p style="margin:0;font-size:15px;line-height:1.6;color:#5a3f0f;">${body}</p>
+                           <p style="margin:0;font-size:15px;line-height:1.6;color:#b45309;">${body}</p>
                          </td></tr>
                        </table>`
                     : `<p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#2c3e50;">${body}</p>`
@@ -66,10 +67,10 @@ export function candidateParticipantInviteEmailHtml(message: CandidateParticipan
               <td align="center" style="padding:0 28px 8px;">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td align="center" style="background-color:#1f7a4d;border-radius:10px;">
+                    <td align="center" style="background-color:#15171b;border-radius:10px;">
                       <a
                         href="${message.acceptUrl}"
-                        style="display:inline-block;padding:14px 40px;font-size:16px;font-weight:600;color:#fafbfc;text-decoration:none;"
+                        style="display:inline-block;padding:14px 40px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;"
                         >Presentar mis papeles</a
                       >
                     </td>

@@ -159,7 +159,7 @@ export function CandidateSearchField({
             </ul>
           )}
           {canInvite && (
-            <div className="mt-2 space-y-1.5 rounded-lg border border-brand-gold/40 bg-brand-gold/5 p-3">
+            <div className="mt-2 space-y-1.5 rounded-lg border border-accent-foreground/30 bg-accent/40 p-3">
               <p className="text-xs font-medium text-primary">
                 <span className="break-all">{trimmedQuery}</span> no tiene cuenta en Guardanza.
               </p>

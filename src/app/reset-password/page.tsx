@@ -26,7 +26,7 @@ export default async function ResetPasswordPage({
       <div className="mx-auto max-w-md space-y-4 px-4 py-10 md:py-16">
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-            <AlertTriangle className="size-8 text-brand-gold" strokeWidth={1.5} />
+            <AlertTriangle className="size-8 text-accent-foreground" strokeWidth={1.5} />
             <p className="text-sm font-medium text-primary">Este enlace expiró o ya fue usado.</p>
             <p className="text-sm text-muted-foreground">Solicita uno nuevo para continuar.</p>
             <Link href="/forgot-password" className={buttonVariants({ size: "sm" })}>
