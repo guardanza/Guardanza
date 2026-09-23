@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/section-title";
-import { GreenCard } from "@/components/ui/green-card";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -59,25 +58,22 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         </p>
       </div>
 
-      <GreenCard className="p-0">
-        <div className="border-b border-white/12 px-4 py-3">
-          <SectionTitle onGreen>Tus documentos</SectionTitle>
+      <Card className="p-0">
+        <div className="border-b px-4 py-3">
+          <SectionTitle>Tus documentos</SectionTitle>
         </div>
         {documents && documents.length > 0 ? (
-          <div className="divide-y divide-white/12">
+          <div className="divide-y">
             {documents.map((d) => (
               <div key={d.id} className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2.5">
-                  <FileText className="size-4 text-white" strokeWidth={2} />
-                  <span className="text-sm text-white">{DOCUMENT_TYPES[d.document_type] ?? d.document_type}</span>
+                  <FileText className="size-4 text-muted-foreground" strokeWidth={2} />
+                  <span className="text-sm text-foreground">{DOCUMENT_TYPES[d.document_type] ?? d.document_type}</span>
                 </div>
                 <form action={deleteApplicantDocument}>
                   <input type="hidden" name="id" value={d.id} />
                   <input type="hidden" name="storage_path" value={d.storage_path} />
-                  {/* Mismo rojo suave sobre verde que candidate-card.tsx
-                      (DiscardTrigger) — el máximo contraste posible sin
-                      perder el matiz "peligro" sobre este fondo. */}
-                  <button type="submit" className="text-[#ffd6d1] hover:text-white">
+                  <button type="submit" className="text-muted-foreground hover:text-destructive">
                     <Trash2 className="size-4" />
                   </button>
                 </form>
@@ -85,9 +81,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             ))}
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-white">Sin documentos subidos todavía.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">Sin documentos subidos todavía.</p>
         )}
-      </GreenCard>
+      </Card>
 
       <Card>
         <CardHeader>

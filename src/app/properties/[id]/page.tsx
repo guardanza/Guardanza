@@ -23,8 +23,8 @@ import { CandidateCard } from "@/components/candidate-card";
 import { ListingPortalLink } from "@/components/listing-portal-link";
 import { DeletePropertyDialog } from "@/components/delete-property-dialog";
 import { PropertyLifecycleAction } from "@/components/property-lifecycle-action";
-import { GreenCard } from "@/components/ui/green-card";
-import { GreenInfoBox, GreenInfoRow } from "@/components/ui/green-info-box";
+import { CarbonInfoBox, CarbonInfoRow } from "@/components/ui/carbon-info-box";
+import { InfoBox, InfoRow } from "@/components/ui/info-box";
 import { SectionTitle } from "@/components/ui/section-title";
 import { Badge } from "@/components/ui/badge";
 import { categorizeBlockingContract } from "@/lib/property-status";
@@ -233,38 +233,48 @@ export default async function PropertyDetailPage({
         )}
       </div>
 
-      {/* Participantes: antes tres chips (RoleBadge) sueltos junto al
-          título — ahora una caja del mismo sistema verde que el resto
-          de la app (ver /estilos), con el mismo criterio de contraste:
-          rótulo y valor van en blanco pleno, la diferencia es de peso
-          (un valor "vacío" — Sin asignar/Sin corredor/Sin adjudicar —
-          va en regular en vez de bold, nunca en un color más apagado). */}
-      <GreenInfoBox title="Participantes">
-        <GreenInfoRow
+      {/* Participantes: nombres, no montos — caja blanca simple, no la
+          "tarjeta destacada" carbón (esa se reserva para lo que de
+          verdad se quiere resaltar, ver "Detalles de la propiedad" más
+          abajo). Un valor "vacío" (Sin asignar/Sin corredor/Sin
+          adjudicar) va en peso regular en vez de bold — nunca en un
+          color más apagado, la jerarquía es de peso, no de color. */}
+      <InfoBox title="Participantes">
+        <InfoRow
           label="Arrendador"
           value={owners.length > 0 ? owners.map((o) => stripParticularSuffix(o.name)).join(", ") : "Sin asignar"}
-          valueClassName={owners.length > 0 ? undefined : "font-normal"}
+          valueClassName={owners.length > 0 ? undefined : "font-normal text-muted-foreground"}
         />
-        <GreenInfoRow label="Corredor" value={broker?.name ?? "Sin corredor"} valueClassName={broker?.name ? undefined : "font-normal"} />
-        <GreenInfoRow label="Arrendatario" value={tenantName ?? "Sin adjudicar"} valueClassName={tenantName ? undefined : "font-normal"} />
-      </GreenInfoBox>
+        <InfoRow
+          label="Corredor"
+          value={broker?.name ?? "Sin corredor"}
+          valueClassName={broker?.name ? undefined : "font-normal text-muted-foreground"}
+        />
+        <InfoRow
+          label="Arrendatario"
+          value={tenantName ?? "Sin adjudicar"}
+          valueClassName={tenantName ? undefined : "font-normal text-muted-foreground"}
+        />
+      </InfoBox>
 
       {hasListingDetails && (
-        <GreenInfoBox title="Detalles de la propiedad" action={property.listing_url ? <ListingPortalLink url={property.listing_url} /> : undefined}>
+        <CarbonInfoBox title="Detalles de la propiedad" action={property.listing_url ? <ListingPortalLink url={property.listing_url} /> : undefined}>
           {property.expected_rent_amount && (
-            <GreenInfoRow
+            <CarbonInfoRow
               label="Valor de arriendo"
+              amount
               value={formatMoney(property.expected_rent_amount, (property.expected_rent_currency as MoneyCurrency) ?? "CLP")}
             />
           )}
-          {property.expected_term_months && <GreenInfoRow label="Plazo de arriendo" value={`${property.expected_term_months} meses`} />}
+          {property.expected_term_months && <CarbonInfoRow label="Plazo de arriendo" value={`${property.expected_term_months} meses`} />}
           {property.expected_guarantee_amount && (
-            <GreenInfoRow
+            <CarbonInfoRow
               label="Valor garantía"
+              amount
               value={formatMoney(property.expected_guarantee_amount, (property.expected_guarantee_currency as MoneyCurrency) ?? "CLP")}
             />
           )}
-        </GreenInfoBox>
+        </CarbonInfoBox>
       )}
 
       {/* Candidatos (Tanda D Fase 1): no se muestra si la propiedad ya
@@ -350,31 +360,24 @@ export default async function PropertyDetailPage({
         </Card>
       )}
 
-      <GreenCard className="p-0">
-        <div className="flex items-center justify-between gap-2 border-b border-white/12 px-4 py-3">
-          <SectionTitle onGreen>Contratos de esta propiedad</SectionTitle>
-          {!isOccupied && (
-            <NewContractButton
-              propertyId={id}
-              hasLandlord={hasLandlord}
-              readyCandidates={readyCandidates}
-              triggerClassName="border-white/65 bg-transparent text-white hover:bg-white/12"
-            />
-          )}
+      <Card className="p-0">
+        <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+          <SectionTitle>Contratos de esta propiedad</SectionTitle>
+          {!isOccupied && <NewContractButton propertyId={id} hasLandlord={hasLandlord} readyCandidates={readyCandidates} />}
         </div>
         {contracts && contracts.length > 0 ? (
-          <div className="divide-y divide-white/12">
+          <div className="divide-y">
             {contracts.map((c) => (
-              <Link key={c.id} href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-3 text-sm text-white hover:bg-white/10">
+              <Link key={c.id} href={`/contracts/${c.id}`} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-muted/50">
                 <span className="tabular-nums">{formatMoney(c.guarantee_amount, c.guarantee_currency as MoneyCurrency)}</span>
                 <StatusBadge status={c.status} />
               </Link>
             ))}
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-white">Sin contratos todavía.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">Sin contratos todavía.</p>
         )}
-      </GreenCard>
+      </Card>
     </div>
   );
 }

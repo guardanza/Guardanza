@@ -56,9 +56,11 @@ function isActive(href: string, pathname: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
-// Active item: ForestGuard tint + a gold left accent — the same
-// before:bg-brand-gold accent-line pattern already used for row hover in
-// contracts/page.tsx, applied here to the persistent active state instead.
+// Ítem activo: texto dorado + barra dorada a la izquierda + fondo
+// --carbon-elevated (un paso más claro que el carbón del sidebar) — tal
+// como pide la imagen de referencia. Dorado como TEXTO acá es seguro
+// (sobre carbón, no sobre blanco — ver el comentario de contraste en
+// globals.css): 7.5:1, de sobra para texto chico.
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const active = isActive(item.href, pathname);
   const Icon = item.icon;
@@ -68,8 +70,8 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       className={
         "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors before:absolute before:inset-y-1 before:left-0 before:w-0.5 before:rounded-full before:bg-brand-gold before:transition-opacity " +
         (active
-          ? "bg-primary/10 text-primary before:opacity-100"
-          : "text-muted-foreground before:opacity-0 hover:bg-secondary hover:text-foreground")
+          ? "bg-sidebar-accent text-sidebar-primary before:opacity-100"
+          : "text-white/70 before:opacity-0 hover:bg-white/5 hover:text-white")
       }
     >
       <Icon className="size-4 shrink-0" strokeWidth={2} />
@@ -78,10 +80,10 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   );
 }
 
-// Group labels are presentational only — 12px uppercase, muted-foreground
-// (#7a8fa0 in the light theme), tracked out. Not a link, not a button.
+// Group labels are presentational only — 12px uppercase, gris claro sobre
+// carbón, tracked out. Not a link, not a button.
 function GroupHeader({ label }: { label: string }) {
-  return <p className="px-3 pt-4 pb-1 text-xs font-medium tracking-wider text-muted-foreground uppercase">{label}</p>;
+  return <p className="px-3 pt-4 pb-1 text-xs font-medium tracking-wider text-white/40 uppercase">{label}</p>;
 }
 
 export function SidebarNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boolean }) {
@@ -100,7 +102,7 @@ export function SidebarNav({ isPlatformAdmin = false }: { isPlatformAdmin?: bool
       ))}
       {isPlatformAdmin && (
         <div className="flex flex-col gap-0.5">
-          <div className="my-2 border-t" />
+          <div className="my-2 border-t border-white/10" />
           <NavLink item={{ href: "/admin/solicitudes-rol", label: "Solicitudes de rol", icon: ShieldCheck }} pathname={pathname} />
         </div>
       )}

@@ -10,9 +10,9 @@ import { buttonVariants } from "@/components/ui/button";
 // wall, which is what the underlying requirement actually calls for.
 export function RequireRutPrompt({ returnTo }: { returnTo: string }) {
   return (
-    <Card className="border-brand-gold/40 bg-brand-gold/5">
+    <Card className="border-accent-foreground/30 bg-accent/40">
       <CardContent className="flex items-start gap-3">
-        <IdCard className="mt-0.5 size-5 shrink-0 text-brand-gold" strokeWidth={2} />
+        <IdCard className="mt-0.5 size-5 shrink-0 text-accent-foreground" strokeWidth={2} />
         <div className="space-y-2">
           <p className="text-sm font-medium text-primary">Para continuar, necesitas completar tu RUT</p>
           <p className="text-xs text-muted-foreground">

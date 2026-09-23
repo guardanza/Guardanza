@@ -8,8 +8,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Fine gold line along the top edge on hover — Seguranza's signature
-        // "valor en movimiento" detail on the primary action.
+        // Línea dorada fina en el borde superior al pasar el mouse — el
+        // detalle de marca en la acción principal (antes "valor en
+        // movimiento" verde, ahora carbón + dorado).
         //
         // hover y sombras salen de tokens (--color-primary-hover,
         // --shadow-brand-*), no de valores a mano — antes eran hex/rgba
@@ -18,8 +19,11 @@ const buttonVariants = cva(
         // viejo cuando el resto se actualizó. Ver globals.css.
         default:
           "bg-primary text-primary-foreground shadow-[0_4px_12px_var(--shadow-brand-md)] before:absolute before:inset-x-2 before:top-0 before:h-px before:origin-center before:scale-x-0 before:bg-brand-gold before:transition-transform before:duration-200 hover:bg-primary-hover hover:shadow-[0_8px_20px_var(--shadow-brand-lg)] hover:before:scale-x-100",
+        // Secundario: contorno dorado, texto oscuro — nunca texto dorado
+        // chico (ver /estilos: el dorado sobre blanco no pasa AA para
+        // texto chico, solo como borde/relleno acá alcanza).
         outline:
-          "border-brand-sand/60 bg-transparent text-brand-sand-foreground hover:border-brand-sand hover:bg-brand-sand/8 aria-expanded:bg-brand-sand/8 dark:text-brand-sand dark:hover:bg-brand-sand/10",
+          "border-brand-gold/60 bg-transparent text-foreground hover:border-brand-gold hover:bg-brand-gold/8 aria-expanded:bg-brand-gold/8",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:

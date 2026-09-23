@@ -55,15 +55,13 @@
   --color-card: var(--card);
   --color-brand-gold: var(--brand-gold);
   --color-brand-gold-foreground: var(--brand-gold-foreground);
-  --color-brand-sand: var(--brand-sand);
-  --color-brand-sand-foreground: var(--brand-sand-foreground);
+  --color-brand-gold-light: var(--brand-gold-light);
+  --color-brand-gold-dark: var(--brand-gold-dark);
   --color-brand-forest: var(--brand-forest);
   --color-brand-forest-foreground: var(--brand-forest-foreground);
-  --color-brand-green-card: var(--brand-green-card);
-  --color-brand-green-card-border: var(--brand-green-card-border);
-  --color-brand-green-card-foreground: var(--brand-green-card-foreground);
-  --color-brand-green-card-deep: var(--brand-green-card-deep);
-  --color-brand-green-card-deep-border: var(--brand-green-card-deep-border);
+  --color-carbon: var(--carbon);
+  --color-carbon-elevated: var(--carbon-elevated);
+  --color-carbon-foreground: var(--carbon-foreground);
   --color-primary-hover: var(--primary-hover);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
@@ -78,99 +76,101 @@
 }
 
 :root {
-  /* Seguranza design system — "Neutralidad Visible": ForestGuard (protección),
-     SandTrust (calidez), AccrualGold (valor en movimiento). */
-  --background: #fafbfc;
-  --foreground: #2c3e50;
+  /* Guardanza design system v2 — Carbón + Dorado. Reemplaza el verde de
+     marca (ver git history para la paleta anterior, "Neutralidad
+     Visible"). El verde no desaparece: sigue vivo en --success, pero
+     ahora es puramente funcional ("esto está bien"), no de marca — por
+     eso ya no comparte hex con --primary a propósito, al revés que
+     antes. --destructive y los grises tampoco cambiaron: comunican
+     significado, no marca, igual que siempre. */
+  --background: #f7f5f1;
+  --foreground: #1a1c20;
   --card: #ffffff;
-  --card-foreground: #2c3e50;
+  --card-foreground: #1a1c20;
   --popover: #ffffff;
-  --popover-foreground: #2c3e50;
-  /* --primary/--success actualizados al verde de marca renovado
-     (#1f7a4d, con más cuerpo que el anterior #0f3d2e) — unificados a
-     propósito: que el verde de marca y el verde de "confirmado/éxito"
-     hablen el mismo idioma en toda la app. Ningún color funcional se
-     tocó acá (destructive, brand-gold, los grises) — esos comunican
-     significado, no marca. */
-  --primary: #1f7a4d;
-  --primary-foreground: #fafbfc;
-  /* Derivados de --primary que antes vivían a mano en button.tsx: el
-     hover (~15% más oscuro) y las sombras tintadas con su mismo RGB.
-     Viven acá porque un valor arbitrario de Tailwind no puede oscurecer
-     ni extraer el RGB de una variable CSS en tiempo de compilación —
-     así, cuando cambie --primary, se actualizan todos desde un solo
-     lugar en vez de quedarse desincronizados (que es justo lo que le
-     pasó al shadow del botón xl). */
-  --primary-hover: #1a6841;
-  --shadow-brand-subtle: rgba(31, 122, 77, 0.04);
-  --shadow-brand-soft: rgba(31, 122, 77, 0.08);
-  --shadow-brand-md: rgba(31, 122, 77, 0.15);
-  --shadow-brand-lg: rgba(31, 122, 77, 0.25);
-  --shadow-brand-xl: rgba(31, 122, 77, 0.25);
-  --shadow-brand-2xl: rgba(31, 122, 77, 0.35);
-  --secondary: #f5ead9;
-  --secondary-foreground: #1f7a4d;
-  --muted: #e8ebf0;
-  --muted-foreground: #7a8fa0;
-  /* Superficie en reposo, un punto más clara que --muted — hoy la usan
-     las pestañas inactivas de Contactos. Vive acá y no como hex suelto
-     en el componente, por la misma razón que el resto de la paleta. */
-  --surface-muted: #eef1f4;
-  --accent: #f7ecd6;
-  --accent-foreground: #8a6820;
+  --popover-foreground: #1a1c20;
+  /* --primary = carbón, el color de marca principal: botón relleno,
+     sidebar, tarjetas destacadas. Contraste verificado (ver /estilos):
+     blanco sobre este carbón da 17.9:1, muy por sobre cualquier mínimo. */
+  --primary: #15171b;
+  --primary-foreground: #ffffff;
+  --primary-hover: #22252b;
+  --shadow-brand-subtle: rgba(21, 23, 27, 0.04);
+  --shadow-brand-soft: rgba(21, 23, 27, 0.08);
+  --shadow-brand-md: rgba(21, 23, 27, 0.15);
+  --shadow-brand-lg: rgba(21, 23, 27, 0.25);
+  --shadow-brand-xl: rgba(21, 23, 27, 0.25);
+  --shadow-brand-2xl: rgba(21, 23, 27, 0.35);
+  --secondary: #f0ece3;
+  --secondary-foreground: #1a1c20;
+  --muted: #ece8e0;
+  /* #5b6472, no el #6b7280 más liviano de la referencia — ese daba
+     4.44:1 sobre el fondo crema (#f7f5f1), corto de la AA de 4.5:1 para
+     texto chico. Este oscurecido da 5.49:1 sobre crema y 5.98:1 sobre
+     blanco — verificado, no asumido. */
+  --muted-foreground: #5b6472;
+  --surface-muted: #f0ece3;
+  /* Aviso — deliberadamente NO dorado: el dorado ahora es decoración de
+     marca, y un aviso de "borrador"/"falta tu RUT" no puede leerse como
+     lo mismo. Ámbar cálido, distinto de --brand-gold a simple vista
+     (más naranja, menos amarillo-metálico) y del verde de éxito. */
+  --accent: #fdf1e0;
+  --accent-foreground: #b45309;
   --destructive: #d84c4c;
+  /* Verde funcional de éxito — mismo hex que tenía --primary antes, a
+     propósito: seguía siendo un buen verde de "confirmado", solo que
+     ahora vive acá y no en la marca. */
   --success: #1f7a4d;
   --success-foreground: #0b3d1c;
-  /* Cuarto color semántico, para "hay algo sobre la mesa" (hoy solo
-     propuesta_termino en status-badge.tsx) — distinto de rojo/dorado/
-     verde a propósito. Los valores son los mismos que ya tenía ese chip
-     escritos a mano en Tailwind crudo (blue-100/blue-700). */
   --info: #dbeafe;
   --info-foreground: #1d4ed8;
-  --border: #e8ebf0;
-  --input: #e8ebf0;
-  --ring: #1f7a4d;
-  --brand-gold: #c8963e;
-  --brand-gold-foreground: #fffaf0;
-  --brand-sand: #d4a574;
-  --brand-sand-foreground: #3a2a17;
-  /* Segundo verde de marca — el logo nuevo lo define: oscuro para
-     títulos/texto de marca (h1-h6, el wordmark del logo), reservado
-     nada más que para eso. --primary (#1f7a4d) sigue siendo el verde de
-     botones/acciones/acentos, sin cambios — los dos conviven a
-     propósito, nunca se mezclan. */
-  --brand-forest: #14432f;
-  --brand-forest-foreground: #cfe6da;
-  /* Verde de tarjeta ("75%" — contactos y candidatos, unificados) — a
-     diferencia de --brand-forest (pensado para TEXTO, invierte con el
-     tema), esta familia es el fondo de una tarjeta opaca y autocontenida:
-     se ve igual en modo claro y oscuro de la app, a propósito, así que
-     vive solo acá en :root (nunca redefinida en .dark, mismo criterio que
-     --radius). --brand-green-card-deep es el estado "documentos
-     completos"/destacado — mismo verde que ya usaba el círculo de
-     iniciales, reusado a propósito en vez de un tono nuevo.
-     --brand-green-card-deep-border (#14432f) también se reusa tal cual
-     como texto oscuro en chips claros sobre el verde medio (contraste
-     verificado, ver /estilos). */
-  --brand-green-card: #3f8f66;
-  --brand-green-card-border: #347a56;
-  --brand-green-card-foreground: #ffffff;
-  --brand-green-card-deep: #1c5f3f;
-  --brand-green-card-deep-border: #14432f;
-  --chart-1: #c8963e;
+  --border: #e5e1d8;
+  --input: #e5e1d8;
+  --ring: #15171b;
+  /* Dorado — el acento de marca. Verificado (ver /estilos): sobre
+     blanco/crema el dorado como TEXTO es débil incluso en su tono más
+     oscuro (3.6:1, solo texto grande) — nunca se usa como texto chico
+     sobre fondo claro, solo como línea/borde/relleno de barra/fondo de
+     chip. Sobre carbón, en cambio, rinde bien en los tres tonos
+     (5–9.5:1): ahí sí se usa como texto, incluso chico.
+
+     --brand-gold-dark bajó de #a8822f a #8a6820 específicamente para el
+     texto del chip "En evaluación" (bg-brand-gold/15): con #a8822f daba
+     solo 3.16:1 sobre ese fondo — con #8a6820 sube a 4.33–4.57:1, el
+     techo real alcanzable en este tono sin perder que siga leyéndose
+     dorado. Los otros dos usos de este token son fondo de degradado
+     (barra de progreso), no texto, así que un dorado más oscuro ahí no
+     tiene costo de contraste. */
+  --brand-gold: #c9a24a;
+  --brand-gold-foreground: #1a1c20;
+  --brand-gold-light: #e0b85c;
+  --brand-gold-dark: #8a6820;
+  /* Título de marca (h1-h6) — mismo carbón que --primary. Antes vivía
+     separado de --primary porque invertía distinto en modo oscuro; acá
+     los dos son el mismo carbón así que se simplifica a un solo valor. */
+  --brand-forest: #15171b;
+  --brand-forest-foreground: #ffffff;
+  /* Superficie elevada sobre carbón — ítem activo del sidebar, y
+     cualquier bloque secundario dentro de una tarjeta destacada. Un
+     paso más clara que --primary/--carbon, nunca tan clara como para
+     perder la sensación de "seguimos en carbón". */
+  --carbon: #15171b;
+  --carbon-elevated: #22252b;
+  --carbon-foreground: #ffffff;
+  --chart-1: #c9a24a;
   --chart-2: #1f7a4d;
-  --chart-3: #d4a574;
-  --chart-4: #7a8fa0;
-  --chart-5: #2c3e50;
+  --chart-3: #a8822f;
+  --chart-4: #5b6472;
+  --chart-5: #1a1c20;
   --radius: 0.625rem;
-  --sidebar: #f7f4ee;
-  --sidebar-foreground: #2c3e50;
-  --sidebar-primary: #1f7a4d;
-  --sidebar-primary-foreground: #fafbfc;
-  --sidebar-accent: #f5ead9;
-  --sidebar-accent-foreground: #1f7a4d;
-  --sidebar-border: #e8ebf0;
-  --sidebar-ring: #1f7a4d;
+  --sidebar: #15171b;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #c9a24a;
+  --sidebar-primary-foreground: #15171b;
+  --sidebar-accent: #22252b;
+  --sidebar-accent-foreground: #c9a24a;
+  --sidebar-border: #22252b;
+  --sidebar-ring: #c9a24a;
 }
 
 .dark {
@@ -208,8 +208,8 @@
   --ring: #4a9c7f;
   --brand-gold: #d4a84e;
   --brand-gold-foreground: #241a06;
-  --brand-sand: #d4a574;
-  --brand-sand-foreground: #241a06;
+  --brand-gold-light: #e6c584;
+  --brand-gold-dark: #b8923a;
   --brand-forest: #cfe6da;
   --brand-forest-foreground: #14432f;
   --chart-1: #d4a84e;

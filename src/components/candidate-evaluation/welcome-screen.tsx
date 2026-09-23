@@ -51,7 +51,7 @@ export function WelcomeScreen({
       <p
         className={cn(
           "text-sm leading-relaxed",
-          isCodeudor ? "rounded-lg border border-brand-gold/40 bg-brand-gold/5 p-3 text-foreground" : "text-muted-foreground"
+          isCodeudor ? "rounded-lg border border-accent-foreground/30 bg-accent/40 p-3 text-foreground" : "text-muted-foreground"
         )}
       >
         {message}

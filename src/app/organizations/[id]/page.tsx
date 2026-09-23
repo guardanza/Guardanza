@@ -5,11 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/one";
 import { orgTypeLabel } from "@/lib/labels";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { PropertyThumb } from "@/components/property-thumb";
-import { GreenCard } from "@/components/ui/green-card";
 import { SectionTitle } from "@/components/ui/section-title";
-import { cn } from "@/lib/utils";
 
 export default async function OrganizationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,35 +36,32 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
         </p>
       </div>
 
-      <GreenCard className="p-0">
-        <div className="flex items-center justify-between gap-2 border-b border-white/12 px-4 py-3 sm:px-6">
-          <SectionTitle onGreen>Propiedades vinculadas</SectionTitle>
-          <Link
-            href={`/properties/new?organization_id=${id}`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "shrink-0 border-white/65 bg-transparent text-white hover:bg-white/12")}
-          >
+      <Card className="p-0">
+        <div className="flex items-center justify-between gap-2 border-b px-4 py-3 sm:px-6">
+          <SectionTitle>Propiedades vinculadas</SectionTitle>
+          <Link href={`/properties/new?organization_id=${id}`} className={buttonVariants({ variant: "outline", size: "sm", className: "shrink-0" })}>
             + Nueva propiedad
           </Link>
         </div>
         {properties && properties.length > 0 ? (
-          <div className="divide-y divide-white/12">
+          <div className="divide-y">
             {properties.map((p) => (
-              <Link key={p.id} href={`/properties/${p.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 sm:px-6">
-                <PropertyThumb url={p.photo_url} className="size-11 shrink-0 rounded-lg border border-white/15" />
+              <Link key={p.id} href={`/properties/${p.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 sm:px-6">
+                <PropertyThumb url={p.photo_url} className="size-11 shrink-0 rounded-lg" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-white">{p.address}</p>
-                  <p className="text-xs text-white">{one(p.communes)?.name ?? "Sin comuna"}</p>
+                  <p className="truncate text-sm font-bold text-foreground">{p.address}</p>
+                  <p className="text-xs text-muted-foreground">{one(p.communes)?.name ?? "Sin comuna"}</p>
                 </div>
               </Link>
             ))}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 py-12 text-center">
-            <Home className="size-8 text-white/70" strokeWidth={1.5} />
-            <p className="text-sm text-white">Sin propiedades vinculadas todavía.</p>
+            <Home className="size-8 text-muted-foreground" strokeWidth={1.5} />
+            <p className="text-sm text-muted-foreground">Sin propiedades vinculadas todavía.</p>
           </div>
         )}
-      </GreenCard>
+      </Card>
     </div>
   );
 }

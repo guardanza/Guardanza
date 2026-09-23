@@ -22,20 +22,20 @@ export function contactInviteEmailHtml(message: ContactInviteEmail): string {
   // hardcodeado, así que funciona igual en local y en producción sin
   // tocar nada acá.
   //
-  // Acá SIEMPRE va la versión invertida (logo-shield-white.png: blanco +
-  // verde claro #cfe6da), no la de color que usa el resto de la app — el
-  // escudo a color queda invisible sobre el verde oscuro del encabezado.
-  // Es un PNG rasterizado aparte del mismo SVG (src/components/logo.tsx
-  // tiene el original), no un filtro CSS: los clientes de correo (sobre
-  // todo Outlook de escritorio) no soportan filter/invert de forma
-  // confiable.
+  // El escudo dorado bicolor (#a8822f/#e0b85c) funciona igual sobre
+  // carbón que sobre fondo claro — verificado, ver /estilos — así que acá
+  // va la misma versión de color que usa el resto de la app, sin una
+  // variante invertida aparte. Es un PNG rasterizado del mismo SVG
+  // (src/components/logo.tsx tiene el original): un email no puede
+  // ejecutar el componente React.
   //
-  // Encabezado en #14432f (verde oscuro de marca) a propósito, distinto
-  // del botón más abajo (#1f7a4d, verde de acción) — mismo criterio que
-  // el resto de la app: oscuro para el momento de marca, medio para la
-  // acción.
+  // Encabezado en carbón (#15171b, mismo --primary del resto de la app)
+  // — el botón de abajo usa el mismo carbón, no un color de acento
+  // distinto: acá "acción principal" y "momento de marca" son el mismo
+  // tono, a diferencia del verde oscuro/verde medio que usaba el sistema
+  // anterior.
   const origin = new URL(message.acceptUrl).origin;
-  const logoUrl = `${origin}/logo-shield-white.png`;
+  const logoUrl = `${origin}/logo-shield-gold.png`;
   const expiresLabel = formatExpiry(message.expiresAt);
   const name = escapeHtml(message.contactFullName);
   const org = escapeHtml(message.organizationName);
@@ -55,15 +55,15 @@ export function contactInviteEmailHtml(message: ContactInviteEmail): string {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
   </head>
-  <body style="margin:0;padding:0;background-color:#f5ead9;font-family:'Montserrat',Helvetica,Arial,sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5ead9;padding:24px 12px;">
+  <body style="margin:0;padding:0;background-color:#f7f5f1;font-family:'Montserrat',Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f5f1;padding:24px 12px;">
       <tr>
         <td align="center">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border-radius:16px;overflow:hidden;">
             <tr>
-              <td align="center" style="background-color:#14432f;padding:28px 24px;">
+              <td align="center" style="background-color:#15171b;padding:28px 24px;">
                 <img src="${logoUrl}" width="48" height="51" alt="Guardanza" style="display:block;margin:0 auto 8px;border:0;" />
-                <span style="color:#fafbfc;font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Guardanza</span>
+                <span style="color:#ffffff;font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Guardanza</span>
               </td>
             </tr>
             <tr>
@@ -79,7 +79,7 @@ export function contactInviteEmailHtml(message: ContactInviteEmail): string {
                 </p>
                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 24px;">
                   <tr>
-                    <td style="background-color:#f5ead9;border-radius:999px;padding:6px 14px;">
+                    <td style="background-color:#f7f1e4;border-radius:999px;padding:6px 14px;">
                       <span style="font-size:13px;font-weight:600;color:#8a6820;">Te invitaron como ${role}</span>
                     </td>
                   </tr>
@@ -90,10 +90,10 @@ export function contactInviteEmailHtml(message: ContactInviteEmail): string {
               <td align="center" style="padding:0 28px 8px;">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td align="center" style="background-color:#1f7a4d;border-radius:10px;">
+                    <td align="center" style="background-color:#15171b;border-radius:10px;">
                       <a
                         href="${message.acceptUrl}"
-                        style="display:inline-block;padding:14px 40px;font-size:16px;font-weight:600;color:#fafbfc;text-decoration:none;"
+                        style="display:inline-block;padding:14px 40px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;"
                         >Abrir invitación</a
                       >
                     </td>

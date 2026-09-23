@@ -30,7 +30,13 @@ export function PendingEvaluationsBell({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="relative flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted" aria-label="Notificaciones">
+      {/* Blanco/translúcido, no el gris de siempre — los dos lugares que
+          usan esta campanita (sidebar, header mobile) son ahora superficie
+          carbón. */}
+      <DropdownMenuTrigger
+        className="relative flex size-8 shrink-0 items-center justify-center rounded-full text-white hover:bg-white/10"
+        aria-label="Notificaciones"
+      >
         <Bell className="size-4.5" strokeWidth={1.75} />
         <span className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground tabular-nums">
           {evaluations.length}

@@ -75,7 +75,7 @@ export function MarketingHeader() {
               key={s.href}
               href={s.href}
               onClick={() => setMenuOpen(false)}
-              className="border-l-2 border-transparent px-3 py-3 text-base font-medium text-primary transition-colors hover:border-brand-sand hover:text-brand-sand-foreground"
+              className="border-l-2 border-transparent px-3 py-3 text-base font-medium text-primary transition-colors hover:border-brand-gold hover:text-foreground"
             >
               {s.label}
             </Link>

@@ -11,7 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { StatusBadge } from "@/components/status-badge";
 import { ContactStatusBadge } from "@/components/contact-status-badge";
 import { ContactDetailActions } from "@/components/contact-detail-actions";
-import { GreenCard, GreenEmptyState } from "@/components/ui/green-card";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SectionTitle } from "@/components/ui/section-title";
 
 const VALID_ROLES: RoleBucket[] = ["arrendador", "arrendatario", "corredor"];
@@ -71,44 +72,40 @@ export default async function ContactDetailPage({
       </div>
 
       {row.status === "pendiente" ? (
-        <GreenEmptyState message="Todavía no confirmó su cuenta — no hay propiedades ni contratos que mostrar hasta que acepte la invitación." />
+        <EmptyState message="Todavía no confirmó su cuenta — no hay propiedades ni contratos que mostrar hasta que acepte la invitación." />
       ) : (
         <>
-          <GreenCard className="p-0">
-            <div className="border-b border-white/12 px-4 py-3">
-              <SectionTitle onGreen>Propiedades asociadas</SectionTitle>
+          <Card className="p-0">
+            <div className="border-b px-4 py-3">
+              <SectionTitle>Propiedades asociadas</SectionTitle>
             </div>
             {properties.length > 0 ? (
-              <div className="divide-y divide-white/12">
+              <div className="divide-y">
                 {properties.map((p) => (
-                  <Link key={p.id} href={`/properties/${p.id}`} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 sm:px-6">
+                  <Link key={p.id} href={`/properties/${p.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 sm:px-6">
                     <span className="truncate text-sm font-bold">{p.address}</span>
                   </Link>
                 ))}
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2 py-10 text-center">
-                <Home className="size-7 text-white/70" strokeWidth={1.5} />
-                <p className="text-sm text-white">Sin propiedades asociadas todavía.</p>
+                <Home className="size-7 text-muted-foreground" strokeWidth={1.5} />
+                <p className="text-sm text-muted-foreground">Sin propiedades asociadas todavía.</p>
               </div>
             )}
-          </GreenCard>
+          </Card>
 
-          <GreenCard className="p-0">
-            <div className="border-b border-white/12 px-4 py-3">
-              <SectionTitle onGreen>Contratos asociados</SectionTitle>
+          <Card className="p-0">
+            <div className="border-b px-4 py-3">
+              <SectionTitle>Contratos asociados</SectionTitle>
             </div>
             {contracts.length > 0 ? (
-              <div className="divide-y divide-white/12">
+              <div className="divide-y">
                 {contracts.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/contracts/${c.id}`}
-                    className="flex items-center justify-between gap-3 px-4 py-3 text-white hover:bg-white/10 sm:px-6"
-                  >
+                  <Link key={c.id} href={`/contracts/${c.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 sm:px-6">
                     <div className="min-w-0 space-y-1">
                       <p className="truncate text-sm font-bold">{c.propertyAddress}</p>
-                      <p className="text-xs text-white">{formatMoney(c.rentAmount, c.rentCurrency)}/mes</p>
+                      <p className="text-xs text-muted-foreground">{formatMoney(c.rentAmount, c.rentCurrency)}/mes</p>
                     </div>
                     <StatusBadge status={c.status} />
                   </Link>
@@ -116,11 +113,11 @@ export default async function ContactDetailPage({
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2 py-10 text-center">
-                <FileText className="size-7 text-white/70" strokeWidth={1.5} />
-                <p className="text-sm text-white">Sin contratos asociados todavía.</p>
+                <FileText className="size-7 text-muted-foreground" strokeWidth={1.5} />
+                <p className="text-sm text-muted-foreground">Sin contratos asociados todavía.</p>
               </div>
             )}
-          </GreenCard>
+          </Card>
         </>
       )}
 

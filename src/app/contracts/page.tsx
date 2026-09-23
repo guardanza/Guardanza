@@ -6,10 +6,9 @@ import { one } from "@/lib/supabase/one";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
-import { GreenCard, GreenEmptyState } from "@/components/ui/green-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StaggerGroup, StaggerItem } from "@/components/motion/stagger";
-import { cn } from "@/lib/utils";
 
 export default async function ContractsPage() {
   const supabase = await createClient();
@@ -74,23 +73,22 @@ export default async function ContractsPage() {
 
       {contracts && contracts.length > 0 ? (
         <>
-          {/* Tarjetas verdes en mobile; tabla (sin tocar, blanca) desde sm+
-              — una tabla densa de 4 columnas no es una "tarjeta de
-              contenido", es otro patrón visual, el mockup de referencia
-              tampoco lo cubre. */}
+          {/* Tarjetas blancas en mobile; tabla desde sm+ — una tabla densa
+              de 4 columnas no es una tarjeta de contenido, es otro patrón
+              visual. */}
           <StaggerGroup as="div" className="space-y-3 sm:hidden">
             {contracts.map((c) => (
               <StaggerItem as="div" key={c.id}>
                 <Link href={`/contracts/${c.id}`}>
-                  <GreenCard className="space-y-1.5 p-3.5 transition-shadow hover:shadow-[0_4px_16px_rgba(20,67,47,0.26)]">
+                  <Card className="space-y-1.5 p-3.5">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-bold text-white">{one(c.properties)?.address ?? c.id}</p>
+                      <p className="text-sm font-bold text-foreground">{one(c.properties)?.address ?? c.id}</p>
                       <StatusBadge status={c.status} />
                     </div>
-                    <p className="text-xs text-white">
+                    <p className="text-xs text-muted-foreground">
                       {c.guarantee_amount} {c.guarantee_currency} · {roleByContract.get(c.id) ?? fallbackRole}
                     </p>
-                  </GreenCard>
+                  </Card>
                 </Link>
               </StaggerItem>
             ))}
@@ -134,15 +132,12 @@ export default async function ContractsPage() {
           </Card>
         </>
       ) : (
-        <GreenEmptyState
+        <EmptyState
           icon={FileText}
           message={emptyStateHint?.message ?? ""}
           action={
             emptyStateHint && (
-              <Link
-                href={emptyStateHint.cta.href}
-                className={cn(buttonVariants({ size: "sm" }), "bg-white text-brand-green-card-deep-border hover:bg-white/90")}
-              >
+              <Link href={emptyStateHint.cta.href} className={buttonVariants({ size: "sm" })}>
                 {emptyStateHint.cta.label}
               </Link>
             )

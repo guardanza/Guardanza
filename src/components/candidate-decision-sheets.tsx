@@ -69,6 +69,7 @@ export function AdjudicateCandidateSheet({
   hasLandlord,
   propertyId,
   disabled = false,
+  variant = "default",
   triggerClassName,
 }: {
   href: string;
@@ -81,13 +82,17 @@ export function AdjudicateCandidateSheet({
   // seguir llegando a /contracts/new directo, esto solo evita el atajo
   // más obvio desde acá.
   disabled?: boolean;
+  // "outline" para la tarjeta de candidato (contorno dorado, es la
+  // acción secundaria junto a "Ver") — "default" (carbón relleno) sigue
+  // siendo el que corresponde en cualquier otro lugar que use este sheet.
+  variant?: "default" | "outline";
   triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button type="button" size="sm" disabled={disabled} onClick={() => setOpen(true)} className={triggerClassName}>
+      <Button type="button" variant={variant} size="sm" disabled={disabled} onClick={() => setOpen(true)} className={triggerClassName}>
         Adjudicar
       </Button>
       <BottomSheet open={open} onOpenChange={setOpen}>

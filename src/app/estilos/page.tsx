@@ -20,8 +20,10 @@ import { MoneyAmountInput } from "@/components/money-amount-input";
 import { ContactCard } from "@/components/contact-card";
 import { CandidateCard } from "@/components/candidate-card";
 import { PropertyCard } from "@/components/property-card";
-import { GreenChip, GreenEmptyState } from "@/components/ui/green-card";
-import { GreenInfoBox, GreenInfoRow } from "@/components/ui/green-info-box";
+import { CarbonCard, BrandChip } from "@/components/ui/carbon-card";
+import { CarbonInfoBox, CarbonInfoRow } from "@/components/ui/carbon-info-box";
+import { InfoBox, InfoRow } from "@/components/ui/info-box";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SectionTitle } from "@/components/ui/section-title";
 import { TokenSwatch, TypeSample, BottomSheetDemo } from "./interactive";
 import { noopAction } from "./noop-action";
@@ -99,24 +101,28 @@ export default function EstilosPage() {
         </nav>
       </div>
 
-      <Section id="logo" title="Logo" description="Escudo bicolor con muesca en V, SVG inline (src/components/logo.tsx) — no un PNG, así se ve nítido a cualquier tamaño.">
+      <Section
+        id="logo"
+        title="Logo"
+        description="Escudo bicolor con muesca en V, SVG inline (src/components/logo.tsx) — no un PNG, así se ve nítido a cualquier tamaño. Dorado fijo (#a8822f/#e0b85c): no cambia entre fondo claro y carbón, los dos tonos tienen contraste de sobra contra ambos (ver la sección Colores)."
+      >
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6">
             <LogoMark size={40} />
             <p className="text-xs text-muted-foreground">
-              <code className="font-mono">{"<LogoMark />"}</code> — solo el escudo, tamaño ajustable por prop.
+              <code className="font-mono">{"<LogoMark />"}</code> — solo el escudo. Mismo color siempre, sobre cualquier fondo.
             </p>
           </div>
           <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6">
             <Logo />
             <p className="text-xs text-muted-foreground">
-              <code className="font-mono">{"<Logo />"}</code> — escudo + wordmark, el uso normal (header, sidebar, gate).
+              <code className="font-mono">{"<Logo />"}</code> — escudo + wordmark en texto oscuro, para fondo claro.
             </p>
           </div>
-          <div className="flex flex-col items-center gap-3 rounded-xl bg-brand-forest p-6">
-            <LogoMark size={40} invert />
-            <p className="text-center text-xs text-brand-forest-foreground/80">
-              <code className="font-mono">{"<LogoMark invert />"}</code> — para fondo oscuro/verde. Ningún lugar de la app lo usa hoy; queda listo.
+          <div className="flex flex-col items-center gap-3 rounded-xl bg-primary p-6">
+            <Logo invert />
+            <p className="text-center text-xs text-white/80">
+              <code className="font-mono">{"<Logo invert />"}</code> — wordmark en blanco, para fondo carbón (sidebar, header mobile, login, gate).
             </p>
           </div>
         </div>
@@ -127,45 +133,41 @@ export default function EstilosPage() {
         title="Colores"
         description="Cada bloque lee su propio color ya resuelto por el navegador (no un hex tipeado a mano) — el nombre técnico es la clase de Tailwind / variable CSS real."
       >
-        <SubSection title="Colores de marca">
+        <SubSection title="Colores de marca — Carbón + Dorado">
           <div className="grid gap-3 sm:grid-cols-2">
-            <TokenSwatch name="Primary" cssVar="--primary · bg-primary" swatchClassName="bg-primary text-primary-foreground" usage="Botones y acciones principales, acentos de marca." />
-            <TokenSwatch
-              name="Brand forest"
-              cssVar="--brand-forest · text-brand-forest"
-              swatchClassName="bg-brand-forest text-brand-forest-foreground"
-              usage="Texto de títulos (h1–h6) y el wordmark del logo. Se invierte en modo oscuro — nunca se usa como fondo de tarjeta."
-            />
-            <TokenSwatch
-              name="Green card (75%)"
-              cssVar="--brand-green-card · bg-brand-green-card"
-              swatchClassName="bg-brand-green-card text-brand-green-card-foreground"
-              usage="Fondo de las tarjetas de Contactos y Candidatos 'en evaluación'. Fijo en todos los temas — ver contraste verificado más abajo."
-            />
-            <TokenSwatch
-              name="Green card deep"
-              cssVar="--brand-green-card-deep"
-              swatchClassName="bg-brand-green-card-deep text-white"
-              usage="Variante oscura: candidato con documentos completos, círculo de iniciales."
-            />
-            <TokenSwatch name="Brand gold" cssVar="--brand-gold" swatchClassName="bg-brand-gold text-brand-gold-foreground" usage="Detalle de acento (línea dorada en botón primario), aviso suave de invitar/agregar contacto." />
-            <TokenSwatch name="Brand sand" cssVar="--brand-sand" swatchClassName="bg-brand-sand text-brand-sand-foreground" usage="Botón variant='outline'." />
+            <TokenSwatch name="Carbón" cssVar="--primary / --carbon · bg-primary" swatchClassName="bg-primary text-primary-foreground" usage="Fondo del sidebar y del header mobile, tarjetas destacadas (Detalles de la propiedad, Garantía, estadísticas del dashboard), botón primario." />
+            <TokenSwatch name="Carbón elevado" cssVar="--carbon-elevated · bg-carbon-elevated" swatchClassName="bg-carbon-elevated text-white" usage="Ítem activo del menú lateral, superficies un punto más claras sobre fondo carbón." />
+            <TokenSwatch name="Dorado" cssVar="--brand-gold" swatchClassName="bg-brand-gold text-brand-gold-foreground" usage="Logo, línea bajo los títulos de sección, borde/relleno de acento. Como texto solo funciona sobre carbón (ver nota de contraste abajo)." />
+            <TokenSwatch name="Dorado claro" cssVar="--brand-gold-light" swatchClassName="bg-brand-gold-light text-[#1a1c20]" usage="Montos en las tarjetas destacadas de carbón (9.55:1 sobre carbón) y el ítem activo del menú." />
+            <TokenSwatch name="Dorado oscuro" cssVar="--brand-gold-dark" swatchClassName="bg-brand-gold-dark text-white" usage="Texto dorado pequeño solo sobre fondo claro cuando va en negrita sobre un chip (nunca como texto suelto sobre blanco)." />
+            <TokenSwatch name="Background" cssVar="--background · bg-background" swatchClassName="border border-border bg-background text-foreground" usage="Fondo crema de toda la app, detrás de las tarjetas blancas." />
+          </div>
+          <div className="rounded-xl border border-brand-gold/40 bg-brand-gold/5 p-3 text-xs text-muted-foreground">
+            <strong className="text-foreground">Contraste del dorado, verificado (no asumido):</strong> el dorado como texto sobre blanco es débil — dorado
+            oscuro sobre blanco da 3.56:1 (pasa solo texto grande) y el dorado base da 2.40:1 (no pasa). Sobre carbón es excelente: 7.48:1 a 9.55:1. Por
+            eso el dorado como color de TEXTO se usa solo sobre fondo carbón; sobre fondo claro el dorado va como borde, línea bajo el título, relleno de
+            barra de progreso, o como fondo de chip con texto dorado oscuro encima (nunca como texto suelto sobre blanco).
           </div>
         </SubSection>
 
-        <SubSection title="Colores funcionales (significado, no marca)">
+        <SubSection title="Colores funcionales (significado, no marca — desacoplados del dorado)">
           <div className="grid gap-3 sm:grid-cols-2">
             <TokenSwatch name="Destructive" cssVar="--destructive" swatchClassName="bg-destructive text-white" usage="Peligro / eliminar — botón destructive, ícono de descartar." />
             <TokenSwatch
               name="Success"
               cssVar="--success"
               swatchClassName="bg-success text-success-foreground"
-              usage="Estado positivo: confirmado, activo, pagado. Mismo verde que Primary, unificado a propósito."
+              usage="Estado positivo: confirmado, activo, pagado. Verde funcional, ya no ligado a la marca."
             />
             <TokenSwatch name="Info" cssVar="--info" swatchClassName="bg-info text-info-foreground" usage="Algo sobre la mesa (ej. propuesta de término de contrato) — ni éxito ni alarma." />
             <TokenSwatch name="Muted" cssVar="--muted" swatchClassName="bg-muted text-muted-foreground" usage="Neutro en espera: pendiente, cancelado, sin asignar. Nunca rojo." />
             <TokenSwatch name="Secondary" cssVar="--secondary" swatchClassName="bg-secondary text-secondary-foreground" usage="Superficies secundarias, pestañas inactivas alternativas." />
-            <TokenSwatch name="Accent" cssVar="--accent" swatchClassName="bg-accent text-accent-foreground" usage="Estados 'pendiente de acción': firma pendiente, evaluación en curso." />
+            <TokenSwatch
+              name="Accent (ámbar)"
+              cssVar="--accent"
+              swatchClassName="bg-accent text-accent-foreground"
+              usage="Avisos funcionales — propiedad en borrador, RUT requerido, advertencias. Ámbar, no dorado: el dorado ahora es decoración de marca, no significado."
+            />
             <TokenSwatch name="Border" cssVar="--border" swatchClassName="bg-border text-foreground" usage="Bordes y separadores de toda la app." />
             <TokenSwatch name="Surface muted" cssVar="--surface-muted" swatchClassName="bg-surface-muted text-foreground" usage="Superficie en reposo, un punto más clara que Muted (pestañas inactivas de Contactos)." />
           </div>
@@ -214,15 +216,15 @@ export default function EstilosPage() {
           </p>
           <div className="grid gap-2 rounded-xl border border-border bg-card p-4 text-sm">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-xl font-bold text-brand-forest">Título de página</span>
+              <span className="text-xl font-bold text-foreground">Título de página</span>
               <code className="text-xs text-muted-foreground">h1 · text-xl/2xl</code>
             </div>
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-lg font-bold text-brand-forest">Título de sección</span>
+              <span className="text-lg font-bold text-foreground">Título de sección</span>
               <code className="text-xs text-muted-foreground">SectionTitle · text-lg</code>
             </div>
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-sm font-bold text-brand-forest">Nombre del ítem</span>
+              <span className="text-sm font-bold text-foreground">Nombre del ítem</span>
               <code className="text-xs text-muted-foreground">text-sm bold</code>
             </div>
             <div className="flex items-baseline justify-between gap-3">
@@ -238,15 +240,15 @@ export default function EstilosPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-border bg-card p-4">
               <SectionTitle>Detalles de la propiedad</SectionTitle>
-              <p className="mt-1 text-xs text-muted-foreground">Sobre blanco — hereda el verde oscuro de marca (--brand-forest).</p>
+              <p className="mt-1 text-xs text-muted-foreground">Sobre blanco — título casi negro, línea dorada corta debajo.</p>
             </div>
-            <div className="rounded-xl border border-brand-green-card-border bg-brand-green-card p-4">
-              <SectionTitle onGreen>Detalles de la propiedad</SectionTitle>
-              <p className="mt-1 text-xs text-white">
-                Sobre verde (<code className="font-mono">onGreen</code>) — blanco pleno, mismo 3.94:1 ya verificado; a este tamaño (bold ≥18px) sí califica
-                como texto grande para WCAG.
+            <CarbonCard className="p-4">
+              <SectionTitle onCarbon>Detalles de la propiedad</SectionTitle>
+              <p className="mt-1 text-xs text-white/65">
+                Sobre carbón (<code className="font-mono">onCarbon</code>) — título blanco pleno, línea dorada clara debajo; el dorado como texto recién
+                funciona bien acá (7.48–9.55:1), nunca directo sobre blanco.
               </p>
-            </div>
+            </CarbonCard>
           </div>
         </SubSection>
       </Section>
@@ -317,18 +319,13 @@ export default function EstilosPage() {
           </div>
         </SubSection>
 
-        <SubSection title="GreenChip — chips sobre el sistema verde">
+        <SubSection title="BrandChip — chip dorado sobre fondo claro">
           <p className="text-xs text-muted-foreground">
-            Los tres tonos que usan las tarjetas verdes (Contactos, Candidatos, Propiedades…) — <code className="font-mono">solid</code> y{" "}
-            <code className="font-mono">translucent</code> llevan texto verde oscuro (contraste verificado, nunca texto claro sobre translúcido);{" "}
-            <code className="font-mono">deep</code> es el verde sólido más oscuro con texto blanco, para una etiqueta persistente.
+            Fondo dorado suave con texto dorado oscuro encima (4.57:1, compensado con negrita) — el único caso donde el dorado aparece como texto sobre
+            un fondo claro, porque el propio fondo del chip ya no es blanco. Así se ve &quot;En evaluación&quot; en la tarjeta de candidato.
           </p>
-          <div
-            className="flex flex-wrap gap-2 rounded-xl border border-brand-green-card-border bg-brand-green-card p-3"
-          >
-            <GreenChip tone="solid">solid</GreenChip>
-            <GreenChip tone="translucent">translucent</GreenChip>
-            <GreenChip tone="deep">deep</GreenChip>
+          <div className="flex flex-wrap gap-2 rounded-xl border border-border bg-card p-3">
+            <BrandChip>En evaluación</BrandChip>
           </div>
         </SubSection>
       </Section>
@@ -387,8 +384,8 @@ export default function EstilosPage() {
 
         <SubSection title="Tarjeta de propiedad">
           <p className="text-xs text-muted-foreground">
-            Sistema verde nivelado en toda la app (no solo Contactos/Candidatos) — ver <code className="font-mono">src/components/ui/green-card.tsx</code>. Foto arriba a
-            todo el ancho, chip persistente de rol (<code className="font-mono">tone=&quot;deep&quot;</code>) más el chip de estado dinámico.
+            Tarjeta blanca nivelada en toda la app (Contactos, Candidatos, Propiedades…) — ver <code className="font-mono">src/components/property-card.tsx</code>.
+            Foto arriba a todo el ancho, badges de rol y estado debajo.
           </p>
           <div className="max-w-sm">
             <PropertyCard
@@ -398,8 +395,10 @@ export default function EstilosPage() {
               location="Ñuñoa, Región Metropolitana"
               badges={
                 <>
-                  <GreenChip tone="deep">Arrendador</GreenChip>
-                  <GreenChip tone="solid">Arrendatario</GreenChip>
+                  <Badge variant="outline">Arrendador</Badge>
+                  <Badge variant="secondary" className="bg-success/15 text-success">
+                    Ocupada
+                  </Badge>
                 </>
               }
             />
@@ -408,21 +407,26 @@ export default function EstilosPage() {
 
         <SubSection title="Caja de información">
           <p className="text-xs text-muted-foreground">
-            Título + filas rótulo/valor sobre el mismo verde — para fichas de detalle (propiedad, contrato…). Rótulo y valor van los dos en blanco pleno; la jerarquía
-            es de peso, no de color (un valor vacío va en regular, nunca atenuado — ver la fila &quot;Corredor&quot;).
+            Dos variantes del mismo patrón (título + filas rótulo/valor): <code className="font-mono">CarbonInfoBox</code> para fichas &quot;destacadas&quot;
+            (montos en dorado claro) y <code className="font-mono">InfoBox</code> — blanca, texto oscuro — para fichas que no son dinero (ej. Participantes). En
+            ambas, un valor vacío va en regular, nunca atenuado.
           </p>
-          <div className="grid max-w-sm gap-3">
-            <GreenInfoBox title="Participantes">
-              <GreenInfoRow label="Arrendador" value="Juan Pérez" />
-              <GreenInfoRow label="Corredor" value="Sin corredor" valueClassName="font-normal" />
-              <GreenInfoRow label="Arrendatario" value="Ana Torres" />
-            </GreenInfoBox>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <CarbonInfoBox title="Garantía">
+              <CarbonInfoRow label="Valor de arriendo" amount value="UF 12,50" />
+              <CarbonInfoRow label="Estado" value="En custodia" />
+            </CarbonInfoBox>
+            <InfoBox title="Participantes">
+              <InfoRow label="Arrendador" value="Juan Pérez" />
+              <InfoRow label="Corredor" value="Sin corredor" valueClassName="font-normal text-muted-foreground" />
+              <InfoRow label="Arrendatario" value="Ana Torres" />
+            </InfoBox>
           </div>
         </SubSection>
 
         <SubSection title="Estado vacío">
           <div className="max-w-sm">
-            <GreenEmptyState icon={Building2} message="Sin propiedades todavía." />
+            <EmptyState icon={Building2} message="Sin propiedades todavía." />
           </div>
         </SubSection>
 

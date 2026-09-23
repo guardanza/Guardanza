@@ -25,7 +25,10 @@ export function MobileTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 flex h-16 items-stretch justify-around border-t bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
+    // Carbón, igual que el sidebar desktop — es su mismo rol de nav
+    // persistente, solo que en mobile va abajo. Ítem activo en dorado
+    // (7.5:1 sobre este carbón, seguro incluso a este tamaño de texto).
+    <nav className="fixed inset-x-0 bottom-0 z-20 flex h-16 items-stretch justify-around bg-sidebar pb-[env(safe-area-inset-bottom)] md:hidden">
       {links.map((l) => {
         const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
         const Icon = l.icon;
@@ -35,7 +38,7 @@ export function MobileTabBar() {
             href={l.href}
             className={
               "flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium " +
-              (active ? "text-primary" : "text-muted-foreground")
+              (active ? "text-sidebar-primary" : "text-white/50")
             }
           >
             <Icon className="size-5" strokeWidth={active ? 2.4 : 2} />
